@@ -37,6 +37,52 @@ from chemsmart.utils.utils import (
 p = PeriodicTable()
 logger = logging.getLogger(__name__)
 
+#: Route methods whose own per-geometry total Gaussian prints on a line of
+#: its own, most specific first: (name, route-word pattern, line pattern).
+#: The line patterns were read off G16 C.02 logs of water/cc-pVDZ (CUHK
+#: Slurm 2149277), each against the same log's archive entry.
+_GAUSSIAN_METHOD_TOTALS = (
+    ("ccsd(t)", r"^(?:ro|u|r)?ccsd\(t", r"^\s*CCSD\(T\)=\s*(\S+)"),
+    ("qcisd(t)", r"^(?:ro|u|r)?qcisd\(t", r"^\s*QCISD\(T\)=\s*(\S+)"),
+    (
+        "ccsd",
+        r"^(?:ro|u|r)?ccsd(?!\(t)",
+        r"Wavefunction amplitudes converged\.\s+E\(Corr\)=\s*(\S+)",
+    ),
+    (
+        "qcisd",
+        r"^(?:ro|u|r)?qcisd(?!\(t)",
+        r"Wavefunction amplitudes converged\.\s+E\(Corr\)=\s*(\S+)",
+    ),
+    ("mp4(sdq)", r"^(?:ro|u|r)?mp4\(sdq\)", r"UMP4\(SDQ\)=\s*(\S+)"),
+    ("mp4(dq)", r"^(?:ro|u|r)?mp4\(dq\)", r"UMP4\(DQ\)=\s*(\S+)"),
+    ("mp4", r"^(?:ro|u|r)?mp4(?:\(sdtq\))?$", r"UMP4\(SDTQ\)=\s*(\S+)"),
+    ("mp3", r"^(?:ro|u|r)?mp3$", r"EUMP3=\s*(\S+)"),
+)
+
+#: Post-HF route words whose total none of the lines above states: an
+#: energy read for one of them would be a lower level's, so none is read.
+_GAUSSIAN_UNREAD_POST_HF = re.compile(
+    r"^(?:ro|u|r)?(?:ccd|cisd|cid|bd|mp5|cbs-|g[1-4](?:mp2)?$|w1)"
+)
+
+
+def _gaussian_route_method(route_string):
+    """The route's method word, lower case, basis and spin prefix kept off."""
+
+    for token in str(route_string).lower().split():
+        word = token.split("/", 1)[0].strip()
+        if not word or word.startswith("#"):
+            continue
+        if re.match(r"^(?:ro|u|r)?mp2", word):
+            return word
+        if _GAUSSIAN_UNREAD_POST_HF.match(word):
+            return word
+        for _name, method, _line in _GAUSSIAN_METHOD_TOTALS:
+            if re.match(method, word):
+                return word
+    return ""
+
 
 class Gaussian16Output(GaussianFileMixin):
     """Comprehensive parser for Gaussian 16 output files.
@@ -145,24 +191,96 @@ class Gaussian16Output(GaussianFileMixin):
         anchored on the row's own trailing tokens.
         """
 
-        group = self.modredundant_group
-        if not group:
-            return False
-        for line in group:
-            tokens = str(line).split()
-            for index, token in enumerate(tokens):
-                if token.upper() != "S":
-                    continue
-                if len(tokens) - index >= 3:
-                    return True
-        return False
+        from chemsmart.io.gaussian.route import (
+            modredundant_rows_drive_a_scan,
+        )
+
+        return modredundant_rows_drive_a_scan(self.modredundant_group)
 
     @cached_property
     def _route_has_excited_state_block(self):
-        """Whether the route asks for a response (TD/CIS) calculation."""
+        """Whether the route asks for a response (TD/TDA/CIS) calculation.
+
+        ``TDA`` is Gaussian's Tamm-Dancoff keyword, which ChemSmart writes
+        for ``response_method: tda``; a route carrying it and no other job
+        keyword is a fixed-geometry response calculation like ``TD``.
+        """
+
+        from chemsmart.io.gaussian.route import route_requests_response
+
+        return route_requests_response(self.route_string)
+
+    @cached_property
+    def excited_state_request(self):
+        """The response the route asked for, in the shared vocabulary.
+
+        ``{"response_method", "state_manifold", "nstates"}`` read from the
+        route's ``TD(...)``/``TDA(...)`` leaf through the writer's own
+        tables, or None for a route with no such leaf.  ``TD`` is
+        ``tddft`` and ``TDA`` is ``tda``; the spin option is read back to
+        the manifold word it was written for, and a route with no spin
+        option reads ``singlet`` for a closed-shell reference (Gaussian's
+        default) and ``unrestricted`` for an open-shell one.  ``nstates``
+        is Gaussian's default of 3 when the leaf does not name it.
+        """
+
+        from chemsmart.jobs.gaussian.settings import (
+            GAUSSIAN_TD_MANIFOLD_OPTIONS,
+            GAUSSIAN_TD_RESPONSE_KEYWORDS,
+        )
 
         route = self.route_string or ""
-        return bool(re.search(r"(?<![a-z0-9_])(td|cis)(?![a-z0-9_])", route))
+        # ``td(...)``, ``td=(...)``, ``td=word`` or a bare ``td``; an
+        # option list is attached to the keyword, never after a space.
+        match = re.search(
+            r"(?<![a-z0-9_])(tda|td)(?![a-z0-9_])"
+            r"(?:\s*=?\s*\(([^)]*)\)|=([^\s(]+))?",
+            route,
+        )
+        if match is None:
+            return None
+        keyword = match.group(1)
+        body = match.group(2) or match.group(3) or ""
+        options = [item.strip() for item in body.split(",") if item.strip()]
+        response = next(
+            word
+            for word, native in GAUSSIAN_TD_RESPONSE_KEYWORDS.items()
+            if native.lower() == keyword
+        )
+        manifold_by_option = {
+            option: word
+            for word, option in GAUSSIAN_TD_MANIFOLD_OPTIONS.items()
+            if option is not None
+        }
+        manifold = None
+        nstates = 3
+        for option in options:
+            if option in manifold_by_option:
+                manifold = manifold_by_option[option]
+            elif option.startswith("nstates="):
+                try:
+                    nstates = int(option.split("=", 1)[1])
+                except ValueError:
+                    pass
+        if manifold is None:
+            multiplicity = getattr(self, "multiplicity", None)
+            manifold = (
+                "unrestricted"
+                if multiplicity is not None and int(multiplicity) != 1
+                else "singlet"
+            )
+        elif manifold != "unrestricted":
+            multiplicity = getattr(self, "multiplicity", None)
+            if multiplicity is not None and int(multiplicity) != 1:
+                # Gaussian's spin options act on closed shells only; an
+                # open-shell reference ran its one manifold whatever the
+                # route said.
+                manifold = "unrestricted"
+        return {
+            "response_method": response,
+            "state_manifold": manifold,
+            "nstates": nstates,
+        }
 
     @property
     def heavy_elements(self):
@@ -1586,16 +1704,129 @@ class Gaussian16Output(GaussianFileMixin):
         return layer_energies
 
     @cached_property
+    def energy_source(self):
+        """Which printed total ``energies`` reads: the route method's own.
+
+        Gaussian prints every lower level on the way to the one a route
+        asks for -- a CCSD(T) run prints EUMP2, EUMP3 and the MP4 partial
+        sums before ``CCSD(T)=`` -- and a double hybrid's ``SCF Done`` is
+        its SCF part only.  Reading "any EUMP2 line, else SCF Done" served
+        the MP2 total for MP3, MP4, CCSD, CCSD(T) and QCISD(T) routes,
+        7-13 mEh off on water/cc-pVDZ, the SCF part of B2PLYP 65 mEh off,
+        and the ground state of a TD optimisation whose surface is the
+        root (CUHK Slurm 2149277).  A route method this table does not
+        know answers ``unrecognized_post_hf``, and ``energies`` is then
+        empty: no number rather than a lower level's.
+        """
+
+        if self.oniom_energies:
+            return "oniom"
+        method = _gaussian_route_method(self.route_string or "")
+        for name, pattern, _line in _GAUSSIAN_METHOD_TOTALS:
+            if re.match(pattern, method):
+                return name
+        if re.match(r"^(?:ro|u|r)?mp2", method):
+            return "mp2"
+        if _GAUSSIAN_UNREAD_POST_HF.match(method):
+            return "unrecognized_post_hf"
+        if self.double_hybrid_energies:
+            return "double_hybrid"
+        if self._route_has_excited_state_block and self.jobtype not in (
+            None,
+            "sp",
+            "td",
+        ):
+            return "td_root"
+        return "scf"
+
+    @property
+    def correlated_method(self):
+        """The correlated method whose surface ``energies`` is on, or None.
+
+        Named for the electronic-provenance resolver: the MP-n, CC, QCI and
+        double-hybrid totals are correlated surfaces while the dipole and
+        populations beside them are the SCF reference's.
+        """
+
+        source = self.energy_source
+        if source in {"scf", "oniom", "td_root", "unrecognized_post_hf"}:
+            return None
+        if source == "double_hybrid":
+            return "double_hybrid"
+        return source
+
+    @property
+    def excited_state_followed_root(self):
+        """The root a TD optimisation followed, or None for any other job.
+
+        ``td(root=N)`` names it; Gaussian's default root is 1.
+        """
+
+        if self.energy_source != "td_root":
+            return None
+        match = re.search(r"root\s*=\s*(\d+)", self.route_string or "")
+        return int(match.group(1)) if match else 1
+
+    @cached_property
+    def double_hybrid_energies(self):
+        """A double hybrid's totals, ``E(<name>) =`` beside its E2 term."""
+
+        pattern = re.compile(
+            r"E2\((?P<name>[^)]+)\)\s*=\s*\S+\s+E\((?P=name)\)\s*=\s*(\S+)"
+        )
+        values = []
+        for line in self.contents:
+            match = pattern.search(line)
+            if match:
+                values.append(float(match.group(2).replace("D", "E")))
+        return values
+
+    @cached_property
+    def excited_state_total_energies(self):
+        """``Total Energy, E(TD-HF/TD-DFT)`` -- the followed root's total."""
+
+        pattern = re.compile(
+            r"Total Energy, E\(TD-HF/TD-DFT\)\s*=\s*(-?\d+\.\d+)"
+        )
+        values = []
+        for line in self.contents:
+            match = pattern.search(line)
+            if match:
+                values.append(float(match.group(1)))
+        return values
+
+    @cached_property
     def energies(self):
         """
-        Return energies of the system.
+        Return the energies of the system on the surface the route asks for.
+
+        One value per geometry the run computed, of the quantity
+        ``energy_source`` names.
         """
-        if len(self.mp2_energies) == 0 and len(self.oniom_energies) == 0:
-            return self.scf_energies
-        elif len(self.mp2_energies) != 0:
-            return self.mp2_energies
-        elif len(self.oniom_energies) != 0:
+        source = self.energy_source
+        if source == "oniom":
             return self.oniom_energies
+        if source == "scf":
+            return self.scf_energies
+        if source == "mp2":
+            return self.mp2_energies
+        if source == "double_hybrid":
+            return self.double_hybrid_energies
+        if source == "td_root":
+            return self.excited_state_total_energies
+        if source == "unrecognized_post_hf":
+            return []
+        line_pattern = next(
+            line
+            for name, _method, line in _GAUSSIAN_METHOD_TOTALS
+            if name == source
+        )
+        values = []
+        for line in self.contents:
+            match = re.search(line_pattern, line)
+            if match:
+                values.append(float(match.group(1).replace("D", "E")))
+        return values
 
     @cached_property
     def zero_point_energy(self):
@@ -1854,6 +2085,76 @@ class Gaussian16Output(GaussianFileMixin):
                 return float(line.split()[-1])
         return None
 
+    @cached_property
+    def converged(self):
+        """Whether a geometry optimisation in this log converged.
+
+        A tri-state, as ORCA's reader has it: ``False`` where Gaussian
+        printed ``Optimization stopped.`` (its step limit, "Number of steps
+        exceeded"), ``True`` where it printed ``Optimization completed.``
+        and never stopped, ``None`` where no optimisation marker exists at
+        all.  A constrained optimisation converges on its free coordinates
+        and says so in the same words; the archived failed constrained
+        optimisation in this repository says ``Optimization stopped.``
+        after 58 steps.
+        """
+
+        saw_completed = False
+        for line in self.contents:
+            if "Optimization stopped." in line:
+                return False
+            if "Optimization completed." in line:
+                saw_completed = True
+        return True if saw_completed else None
+
+    @cached_property
+    def held_internal_coordinates(self):
+        """The internal coordinates a constrained optimisation froze.
+
+        Read from the ModRedundant rows Gaussian echoes, a frozen row ending
+        ``F``: its letter (``B``, ``A``, ``D``) or its atom count says
+        which kind, the one-based atoms follow, and a number among them is
+        a value Gaussian was told to set before freezing.  A Cartesian
+        (``X``) freeze is not an internal coordinate and is not listed.
+        ``[{"kind", "atoms", "value", "label"}]`` in the order echoed; an
+        unfrozen or unparseable row is skipped rather than guessed.
+        """
+
+        kinds = {2: "bond", 3: "angle", 4: "dihedral"}
+        letters = {"B": 2, "A": 3, "D": 4}
+        held = []
+        for line in self.modredundant_group or ():
+            tokens = str(line).split()
+            if len(tokens) < 3 or tokens[-1].upper() != "F":
+                continue
+            body = tokens[:-1]
+            letter = body[0].upper() if body[0].isalpha() else ""
+            if letter and letter not in letters:
+                continue
+            atoms = []
+            value = None
+            for token in body[1:] if letter else body:
+                if token.isdigit():
+                    atoms.append(int(token))
+                    continue
+                try:
+                    value = float(token)
+                except ValueError:
+                    atoms = []
+                    break
+            kind = kinds.get(len(atoms))
+            if kind is None or (letter and letters[letter] != len(atoms)):
+                continue
+            held.append(
+                {
+                    "kind": kind,
+                    "atoms": tuple(atoms),
+                    "value": value,
+                    "label": " ".join(tokens),
+                }
+            )
+        return held
+
     # check for convergence criterion not met (happens for some output files)
     @property
     def convergence_criterion_not_met(self):
@@ -2064,10 +2365,17 @@ class Gaussian16Output(GaussianFileMixin):
 
         Gaussian writes the spin label on each ``Excited State`` line for a
         closed-shell TD calculation (for example ``Singlet-A`` or
-        ``Triplet-A``).  Open-shell response calculations can instead print
-        labels such as ``2.316-A``; those labels do *not* establish a spin
-        multiplicity and are deliberately reported as unresolved rather than
-        inferred from ``<S**2>``.
+        ``Triplet-A``), in ascending energy across both spin blocks, so
+        ``state_index`` is the rank and ``manifold_root`` the rank within
+        the root's own block (S_k, T_k).
+
+        An open-shell reference has one spin-conserving manifold whose
+        roots are not spin eigenfunctions.  Gaussian labels each with the
+        effective 2S+1 of its ``<S**2>`` -- ``2.316-A``, or ``Doublet-A``
+        where that rounds -- so the label is Gaussian's estimate and not a
+        multiplicity: every root of that manifold is reported with the
+        multiplicity unresolved, as ORCA's and PySCF's readers report it,
+        and ranked within the one manifold.
         """
 
         number = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][-+]?\d+)?"
@@ -2085,6 +2393,8 @@ class Gaussian16Output(GaussianFileMixin):
             "quintet": 5,
             "sextet": 6,
         }
+        request = self.excited_state_request or {}
+        unrestricted = request.get("state_manifold") == "unrestricted"
         manifold_counts = {}
         records = []
         for line in self.contents:
@@ -2095,9 +2405,11 @@ class Gaussian16Output(GaussianFileMixin):
                 match.groups()
             )
             label_family = label.split("-", 1)[0].casefold()
-            multiplicity = multiplicities.get(label_family)
+            multiplicity = (
+                None if unrestricted else multiplicities.get(label_family)
+            )
             manifold_root = None
-            if multiplicity is not None:
+            if multiplicity is not None or unrestricted:
                 manifold_counts[multiplicity] = (
                     manifold_counts.get(multiplicity, 0) + 1
                 )
@@ -2122,7 +2434,68 @@ class Gaussian16Output(GaussianFileMixin):
                     ),
                 }
             )
+        dominants = self.excited_state_dominant_excitations
+        if len(dominants) == len(records):
+            for record, dominant in zip(records, dominants):
+                record["dominant_excitation"] = dominant
         return records
+
+    @cached_property
+    def electron_counts(self):
+        """``(alpha, beta)`` electrons, as Gaussian's last count prints them."""
+
+        pattern = re.compile(
+            r"^\s*(\d+)\s+alpha electrons\s+(\d+)\s+beta electrons"
+        )
+        counts = None
+        for line in self.contents:
+            match = pattern.match(line)
+            if match is not None:
+                counts = (int(match.group(1)), int(match.group(2)))
+        return counts
+
+    @cached_property
+    def excited_state_dominant_excitations(self):
+        """Each root's largest single excitation, relative to the frontier.
+
+        One entry per ``Excited State`` line (the order of
+        ``excited_state_records``): ``(occupied_offset, virtual_offset,
+        weight, channel)`` with the occupied orbital counted from the HOMO
+        (0, -1, ...) and the virtual from the LUMO (0, 1, ...) of its own
+        spin, ``channel`` 0 for a spin-adapted root and +1/-1 for an alpha
+        or beta excitation of an unrestricted one.  Gaussian prints the
+        coefficient c of each ``i -> a`` excitation (``i <- a`` lines are
+        de-excitations and are not candidates); its weight is 2c^2 for a
+        spin-adapted root and c^2 for an unrestricted one, so the weights
+        of a Tamm-Dancoff root sum to one.  None for a root that printed no
+        excitation, or when the electron count is not printed.
+        """
+
+        counts = self.electron_counts
+        transitions = self.transitions
+        coefficients = self.contribution_coefficients
+        entries = []
+        for pairs, values in zip(transitions, coefficients):
+            best = None
+            for pair, value in zip(pairs, values):
+                source, arrow, target = pair.split()
+                if arrow != "->" or counts is None:
+                    continue
+                spin = source[-1] if source[-1] in "AB" else ""
+                occupied = int(source.rstrip("AB"))
+                virtual = int(target.rstrip("AB"))
+                homo = counts[1] if spin == "B" else counts[0]
+                weight = float(value) ** 2 * (1.0 if spin else 2.0)
+                entry = (
+                    occupied - homo,
+                    virtual - homo - 1,
+                    weight,
+                    {"": 0, "A": 1, "B": -1}[spin],
+                )
+                if best is None or weight > best[2]:
+                    best = entry
+            entries.append(best)
+        return entries
 
     @cached_property
     def tddft_transitions(self):

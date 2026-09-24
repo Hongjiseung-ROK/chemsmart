@@ -472,6 +472,15 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     # R10 Q1 claims: append entries below this line
     # R10 Q1 claims: end
     # R10 Q2 one name, one physics: append entries below this line
+    (
+        "chemsmart/analysis/result_readers.py",
+        "<module>",
+        "PRINTED_THERMOCHEMISTRY_CONVENTIONS",
+        ("gaussian", "xtb"),
+    ): _DECLARATION
+    + ": what each program's own printed free energy is, measured by "
+    "oracle O1 (R10 Q5); a program missing here is described as its own, "
+    "never assumed to be the host's",
     # R10 Q2 one name, one physics: end
     # R10 Q3 knowledge: append entries below this line
     # R10 Q3 knowledge: end

@@ -293,6 +293,79 @@ QUASI_HARMONIC_THERMOCHEMISTRY_QUANTITIES: tuple[str, ...] = (
     "quasi_harmonic_thermal_gibbs_correction",
 )
 
+#: A quasi-harmonic treatment never changes what a harmonic name means: it
+#: adds a counterpart beside it.  A Grimme receipt's ``gibbs_free_energy``
+#: is the RRHO value and its Grimme value is
+#: ``quasi_harmonic_gibbs_free_energy``; the receipt carries both, so one
+#: receipt can measure the spread between them.  Keyed by the harmonic
+#: name: the counterpart, and which requested treatment writes it --
+#: ``entropy`` (Grimme or Truhlar), ``enthalpy`` (a Head-Gordon enthalpy
+#: cutoff) or ``either``.
+#:
+#: The writer (``derive_result_thermochemistry``), the plan-time contract
+#: and the planning schema all read this one table.  They were three: the
+#: schema listed only the harmonic kinds, the executor binds a planned
+#: output by its kind, and two live campaigns planned Grimme nodes whose
+#: outputs were the harmonic ``gibbs_free_energy`` -- one delivered an
+#: entropy-model uncertainty of exactly 0.0 kcal/mol where the same
+#: receipts give 0.3564 (po3-r19 cycle 5), the other fed ten harmonic Gibbs
+#: energies into a pKa under a review that said Grimme.
+QUASI_HARMONIC_COUNTERPARTS: Mapping[str, tuple[str, str]] = {
+    "entropy": ("quasi_harmonic_entropy", "entropy"),
+    "entropy_times_temperature": (
+        "quasi_harmonic_entropy_times_temperature",
+        "entropy",
+    ),
+    "enthalpy": ("quasi_harmonic_enthalpy", "enthalpy"),
+    "gibbs_free_energy": ("quasi_harmonic_gibbs_free_energy", "either"),
+    "thermal_gibbs_correction": (
+        "quasi_harmonic_thermal_gibbs_correction",
+        "either",
+    ),
+}
+
+
+def quasi_harmonic_counterparts_for_treatment(
+    entropy_method: str | None = "rrho",
+    enthalpy_cutoff_cm1: float | None = None,
+) -> dict[str, str]:
+    """Harmonic name -> the quasi-harmonic counterpart this treatment writes.
+
+    Empty for a strictly harmonic request, which writes no counterpart.
+    """
+
+    entropy = str(entropy_method or "rrho").strip().lower() != "rrho"
+    enthalpy = enthalpy_cutoff_cm1 is not None
+    written = {
+        "entropy": entropy,
+        "enthalpy": enthalpy,
+        "either": entropy or enthalpy,
+    }
+    return {
+        harmonic: counterpart
+        for harmonic, (
+            counterpart,
+            needs,
+        ) in QUASI_HARMONIC_COUNTERPARTS.items()
+        if written[needs]
+    }
+
+
+def thermochemistry_quantities_for_treatment(
+    entropy_method: str | None = "rrho",
+    enthalpy_cutoff_cm1: float | None = None,
+) -> tuple[str, ...]:
+    """Every quantity id one receipt carries under this treatment."""
+
+    names = set(DERIVABLE_THERMOCHEMISTRY_QUANTITIES)
+    names.update(
+        quasi_harmonic_counterparts_for_treatment(
+            entropy_method, enthalpy_cutoff_cm1
+        ).values()
+    )
+    return tuple(sorted(names))
+
+
 #: Names a scientist may reasonably use for one of the canonical IDs.  The
 #: receipt writes the canonical name, so the plan-time contract and the
 #: completion matcher both resolve through this one table.
@@ -312,13 +385,19 @@ def canonical_thermochemistry_quantity(name: str) -> str:
 
 def derivable_thermochemistry_quantities(
     entropy_method: str | None = "rrho",
+    enthalpy_cutoff_cm1: float | None = None,
 ) -> tuple[str, ...]:
-    """Return the quantity IDs a receipt will carry for this entropy method."""
+    """Return the quantity IDs a receipt will carry for this treatment.
 
-    names = set(DERIVABLE_THERMOCHEMISTRY_QUANTITIES)
-    if str(entropy_method or "rrho").strip().lower() != "rrho":
-        names.update(QUASI_HARMONIC_THERMOCHEMISTRY_QUANTITIES)
-    return tuple(sorted(names))
+    The enthalpy cutoff is part of the treatment: a Head-Gordon request
+    writes ``quasi_harmonic_enthalpy`` and a quasi-harmonic Gibbs energy
+    even under harmonic entropy, and a table keyed on the entropy method
+    alone told a plan those did not exist.
+    """
+
+    return thermochemistry_quantities_for_treatment(
+        entropy_method, enthalpy_cutoff_cm1
+    )
 
 
 def thermochemistry_route_hint(selectors) -> str:
@@ -337,7 +416,9 @@ def thermochemistry_route_hint(selectors) -> str:
     """
 
     derivable = set(derivable_thermochemistry_quantities(None))
-    derivable.update(QUASI_HARMONIC_THERMOCHEMISTRY_QUANTITIES)
+    derivable.update(
+        counterpart for counterpart, _ in QUASI_HARMONIC_COUNTERPARTS.values()
+    )
     matched = sorted(
         {
             str(item)
@@ -1607,11 +1688,18 @@ def _thermo_quantity(
 
 def _thermochemistry_assumptions(
     request: ThermochemistryRequestV1,
+    engine_statements: Sequence[str] = (),
 ) -> tuple[str, ...]:
     # PySCF receipts used to keep a shorter "legacy" assumption list at
     # default settings that never named the standard state; every program's
     # receipt now says the same things, and a PySCF receipt additionally
     # says which mass table produced its frequencies (below).
+    #
+    # The symmetry number used to be announced here as "derived by the
+    # shared ChemSmart engine" while the engine read each program's own
+    # printed value -- 1 from ORCA 6.0.1 for D-infinity-h CO2, 2 from
+    # Gaussian and xTB for the same molecule. The engine now counts it and
+    # says which number it used, and what the program had said, itself.
     assumptions = [
         "rigid-rotor harmonic-oscillator thermochemistry for harmonic quantities",
         "ground-state electronic degeneracy equals spin multiplicity",
@@ -1620,7 +1708,7 @@ def _thermochemistry_assumptions(
             if request.use_weighted_mass
             else "most-abundant isotopic masses"
         ),
-        "rotational symmetry derived by the shared ChemSmart engine",
+        *engine_statements,
         (
             "frequency scale factor 1.0; no frequency scaling"
             if request.frequency_scale_factor == 1.0
@@ -2002,11 +2090,25 @@ def derive_result_thermochemistry(
                 ),
             ]
         )
+    # The table a plan is checked against is the table this writer keeps:
+    # a quantity written here and missing there is one a plan cannot name,
+    # and one listed there and not written here is one a plan is promised.
+    written = tuple(sorted(item.quantity_id for item in quantities))
+    promised = thermochemistry_quantities_for_treatment(
+        request.entropy_method, request.enthalpy_cutoff_cm1
+    )
+    if written != promised:
+        raise QuantityContractError(
+            "thermochemistry writer and its quantity table disagree: wrote "
+            f"{list(written)}, the table promises {list(promised)}"
+        )
     if result_file_sha256(artifact) != request.artifact_sha256:
         raise QuantityExtractionError(
             "result artifact changed during thermochemistry derivation"
         )
-    assumptions = _thermochemistry_assumptions(request)
+    assumptions = _thermochemistry_assumptions(
+        request, engine.convention_statements
+    )
     body = {
         "schema_version": "chemsmart.thermochemistry-receipt.v1",
         "artifact_id": request.artifact_id,

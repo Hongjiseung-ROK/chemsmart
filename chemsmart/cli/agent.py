@@ -495,6 +495,16 @@ def review(
     "the headroom and holds the request to the profile alone, which is "
     "the escape for a profile too small to leave anything above it.",
 )
+@click.option(
+    "--reading-turn/--no-reading-turn",
+    default=False,
+    show_default=True,
+    help="Whether a certified delivery is read by one further session "
+    "before the goal settles. The reading launches no engine, admits no "
+    "revision and cannot change the settlement word; what it finds in "
+    "the results is recorded beside that word. It costs provider tokens "
+    "and wall time.",
+)
 def goal(
     task,
     task_file,
@@ -511,6 +521,7 @@ def goal(
     dispatch,
     server,
     sealed,
+    reading_turn,
 ):
     """Drive one goal to settlement under one human decision.
 
@@ -550,6 +561,7 @@ def goal(
             dispatch=dispatch,
             server=server,
             sealed=sealed,
+            reading_turn=reading_turn,
         )
     except ContractError as exc:
         raise click.ClickException(str(exc)) from exc
@@ -573,21 +585,9 @@ def _goal_result_json(result) -> str:
 @agent.command("capabilities")
 @click.option(
     "--kind",
-    type=click.Choice(
-        [
-            "program_jobtype",
-            "tool",
-            "selector",
-            "operation",
-            "predicate",
-            "constant",
-            "skill",
-            "guide",
-            "rule",
-        ]
-    ),
+    type=str,
     default=None,
-    help="Show one kind only.",
+    help="Show one kind only (any kind the capability registry carries).",
 )
 @click.option(
     "--tests",
@@ -603,9 +603,19 @@ def capabilities(kind, tests_root, as_json):
     judge, or a claim without a run behind it, says so out loud."""
 
     from chemsmart.agent.capability_registry import (
+        CAPABILITY_KINDS,
         build_capability_registry,
         render_capability_matrix,
     )
+
+    # The registry owns the list of kinds; a hand-written copy here once
+    # offered a kind that no longer existed and refused five that did.
+    if kind is not None and kind not in CAPABILITY_KINDS:
+        raise click.BadParameter(
+            f"{kind!r} is not a capability kind; the kinds are: "
+            + ", ".join(CAPABILITY_KINDS),
+            param_hint="'--kind'",
+        )
 
     if tests_root is None:
         # An instrument must be shown able to report red: without a tests

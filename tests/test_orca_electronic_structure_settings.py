@@ -82,7 +82,7 @@ def test_scf_block_carries_the_reference_determinant():
 def test_scf_block_opens_for_a_reference_without_convergence_settings():
     settings = ORCAJobSettings(
         jobtype="sp",
-        functional="bp86",
+        functional="bp86-pw92",
         basis="def2-svp",
         reference="uhf",
         charge=0,
@@ -96,7 +96,7 @@ def test_scf_block_opens_for_a_reference_without_convergence_settings():
 def test_blocks_are_absent_when_nothing_is_requested():
     settings = ORCAJobSettings(
         jobtype="sp",
-        functional="bp86",
+        functional="bp86-pw92",
         basis="def2-svp",
         charge=0,
         multiplicity=1,
@@ -110,7 +110,7 @@ def test_restricted_closed_shell_reference_is_refused_for_an_open_shell():
     with pytest.raises(ValueError, match="cannot represent multiplicity"):
         ORCAJobSettings(
             jobtype="sp",
-            functional="bp86",
+            functional="bp86-pw92",
             basis="def2-svp",
             reference="rhf",
             charge=0,
@@ -122,7 +122,7 @@ def test_relativistic_hamiltonian_requires_a_recontracted_basis():
     with pytest.raises(ValueError, match="recontracted basis"):
         ORCAJobSettings(
             jobtype="sp",
-            functional="bp86",
+            functional="bp86-pw92",
             basis="def2-TZVPP",
             relativistic="dkh2",
             charge=0,
@@ -136,7 +136,7 @@ def test_relativistic_hamiltonian_requires_a_recontracted_basis():
 def test_recognised_relativistic_basis_families_are_accepted(basis):
     settings = ORCAJobSettings(
         jobtype="sp",
-        functional="bp86",
+        functional="bp86-pw92",
         basis=basis,
         relativistic="dkh2",
         charge=0,
@@ -149,7 +149,7 @@ def test_frozen_core_electron_count_requires_the_matching_policy():
     with pytest.raises(ValueError, match="fc_electrons"):
         ORCAJobSettings(
             jobtype="sp",
-            functional="bp86",
+            functional="bp86-pw92",
             basis="def2-svp",
             frozen_core_electrons=10,
             charge=0,
@@ -172,7 +172,7 @@ def test_unknown_keyword_values_are_refused_not_passed_through(field, value):
     with pytest.raises(ValueError, match="Unsupported"):
         ORCAJobSettings(
             jobtype="sp",
-            functional="bp86",
+            functional="bp86-pw92",
             basis="def2-svp",
             charge=0,
             multiplicity=1,

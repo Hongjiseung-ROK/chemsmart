@@ -147,17 +147,16 @@ def test_a_fixture_carries_only_project_owned_keys(declared_server):
         ).values():
             assert set(settings) <= allowed
 
-    assert (
-        live_session._conformance_project_sections("gaussian")["td"]["states"]
-        == "singlets"
-    )
-    assert live_session._conformance_project_sections("orca")["td"] == {
-        "basis": "def2-SVP",
-        "functional": "B3LYP",
-        "nstates": 3,
-        "response_method": "tda",
-        "state_manifold": "singlet",
-    }
+    # Both route programs' td fixtures speak the shared words; Gaussian's
+    # legacy ``states: singlets`` escaped the reference rule.
+    for program in ("gaussian", "orca"):
+        assert live_session._conformance_project_sections(program)["td"] == {
+            "basis": "def2-SVP",
+            "functional": "B3LYP",
+            "nstates": 3,
+            "response_method": "tda",
+            "state_manifold": "singlet",
+        }
 
 
 def test_environment_observation_does_not_depend_on_the_process_path(

@@ -292,6 +292,10 @@ interface -- is a view of the same driver.
      --granted-by HUMAN \
      --dispatch scheduler
 
+With ``--reading-turn`` (off by default) one further session reads a delivery the host has certified, before the goal
+settles. It launches no engine, admits no revision and cannot change the settlement word. What it finds in the results
+is recorded beside that word. It costs one more provider session.
+
 With ``--dispatch scheduler`` the approved run is submitted through the current server profile's scheduler (or the one
 named by ``--server``) using the same submitters as ``chemsmart sub``. The command records the job it created in
 ``dispatch.receipt.json`` inside the run directory and parks the goal. The job script runs the provider-free executor in

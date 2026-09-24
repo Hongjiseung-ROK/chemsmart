@@ -27,6 +27,7 @@ real chain.
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -194,6 +195,55 @@ def _anomaly_evidence(
     return merged
 
 
+def _finding_reasons(
+    findings: Sequence[Mapping[str, Any]],
+) -> tuple[str, ...]:
+    """One settlement reason per standing finding, in the session's words.
+
+    The session's conclusions in its own words, each on relations the
+    host checked and on nothing else the host vouches for; a finding
+    standing on a result a sensor had already flagged says which,
+    because repeating a sensor is not a discovery. A declared category's
+    answer is the word the host read, stated first; the sentence beside
+    it is the session's interpretation.
+    """
+
+    return tuple(
+        (
+            f"{row.get('answers_observable_id')} = "
+            + ", ".join(
+                f"{word.get('word')!r} (read by the host: "
+                f"{word.get('selector') or 'selector unrecorded'} on "
+                f"{str(word.get('source_receipt_sha256') or '')[:8]})"
+                for word in row.get("answer") or ()
+            )
+            + f"; the session's finding {row.get('finding_id')}, "
+            "its interpretation: "
+            if row.get("answers_observable_id") and row.get("answer")
+            else f"the session's finding {row.get('finding_id')}"
+            + (
+                f" (names {row.get('answers_observable_id')} and rests "
+                "on no word the host read, so it answers nothing)"
+                if row.get("answers_observable_id")
+                else (
+                    " (not asked for)"
+                    if row.get("standing") == "unrequested"
+                    else " (on the requested answer)"
+                )
+            )
+            + ", its words, on relations the host checked: "
+        )
+        + str(row.get("statement"))
+        + (
+            "; host anomalies already under its evidence: "
+            + ", ".join(row.get("host_signals") or ())
+            if row.get("host_signals")
+            else ""
+        )
+        for row in findings
+    )
+
+
 def _achieved_word(
     delivery: "_AnalysisDelivery",
     ledger_anomalies: Sequence[Mapping[str, Any]] = (),
@@ -271,6 +321,8 @@ def _achieved_word(
             "delivered in an earlier cycle: "
             + ", ".join(delivery.delivered_in_earlier_cycles),
         )
+    if delivery.findings:
+        provenance = provenance + _finding_reasons(delivery.findings)
     post_hoc = tuple(
         str(row.get("observable_id") or "")
         for row in delivery.prediction_rows
@@ -452,6 +504,74 @@ def _settle_from_delivery(
     ending, not a defect.
     """
 
+    settled, reasons, evidence = _delivery_settlement(
+        ledger,
+        goal_id=goal_id,
+        events_path=events_path,
+        terminal=terminal,
+        workspace=workspace,
+    )
+    return _write_delivery_settlement(
+        ledger,
+        goal_id=goal_id,
+        cycles=cycles,
+        revisions_admitted=revisions_admitted,
+        settled=settled,
+        reasons=reasons,
+        evidence=evidence,
+        workspace=workspace,
+    )
+
+
+def _write_delivery_settlement(
+    ledger: GoalLedger,
+    *,
+    goal_id: str,
+    cycles: int,
+    revisions_admitted: int,
+    settled: str,
+    reasons: tuple[str, ...],
+    evidence: Mapping[str, Any],
+    workspace: Path | None = None,
+) -> GoalLoopResultV1:
+    """Write a delivery's settlement and qualify what an achieved goal ran."""
+
+    ledger.settle(settled, reasons=reasons, evidence=evidence)
+    if workspace is not None and settled in {
+        "achieved",
+        "achieved_with_observations",
+    }:
+        _record_goal_qualification(
+            ledger,
+            workspace=workspace,
+            goal_id=goal_id,
+            current_run=f"goals/{goal_id}/runs/cycle-{cycles}",
+            current_outcome=None,
+        )
+    return GoalLoopResultV1(
+        goal_id=goal_id,
+        settlement=settled,
+        cycles=cycles,
+        revisions_admitted=revisions_admitted,
+        reasons=reasons,
+    )
+
+
+def _delivery_settlement(
+    ledger: GoalLedger,
+    *,
+    goal_id: str,
+    events_path: Path,
+    terminal: str,
+    workspace: Path | None = None,
+) -> tuple[str, tuple[str, ...], dict[str, Any]]:
+    """The word, reasons and evidence one stream's delivery settles with.
+
+    Computed and not written, so a turn that reads the delivery before
+    the goal settles is handed the word the host would write without it
+    and cannot change it.
+    """
+
     delivery = _analysis_delivery(
         events_path,
         flagged_artifact_sha256s=_flagged_artifact_sha256s(
@@ -469,6 +589,7 @@ def _settle_from_delivery(
         ),
         goal_delivered_ids=_goal_delivered_ids(workspace, goal_id),
         declared_observables=_first_declarations(ledger),
+        goal_findings=_goal_findings(workspace, goal_id),
     )
     evidence = _settlement_evidence(delivery)
     # What the goal declared and has not delivered under its id in any
@@ -657,25 +778,7 @@ def _settle_from_delivery(
     else:
         settled = "returned_to_human"
         reasons = (f"the session ended {terminal!r}: {delivery.ending}",)
-    ledger.settle(settled, reasons=reasons, evidence=evidence)
-    if workspace is not None and settled in {
-        "achieved",
-        "achieved_with_observations",
-    }:
-        _record_goal_qualification(
-            ledger,
-            workspace=workspace,
-            goal_id=goal_id,
-            current_run=f"goals/{goal_id}/runs/cycle-{cycles}",
-            current_outcome=None,
-        )
-    return GoalLoopResultV1(
-        goal_id=goal_id,
-        settlement=settled,
-        cycles=cycles,
-        revisions_admitted=revisions_admitted,
-        reasons=reasons,
-    )
+    return settled, tuple(reasons), dict(evidence)
 
 
 def _typed_error_settlement(
@@ -853,6 +956,7 @@ _EXCURSION_REPLICATION = (
     " " + _WAKE_RULES["wake.excursion_buys_replication"].text
 )
 _COHORT_EVIDENCE = " " + _WAKE_RULES["wake.cohort_evidence"].text
+_READING_TURN = _WAKE_RULES["wake.reading_turn"].text + " "
 
 #: The three ways a requirement short of its tolerance can be resolved.
 #: Every one is a route the host can actually walk, because a named
@@ -1324,7 +1428,35 @@ def _goal_delivered_ids(
         return {}
     delivered: dict[str, dict[str, Any]] = {}
     for entry in read_workspace_record(workspace):
-        if entry.get("kind") != "claim" or entry.get("goal_id") != goal_id:
+        if entry.get("goal_id") != goal_id:
+            continue
+        if entry.get("kind") == "finding":
+            # A declared question the session answered with a finding;
+            # the shared predicate delivers only a category by it.
+            key = str(entry.get("claim_id") or "")
+            previous = delivered.get(key)
+            if key and (
+                previous is None
+                or int(entry.get("cycle") or 0)
+                >= int(previous.get("cycle") or 0)
+            ):
+                delivered[key] = {
+                    "cycle": int(entry.get("cycle") or 0),
+                    "run": entry.get("run"),
+                    "claim_id": key,
+                    "finding_id": entry.get("finding_id"),
+                    "statement": entry.get("statement"),
+                    "finding_receipt_sha256": entry.get(
+                        "finding_receipt_sha256"
+                    ),
+                    # The words the host read; the predicate delivers a
+                    # category by them and by nothing else.
+                    "answer": tuple(
+                        dict(item) for item in entry.get("answer") or ()
+                    ),
+                }
+            continue
+        if entry.get("kind") != "claim":
             continue
         for id_field in ("claim_id", "quantity_id"):
             key = str(entry.get(id_field) or "")
@@ -1347,6 +1479,44 @@ def _goal_delivered_ids(
                     "sufficiency": entry.get("sufficiency"),
                 }
     return delivered
+
+
+def _goal_findings(
+    workspace: Path | None, goal_id: str
+) -> tuple[dict[str, Any], ...]:
+    """Every finding this goal's sessions recorded, from the record.
+
+    A finding written in one cycle is settled on in another: a session
+    that reads a run, records what it found and plans the next stage
+    hands the settlement a run stream that carries no decision. The
+    record keeps each finding; the latest statement of an id stands and
+    a supersession retires the id it names.
+    """
+
+    if workspace is None:
+        return ()
+    by_id: dict[str, dict[str, Any]] = {}
+    for entry in read_workspace_record(workspace):
+        if entry.get("kind") != "finding" or entry.get("goal_id") != goal_id:
+            continue
+        finding_id = str(entry.get("finding_id") or "")
+        receipt = str(entry.get("finding_receipt_sha256") or "")
+        if not finding_id or not receipt:
+            continue
+        by_id[finding_id] = {
+            "finding_id": finding_id,
+            "receipt_sha256": receipt,
+            "statement": str(entry.get("statement") or ""),
+            "answers_observable_id": str(entry.get("claim_id") or ""),
+            "standing": str(entry.get("standing") or ""),
+            "host_signals": tuple(entry.get("host_signals") or ()),
+            "supersedes_finding_id": str(
+                entry.get("supersedes_finding_id") or ""
+            ),
+            "answer": tuple(dict(item) for item in entry.get("answer") or ()),
+            "cycle": int(entry.get("cycle") or 0),
+        }
+    return tuple(by_id.values())
 
 
 def _required_declared_ids(ledger: GoalLedger) -> tuple[str, ...]:
@@ -1735,6 +1905,7 @@ def _wake_context(
     *,
     workspace: Path | None = None,
     failure_report: Mapping[str, Any] | None = None,
+    previous_run: str | None = None,
 ) -> dict[str, Any]:
     budgets = ledger.budgets(goal)
     trajectory = tuple(
@@ -1765,8 +1936,11 @@ def _wake_context(
     # meant an analysis-only cycle embedded nothing, so admission
     # compared a real reference against an empty one and refused the
     # goal's first calculation -- A10 named the evidence and the wake
-    # then declined to carry it.
-    previous_run = _previous_run_reference(ledger)
+    # then declined to carry it. A reading turn names the stream it
+    # reads, because a delivery a session made without recording a
+    # decision leaves the ledger naming no evidence at all.
+    if previous_run is None:
+        previous_run = _previous_run_reference(ledger)
     deliverables: dict[str, Any] = {
         "delivered_quantity_ids": (),
         "limitation_output_ids": (),
@@ -1906,6 +2080,116 @@ def _wake_context(
             )
         ),
     }
+
+
+#: The two words a certified delivery settles with; only these are held
+#: for a reading turn, because every other word already put a session
+#: over the evidence or handed it to the human.
+_CERTIFIED_WORDS = frozenset({"achieved", "achieved_with_observations"})
+
+
+def _reading_context(
+    goal: GoalRecordV1,
+    ledger: GoalLedger,
+    outcome: Any,
+    *,
+    workspace: Path | None,
+    opened: Mapping[str, Any],
+) -> dict[str, Any]:
+    """The context of the one session that reads a certified delivery.
+
+    The wake's own composition -- the typed outcome, the deliverables,
+    the declarations, the anomalies, the workspace record -- over the
+    stream the delivery came from, because a reading is judged against
+    the same record a revision would be. What differs is what the turn
+    may do: its budgets are zero, so a plan with a calculation node is
+    refused where it is made, and it is told the word the host already
+    computed, which nothing it records can change.
+    """
+
+    context = _wake_context(
+        goal,
+        ledger,
+        outcome,
+        workspace=workspace,
+        previous_run=str(opened.get("run") or ""),
+    )
+    # Nothing ended in a way a revision answers, and no revision follows.
+    for key in ("repair_menu", "repair_menu_dispositions", "failure_report"):
+        context.pop(key, None)
+    context["schema_version"] = "chemsmart.goal-reading-context.v1"
+    context["budgets"] = {
+        "binding_line": (
+            "this reading turn spends nothing: it launches no engine and "
+            "opens no revision"
+        ),
+        "engine_calls_remaining": 0,
+        "excursion_calls_remaining": 0,
+        "wall_seconds_remaining": 0.0,
+        "revisions_remaining": 0,
+        "wakes_after_this_cycle": 0,
+    }
+    context["reading"] = {
+        "settlement_before_reading": {
+            "state": str(opened.get("state") or ""),
+            "reasons": tuple(opened.get("reasons") or ()),
+        },
+    }
+    context["authority"] = _READING_TURN + _ADVERSARIAL_CLOSE
+    return context
+
+
+def _session_provider_cost(events_path: Path | None) -> dict[str, Any]:
+    """What one session cost the provider, from its own stream.
+
+    Every request the transport made is an ``api_attempt_observed`` row
+    carrying the tokens the provider reported; the stream's first and
+    last timestamps bound the session's wall time.
+    """
+
+    cost: dict[str, Any] = {
+        "provider_requests": 0,
+        "provider_turns": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "reasoning_tokens": 0,
+        "stream_wall_seconds": 0.0,
+    }
+    if events_path is None:
+        return cost
+    try:
+        lines = Path(events_path).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return cost
+    stamps: list[datetime] = []
+    for line in lines:
+        text = line.strip()
+        if not text:
+            continue
+        try:
+            event = json.loads(text)
+        except json.JSONDecodeError:
+            continue
+        try:
+            stamps.append(datetime.fromisoformat(str(event.get("timestamp"))))
+        except (TypeError, ValueError):
+            pass
+        kind = str(event.get("kind") or "")
+        payload = event.get("payload") or {}
+        if kind == "api_attempt_observed":
+            cost["provider_requests"] += 1
+            for key in ("input_tokens", "output_tokens", "reasoning_tokens"):
+                try:
+                    cost[key] += int(payload.get(key) or 0)
+                except (TypeError, ValueError):
+                    pass
+        elif kind == "provider_turn_observed":
+            cost["provider_turns"] += 1
+    if len(stamps) >= 2:
+        cost["stream_wall_seconds"] = round(
+            max(0.0, (max(stamps) - min(stamps)).total_seconds()), 3
+        )
+    return cost
 
 
 def _achieved(execute_result: Any) -> bool:
@@ -2058,6 +2342,11 @@ class _AnalysisDelivery:
     #: settlement quoted that sentence into its reasons and said
     #: achieved (OPEN-2 ino3-qwen, 2026-09-07).
     sufficiency: tuple[Mapping[str, Any], ...] = ()
+    #: The session's standing findings in this stream: its sentence, the
+    #: question it answers if any, the receipt the host minted over the
+    #: relations it checked, and the host anomalies already under its
+    #: evidence. A conclusion that reached no reader was prose.
+    findings: tuple[Mapping[str, Any], ...] = ()
 
     @property
     def retired_observable_ids(self) -> frozenset[str]:
@@ -2368,6 +2657,7 @@ def _analysis_delivery(
     flagged_artifact_sha256s: Sequence[str] = (),
     failed_artifact_sha256s: Sequence[str] = (),
     inherited_unreachable: Mapping[str, str] = {},
+    goal_findings: Sequence[Mapping[str, Any]] = (),
 ) -> _AnalysisDelivery:
     """Read the delivery facts a settlement stands on.
 
@@ -2441,6 +2731,26 @@ def _analysis_delivery(
     last_plan_refusal = ""
     terminal_reason = ""
     anomaly_ids: tuple[str, ...] = ()
+    # The goal's earlier findings first, from the record; this stream's
+    # own statement of an id comes after and stands.
+    findings_by_id: dict[str, dict[str, Any]] = {
+        str(row.get("finding_id") or ""): {
+            "finding_id": str(row.get("finding_id") or ""),
+            "receipt_sha256": str(row.get("receipt_sha256") or ""),
+            "statement": str(row.get("statement") or ""),
+            "answers_observable_id": str(
+                row.get("answers_observable_id") or ""
+            ),
+            "standing": str(row.get("standing") or ""),
+            "host_signals": tuple(row.get("host_signals") or ()),
+            "supersedes_finding_id": str(
+                row.get("supersedes_finding_id") or ""
+            ),
+            "answer": tuple(dict(item) for item in row.get("answer") or ()),
+        }
+        for row in goal_findings
+        if row.get("finding_id") and row.get("receipt_sha256")
+    }
     try:
         lines = events_path.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -2464,6 +2774,37 @@ def _analysis_delivery(
                 for item in payload.get("menu_route_dispositions") or ()
                 if isinstance(item, Mapping)
             )
+            # The session's findings, each a receipt the host minted over
+            # relations it checked. The latest statement of an id is the
+            # standing one; a supersession retires the id it names.
+            for item in payload.get("findings") or ():
+                if not isinstance(item, Mapping):
+                    continue
+                finding_id = str(item.get("finding_id") or "")
+                digest_of = str(item.get("receipt_sha256") or "")
+                if not finding_id or not digest_of:
+                    continue
+                findings_by_id[finding_id] = {
+                    "finding_id": finding_id,
+                    "receipt_sha256": digest_of,
+                    "statement": str(item.get("statement") or ""),
+                    "answers_observable_id": str(
+                        item.get("answers_observable_id") or ""
+                    ),
+                    "standing": str(item.get("standing") or ""),
+                    "host_signals": tuple(
+                        str(signal)
+                        for signal in item.get("host_signals") or ()
+                    ),
+                    "supersedes_finding_id": str(
+                        item.get("supersedes_finding_id") or ""
+                    ),
+                    "answer": tuple(
+                        dict(word)
+                        for word in item.get("answer") or ()
+                        if isinstance(word, Mapping)
+                    ),
+                }
             for item in payload.get("unreachable_observables") or ():
                 observable_id = str(item.get("observable_id") or "")
                 if not observable_id:
@@ -2844,7 +3185,44 @@ def _analysis_delivery(
         if isinstance(row, Mapping)
         and isinstance(row.get("sufficiency"), Mapping)
     )
+    # A finding answers the declared question it names, and one the task
+    # did not ask for is an observation the word carries under its own
+    # prefix -- the session's, on relations the host checked. Its receipt
+    # is the settlement's evidence like any other the stream minted.
+    retired_findings = {
+        row["supersedes_finding_id"]
+        for row in findings_by_id.values()
+        if row["supersedes_finding_id"]
+    }
+    standing_findings = tuple(
+        row
+        for finding_id, row in findings_by_id.items()
+        if finding_id not in retired_findings
+    )
+    answered_ids: set[str] = set()
+    for row in standing_findings:
+        receipts.append(row["receipt_sha256"])
+        if row["answers_observable_id"] and row["answer"]:
+            # Delivered only by the words the host read; a finding recorded
+            # without them (before the answer was bound to a word) answers
+            # nothing.
+            answered_ids.add(row["answers_observable_id"])
+            claim_rows[row["answers_observable_id"]] = {
+                "finding_receipt_sha256": row["receipt_sha256"],
+                "finding_id": row["finding_id"],
+                "answer": row["answer"],
+            }
+        # A finding never joins the observations the word names. The word
+        # is the host's: what its sensors detected and what the physics
+        # made of a prediction written before it. Four development
+        # sessions (2026-09-24) typed a process remark -- "the same pair
+        # reads 3.296 A in the other isomer, so the observable
+        # distinguishes them" -- as a finding nobody asked for, in both
+        # arms of a matched pair, and the word said the run had seen
+        # something. The session's findings ride the reasons and the
+        # evidence under every word instead, as its own.
     return _AnalysisDelivery(
+        findings=standing_findings,
         ending=ending,
         terminal_reason=terminal_reason,
         sufficiency=carried + tuple(sufficiency_rows),
@@ -2874,6 +3252,7 @@ def _analysis_delivery(
                     for _receipt, quantity_id in claim_pairs
                     if quantity_id and quantity_id not in stale
                 }
+                | answered_ids
             )
         ),
         stale_quantity_ids=stale,
@@ -2905,8 +3284,9 @@ def _analysis_delivery(
 def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
     """Receipts a settlement cites, from the session's own stream."""
 
+    evidence: dict[str, Any] = {}
     if delivery.decisions and delivery.receipt_sha256s:
-        evidence: dict[str, Any] = {
+        evidence = {
             "scientific_decisions": delivery.decisions,
             "receipt_sha256s": delivery.receipt_sha256s,
         }
@@ -2914,8 +3294,22 @@ def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
             evidence["decision_uncertainties"] = (
                 delivery.decision_uncertainties
             )
-        return evidence
-    return {}
+    elif delivery.anomaly_output_ids and delivery.receipt_sha256s:
+        # An observation brings its own receipts. The executor's stream
+        # never carries a decision, and a diverged pre-registration --
+        # the session's expectation, scored by the completion receipt
+        # in this stream -- raised the word that settles on receipts
+        # and handed it none: r9 g5 and r8 goal-irc2 delivered every
+        # declared observable and returned to the human with a
+        # contract error in place of the delivery.
+        evidence = {"receipt_sha256s": delivery.receipt_sha256s}
+    if delivery.findings:
+        # Under every word, not only the one that names them: a
+        # conclusion the session bound to receipts is part of what the
+        # goal delivered whatever else the settlement says -- including
+        # a settlement read off an executor's stream, which holds none.
+        evidence["findings"] = tuple(dict(row) for row in delivery.findings)
+    return evidence
 
 
 #: The goal's task text, kept beside its ledger so a resumed driver plans
@@ -2940,6 +3334,7 @@ GOAL_PHASES = (
     "execute",
     "outcome",
     "settle",
+    "read",
     "parked",
     "settled",
 )
@@ -2995,6 +3390,7 @@ class GoalDriver:
         stop_file: str | Path | None = None,
         session_kwargs: Mapping[str, Any] | None = None,
         manual_execution_intent: bool = False,
+        reading_turn: bool = False,
         _resuming: bool = False,
     ) -> None:
         if dispatch not in DISPATCH_MODES:
@@ -3042,6 +3438,14 @@ class GoalDriver:
         # human execution decision, not an Agent's omitted wave, and retains
         # its deliberately serial/manual execution behavior below.
         self.manual_execution_intent = bool(manual_execution_intent)
+        #: Host policy: whether a certified delivery is read by one
+        #: session before the goal settles. The reading launches nothing,
+        #: admits no revision and cannot change the word the host had
+        #: already computed; it adds what the session found in the
+        #: results to the settlement beside that word. Nothing before
+        #: the settlement reads this, so a goal's cycles are the same
+        #: with it on or off up to the word the host would have written.
+        self.reading_turn = bool(reading_turn)
 
         self.goal_dir = (
             self.workspace / ".chemsmart-agent" / "goals" / self.goal_id
@@ -3079,6 +3483,7 @@ class GoalDriver:
                         "sealed": bool(sealed),
                         "server": server,
                         "stop_file": _resolved_or_none(stop_file),
+                        "reading_turn": bool(reading_turn),
                     },
                     indent=2,
                     sort_keys=True,
@@ -3155,6 +3560,9 @@ class GoalDriver:
         self._pending_ledger_rows: tuple[tuple[str, dict[str, Any]], ...] = ()
         self.dispatch_receipt: Any = None
         self._resuming_started_run = False
+        #: A reading a previous process opened and never recorded: the
+        #: resumed driver settles the held word without reading again.
+        self._reading_interrupted = False
 
     # -- public surface ---------------------------------------------------
 
@@ -3167,7 +3575,9 @@ class GoalDriver:
         Admitted only when the ledger's last run was dispatched and never
         recorded, and the goal is not settled: the same one human
         decision continues in its own run directory, and nothing here
-        creates a second one.
+        creates a second one. A reading turn a previous process opened
+        and never recorded resumes at ``read`` and settles the word it
+        held without reading again.
         """
 
         goal_id = require_identifier(goal_id, "goal_id")
@@ -3191,6 +3601,7 @@ class GoalDriver:
             "sealed",
             "server",
             "stop_file",
+            "reading_turn",
         ):
             if key not in kwargs and recorded.get(key) is not None:
                 kwargs[key] = recorded[key]
@@ -3243,6 +3654,35 @@ class GoalDriver:
                 int(item["payload"].get("cycle", 0)) for item in interrupted
             }
         ]
+        # A reading turn holds a settlement the host had already computed;
+        # a process that died inside it left that word unwritten. The
+        # delivery is not the reading's to lose, so the resumed driver
+        # writes the held word and reads nothing.
+        read_cycles = {
+            int(item["payload"].get("cycle", 0))
+            for item in entries
+            if item["kind"] == "reading_recorded"
+        }
+        held_readings = [
+            item
+            for item in entries
+            if item["kind"] == "reading_opened"
+            and int(item["payload"].get("cycle", 0)) not in read_cycles
+        ]
+        if (
+            held_readings
+            and not parked
+            and not interrupted
+            and not pending_decisions
+        ):
+            driver.goal = driver.ledger.load()
+            driver.cycles = int(held_readings[-1]["payload"]["cycle"])
+            driver.revisions_admitted = sum(
+                1 for item in entries if item["kind"] == "revision_admitted"
+            )
+            driver._reading_interrupted = True
+            driver.phase = "read"
+            return driver
         if not parked and not interrupted and not pending_decisions:
             raise ContractError(
                 f"goal {goal_id!r} has no parked, interrupted, or pending "
@@ -3370,6 +3810,7 @@ class GoalDriver:
             ),
             "outcome": self._outcome,
             "settle": self._settle,
+            "read": self._read,
         }[phase]
         try:
             handler()
@@ -3814,7 +4255,7 @@ class GoalDriver:
                 },
             )
 
-    def _settle_delivery(self, terminal: str) -> GoalLoopResultV1:
+    def _settle_delivery(self, terminal: str) -> GoalLoopResultV1 | None:
         if self.events_path is None:
             # Nothing durable to read a delivery from: the goal still ends
             # in a typed state, and the reason says why a human reads it.
@@ -3842,13 +4283,38 @@ class GoalDriver:
             )
             self.ledger.settle("returned_to_human", reasons=(reason,))
             return self._settled("returned_to_human", (reason,))
-        self.result = _settle_from_delivery(
+        settled, reasons, evidence = _delivery_settlement(
+            self.ledger,
+            goal_id=self.goal_id,
+            events_path=self.events_path,
+            terminal=terminal,
+            workspace=self.workspace,
+        )
+        try:
+            stream = str(
+                self.events_path.parent.relative_to(
+                    self.workspace / ".chemsmart-agent"
+                )
+            )
+        except ValueError:
+            stream = ""
+        if self._open_reading(
+            path="delivery",
+            run=stream,
+            state=settled,
+            reasons=reasons,
+            result_reasons=reasons,
+            evidence=evidence,
+        ):
+            return None
+        self.result = _write_delivery_settlement(
             self.ledger,
             goal_id=self.goal_id,
             cycles=self.cycles,
             revisions_admitted=self.revisions_admitted,
-            events_path=self.events_path,
-            terminal=terminal,
+            settled=settled,
+            reasons=reasons,
+            evidence=evidence,
             workspace=self.workspace,
         )
         self.phase = "settled"
@@ -4032,6 +4498,14 @@ class GoalDriver:
         self._record_dispositions()
         self._record_approaches()
         self._record_input_checks()
+        if terminal == "waiting_for_approval" and self.events_path is not None:
+            # A session that read results, claimed, found, and then
+            # planned the next stage delivered those rows as surely as one
+            # that stopped. Only a stopping session's stream was projected,
+            # so ino3-r12's cycle-2 claims (26 of them) reached no record
+            # and a finding written before a further run could not reach
+            # the settlement that run ends in.
+            self._record_workspace(self.events_path, "")
         if terminal != "waiting_for_approval":
             # No executable partition was planned. Either the session
             # delivered over registered results, refused with receipts,
@@ -5196,6 +5670,10 @@ class GoalDriver:
             goal_delivered_ids=_goal_delivered_ids(
                 self.workspace, self.goal_id
             ),
+            # The executor's stream holds no decision, so a finding the
+            # session recorded before this run reaches the word's
+            # reasons only through the record.
+            goal_findings=_goal_findings(self.workspace, self.goal_id),
         )
         self.rejected_artifacts.update(run_delivery.rejected_artifact_sha256s)
         if run_delivery.claims_rendered:
@@ -5376,18 +5854,24 @@ class GoalDriver:
             evidence = _settlement_evidence(run_delivery)
             if word == "achieved_with_observations":
                 evidence = _anomaly_evidence(evidence, goal_anomalies)
-            self.ledger.settle(
-                word,
-                reasons=(
-                    f"cycle {self.cycles}: workflow completed with its "
-                    "analysis chain; " + why[0],
-                    # Every reason the word carries, not only the first:
-                    # the second one names which delivered number stands
-                    # on a flagged result.
-                    *why[1:],
-                ),
-                evidence=evidence,
+            reasons = (
+                f"cycle {self.cycles}: workflow completed with its "
+                "analysis chain; " + why[0],
+                # Every reason the word carries, not only the first:
+                # the second one names which delivered number stands
+                # on a flagged result.
+                *why[1:],
             )
+            if self._open_reading(
+                path="run",
+                run=f"goals/{self.goal_id}/runs/cycle-{self.cycles}",
+                state=word,
+                reasons=reasons,
+                result_reasons=why,
+                evidence=evidence,
+            ):
+                return
+            self.ledger.settle(word, reasons=reasons, evidence=evidence)
             self._record_qualification()
             self._settled(word, why)
             return
@@ -5490,6 +5974,263 @@ class GoalDriver:
             },
         )
         self.phase = "plan"
+
+    # -- the reading turn ---------------------------------------------------
+
+    def _reading_opened_for_cycle(self) -> Mapping[str, Any] | None:
+        """The held settlement this cycle's reading turn reads under."""
+
+        for entry in reversed(self.ledger.entries()):
+            if entry["kind"] != "reading_opened":
+                continue
+            payload = entry["payload"]
+            if int(payload.get("cycle") or 0) == self.cycles:
+                return payload
+        return None
+
+    def _open_reading(
+        self,
+        *,
+        path: str,
+        run: str,
+        state: str,
+        reasons: tuple[str, ...],
+        result_reasons: tuple[str, ...],
+        evidence: Mapping[str, Any],
+    ) -> bool:
+        """Hold a certified delivery's settlement for one reading turn.
+
+        A complete delivery used to settle with no session reading what
+        the run computed: in 10 of 23 archived successful engine goals
+        nothing ever looked at the results of the last run, so a
+        phenomenon present only in computed results reached nobody. The
+        word is computed first and recorded here, exactly as it would
+        have been written, so the reading can add to the settlement and
+        can never change it -- and the ledger keeps what the goal would
+        have settled with had nobody read.
+        """
+
+        if not self.reading_turn or self.goal is None:
+            return False
+        if state not in _CERTIFIED_WORDS:
+            return False
+        if self._reading_opened_for_cycle() is not None:
+            return False
+        opened = self.ledger.append(
+            "reading_opened",
+            {
+                "cycle": self.cycles,
+                "path": path,
+                "run": run,
+                "state": state,
+                "reasons": tuple(reasons),
+                "result_reasons": tuple(result_reasons),
+                "evidence": dict(evidence),
+            },
+            idempotency_key=f"reading-opened:{self.goal_id}:{self.cycles}",
+        )
+        if not opened:
+            return False
+        self.phase = "read"
+        return True
+
+    def _read(self) -> None:
+        """One session reads the certified delivery; then the goal settles.
+
+        It launches nothing and admits nothing: its context grants zero
+        engine calls, so a calculation plan is refused where it is made,
+        and whatever it plans is never decided. What it records -- claims
+        and findings -- reaches the settlement beside the word the host
+        had already computed. A reading that fails, or that a previous
+        process began and never recorded, costs the delivery nothing.
+        """
+
+        opened = self._reading_opened_for_cycle()
+        if opened is None:  # pragma: no cover - the phase is set with it
+            raise ContractError("a reading turn opened no held settlement")
+        if self._reading_interrupted:
+            summary = {
+                "cycle": self.cycles,
+                "run_id": "",
+                "terminal_state": "",
+                "error": (
+                    "the reading turn a previous process opened never "
+                    "recorded; the goal settles on the held word"
+                ),
+                "findings": (),
+            }
+            self.ledger.append(
+                "reading_recorded",
+                summary,
+                idempotency_key=(
+                    f"reading-recorded:{self.goal_id}:{self.cycles}"
+                ),
+            )
+            self._settle_after_reading(opened, summary)
+            return
+        context = _reading_context(
+            self.goal,
+            self.ledger,
+            self.outcome,
+            workspace=self.workspace,
+            opened=opened,
+        )
+        started = time.monotonic()
+        session: Any = None
+        error = ""
+        try:
+            session = self.plan_session(
+                task=self.task,
+                provider=self.provider,
+                provider_config_file=self.provider_config_file,
+                workspace=self.workspace,
+                execution_enabled=False,
+                approval_file=None,
+                execution_envelope_file=self.execution_envelope_file,
+                analysis_completion_file=self.analysis_completion_file,
+                review_file=None,
+                goal_context=context,
+                **self.session_kwargs,
+            )
+        except ContractError as exc:
+            error = f"{type(exc).__name__}: {exc}"
+        wall_seconds = time.monotonic() - started
+        run_id = _session_run_id(session) if session is not None else ""
+        events_path: Path | None = None
+        if run_id:
+            candidate = (
+                self.workspace
+                / ".chemsmart-agent"
+                / "runs"
+                / run_id
+                / "events.jsonl"
+            )
+            # Only the stream the session named: the newest-first glob
+            # would hand this goal another session's reading.
+            events_path = candidate if candidate.is_file() else None
+        findings: tuple[Mapping[str, Any], ...] = ()
+        claims = decisions = typed_reads = 0
+        if events_path is not None:
+            self._record_workspace(events_path, "")
+            delivery = _analysis_delivery(events_path)
+            findings = delivery.findings
+            claims = delivery.claims
+            decisions = delivery.decisions
+            typed_reads = _session_typed_reads(events_path)
+        summary = {
+            "cycle": self.cycles,
+            "run_id": run_id,
+            "terminal_state": str(
+                getattr(session, "terminal_state", "") or ""
+            ),
+            "error": error,
+            "claims": claims,
+            "decisions": decisions,
+            "typed_reads": typed_reads,
+            "findings": tuple(dict(row) for row in findings),
+            "cost": {
+                **_session_provider_cost(events_path),
+                "driver_wall_seconds": round(wall_seconds, 3),
+            },
+        }
+        self.ledger.append(
+            "reading_recorded",
+            summary,
+            idempotency_key=f"reading-recorded:{self.goal_id}:{self.cycles}",
+        )
+        self._settle_after_reading(opened, summary)
+
+    def _settle_after_reading(
+        self, opened: Mapping[str, Any], summary: Mapping[str, Any]
+    ) -> None:
+        """Settle on the held word, with the reading beside it.
+
+        The word is the one recorded before the reading began; the
+        reading adds reasons and evidence and nothing else, so a goal's
+        settlement with the policy on differs from the one it would have
+        had with it off only by what a session found in its results.
+        """
+
+        state = str(opened.get("state") or "")
+        findings = tuple(
+            row
+            for row in summary.get("findings") or ()
+            if isinstance(row, Mapping)
+        )
+        run_id = str(summary.get("run_id") or "")
+        if summary.get("error") or not run_id:
+            line = "the reading turn recorded nothing: " + str(
+                summary.get("error") or "the session named no stream"
+            )
+        elif findings:
+            line = (
+                f"the reading turn ({run_id}, ended "
+                f"{summary.get('terminal_state') or 'unstated'}) read the "
+                "delivered results and recorded "
+                f"{len(findings)} finding(s), in its own words beneath"
+            )
+        else:
+            line = (
+                f"the reading turn ({run_id}, ended "
+                f"{summary.get('terminal_state') or 'unstated'}) read the "
+                "delivered results and recorded no finding"
+            )
+        added = (line,) + _finding_reasons(findings)
+        evidence = dict(opened.get("evidence") or {})
+        evidence["reading"] = {
+            key: summary.get(key)
+            for key in (
+                "run_id",
+                "terminal_state",
+                "error",
+                "claims",
+                "decisions",
+                "typed_reads",
+                "cost",
+            )
+        }
+        if findings:
+            known = {
+                str(row.get("receipt_sha256") or "")
+                for row in evidence.get("findings") or ()
+                if isinstance(row, Mapping)
+            }
+            evidence["findings"] = tuple(
+                evidence.get("findings") or ()
+            ) + tuple(
+                dict(row)
+                for row in findings
+                if str(row.get("receipt_sha256") or "") not in known
+            )
+            evidence["receipt_sha256s"] = tuple(
+                sorted(
+                    set(evidence.get("receipt_sha256s") or ())
+                    | {
+                        str(row.get("receipt_sha256") or "")
+                        for row in findings
+                        if row.get("receipt_sha256")
+                    }
+                )
+            )
+        reasons = tuple(opened.get("reasons") or ()) + added
+        if str(opened.get("path") or "") == "run":
+            self.ledger.settle(state, reasons=reasons, evidence=evidence)
+            self._record_qualification()
+            self._settled(
+                state, tuple(opened.get("result_reasons") or ()) + added
+            )
+            return
+        self.result = _write_delivery_settlement(
+            self.ledger,
+            goal_id=self.goal_id,
+            cycles=self.cycles,
+            revisions_admitted=self.revisions_admitted,
+            settled=state,
+            reasons=reasons,
+            evidence=evidence,
+            workspace=self.workspace,
+        )
+        self.phase = "settled"
 
 
 def _resolved_or_none(path: str | Path | None) -> str | None:

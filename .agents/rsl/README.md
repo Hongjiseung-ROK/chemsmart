@@ -90,7 +90,8 @@ compact, current, high-value, aggressively pruned.
 A decision that changes the store is one commit whose subject is
 `rsl: <ADMIT|NARROW|REPLACE|MERGE|MOVE|RETIRE|BUDGET> <id>`, with the
 candidate, the comparison against existing entries and code, and the
-reason in the body. A decision that changes nothing (reject; keep as
+reason in the body. A re-verification that changes only `last_verified`
+is `rsl: VERIFY <ids>`, naming the episode whose tree it checked. A decision that changes nothing (reject; keep as
 evidence) is a line of the same form in the body of the merge commit that
 judged it. `git log --grep '^rsl:'` is the whole decision log.
 

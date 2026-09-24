@@ -115,7 +115,11 @@ class ORCARefs:
         # Hybrid  functionals
         # ***************************************
         "B1LYP",  # One parameter Hybrid of BLYP
-        "B3LYP",  # Three parameter Hybrid of BLYP [309]
+        "B3LYP",  # Three parameter Hybrid of BLYP [309]; VWN-5 local corr.
+        # B3LYP with the VWN-3 (RPA) local correlation Gaussian and PySCF
+        # run: what the ChemSmart literal ``b3lyp`` is written as.  ORCA
+        # 6.1.1 ran it and printed ``LDAOpt .... VWN-3`` (CUHK Slurm 2149277).
+        "B3LYP/G",
         "B1P",  # Analogous with Perdew correlation
         "B3P",  # Analogous with Perdew correlation
         "G1LYP",  # 1 par. analog with Gill 96 X

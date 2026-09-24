@@ -1925,10 +1925,44 @@ class ORCAFileMixin(FileMixin):
         value = self._orca_tddft_values.get("nroots")
         return None if value is None else int(value)
 
+    @cached_property
+    def _orca_td_manifold_marker(self):
+        """The manifold word the writer recorded before ``%tddft``, or None.
+
+        Read from the native input or ORCA's echo of it, the last marker
+        winning as the last block does.
+        """
+
+        from chemsmart.jobs.orca.settings import ORCA_TD_MANIFOLD_MARKER
+
+        marker = ORCA_TD_MANIFOLD_MARKER.casefold()
+        echo_pattern = re.compile(r"^\|\s*\d+>\s?(.*)$")
+        word = None
+        for raw_line in self.contents:
+            stripped = raw_line.strip()
+            match = echo_pattern.match(stripped)
+            if match is not None:
+                stripped = match.group(1).strip()
+            if stripped.casefold().startswith(marker):
+                word = stripped[len(marker) :].strip().casefold() or None
+        return word
+
     @property
     def state_manifold(self):
+        """The manifold the ``%tddft`` block asks for, in the shared words.
+
+        An open-shell reference has the one ``unrestricted`` manifold
+        whatever the block says.  ``Triplets true`` is ORCA's spelling of
+        both ``singlet_triplet`` and ``triplet`` (ORCA has no triplet-only
+        solve), so the writer's marker line says which was asked; a block
+        with no marker is read as ORCA runs it.
+        """
+
         if not self._orca_tddft_values:
             return None
+        multiplicity = getattr(self, "multiplicity", None)
+        if multiplicity is not None and int(multiplicity) != 1:
+            return "unrestricted"
         triplets = (
             str(self._orca_tddft_values.get("triplets", "false"))
             .strip()
@@ -1936,6 +1970,8 @@ class ORCAFileMixin(FileMixin):
         )
         if triplets in {"true", "1", "yes", "on"}:
             # ORCA includes spin-adapted triplets in addition to singlets.
+            if self._orca_td_manifold_marker == "triplet":
+                return "triplet"
             return "singlet_triplet"
         return "singlet"
 

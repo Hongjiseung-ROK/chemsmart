@@ -18,7 +18,13 @@ from chemsmart.io.orca import (
     ORCA_SCF_CONVERGENCE,
     normalize_orca_neb_joboption,
 )
-from chemsmart.jobs.settings import MolecularJobSettings
+from chemsmart.jobs.settings import (
+    MolecularJobSettings,
+    canonical_functional_literal,
+    functional_identity,
+    functional_resolution_record,
+    td_manifold_reference_refusal,
+)
 from chemsmart.utils.utils import (
     deduplicate_string_keywords,
     get_list_from_string_range,
@@ -244,8 +250,64 @@ ORCA_FUNCTIONAL_ALIASES = {
     "m06_2x": "M062X",
 }
 
+#: How ORCA spells a ChemSmart literal whose meaning
+#: (``chemsmart.jobs.settings.FUNCTIONAL_IDENTITIES``) ORCA's keyword of
+#: the same name does not have, beside the local-correlation label ORCA
+#: prints (``LDAOpt``) when it applies that form.  The writer reads the
+#: first field and the parser and reader read both back, so the same table
+#: says what is written and what a result must show it ran.
+#:
+#: ORCA's bare ``B3LYP`` is the VWN5 form; the literal ``b3lyp`` means the
+#: VWN RPA form Gaussian and PySCF run, which ORCA spells ``B3LYP/G``.
+#: Before this table an ORCA project saying ``b3lyp`` ran the VWN5 form:
+#: 0.037 Eh above Gaussian's B3LYP on water, 2.35 kcal/mol lower in its
+#: vertical IP (CUHK Slurm 2149277/2149278).
+ORCA_FUNCTIONAL_NATIVE = {
+    "b3lyp": ("B3LYP/G", "VWN-3"),
+    "b3lyp5": ("B3LYP", "VWN-5"),
+    "bp86-pw92": ("BP86", "PW91-LDA"),
+}
+
+#: Literals ORCA has no simple-input spelling for, with the route the
+#: refusal names.  ORCA's own BP86 is the PW92 form: at tight numerics it
+#: lies 0.74 kcal/mol from Gaussian's and PySCF's BP86 in the vertical IP
+#: of water and 1.06 in the C-Cl homolysis of CH3Cl (CUHK Slurm 2149487),
+#: so writing it for ``bp86`` would be the other functional.
+ORCA_FUNCTIONAL_REFUSED = {
+    "bp86": (
+        "ORCA's BP86 keyword applies Perdew-Wang 92 local correlation "
+        "(it prints LDAOpt PW91-LDA), where bp86 means Perdew 86 on the "
+        "Perdew-Zunger 81 local correlation Gaussian and PySCF run: 0.74 "
+        "kcal/mol apart in the vertical IP of water and 1.06 in the C-Cl "
+        "homolysis of CH3Cl (CUHK Slurm 2149487). Run bp86 in Gaussian or "
+        "PySCF, or ask ORCA for its own form as bp86-pw92."
+    ),
+}
+
 ORCA_TD_RESPONSE_METHODS = ("tda", "tddft")
-ORCA_TD_STATE_MANIFOLDS = ("singlet", "singlet_triplet")
+#: The manifold words every program's td stage takes.  ORCA computes each:
+#: ``singlet`` alone, the spin-adapted triplets beside the singlets
+#: (``Triplets true``), and an open-shell reference's one spin-conserving
+#: manifold, which ORCA runs on the unrestricted reference with no spin
+#: option at all.  ``triplet`` has no triplet-only solve in ORCA (6.1.1
+#: manual, section 5.6: ``Triplets true`` determines the triplets "in
+#: addition to the singlets"), so it is written as ``Triplets true`` and
+#: the triplet roots are the ones served: for a closed-shell reference the
+#: two spin blocks are solved separately, so they are the roots a
+#: triplet-only solve would return.
+ORCA_TD_STATE_MANIFOLDS = (
+    "singlet",
+    "singlet_triplet",
+    "triplet",
+    "unrestricted",
+)
+#: The manifolds ORCA solves with ``Triplets true``.
+ORCA_TD_TRIPLET_SOLVES = ("singlet_triplet", "triplet")
+#: The comment line the writer puts before ``%tddft`` naming the manifold
+#: the project asked for.  ``Triplets true`` is ORCA's spelling of two
+#: requests, so the input (and ORCA's echo of it in every output) carries
+#: which one was meant; the reader of the block reads it back.
+ORCA_TD_MANIFOLD_MARKER = "# chemsmart td state_manifold:"
 
 
 def _is_orca_dlpno_coupled_cluster(value):
@@ -319,14 +381,81 @@ def _orca_correlation_auxiliary_matches_orbital(aux_basis, orbital_basis):
 
 
 def _normalize_orca_functional(value):
-    """Return the native ORCA keyword for a recognized functional alias."""
+    """Return the native ORCA keyword for a ChemSmart functional literal.
+
+    A literal with a program-neutral meaning is spelled from
+    ``ORCA_FUNCTIONAL_NATIVE``; any other literal keeps its punctuation
+    alias or passes through.
+    """
 
     if value is None:
         return None
     literal = str(value).strip()
     if not literal:
         return None
+    canonical = canonical_functional_literal(literal)
+    if canonical in ORCA_FUNCTIONAL_REFUSED:
+        raise ValueError(ORCA_FUNCTIONAL_REFUSED[canonical])
+    if canonical in ORCA_FUNCTIONAL_NATIVE:
+        native = ORCA_FUNCTIONAL_NATIVE[canonical][0]
+        if native.casefold() != literal.casefold():
+            logger.warning(
+                f"Functional {literal!r} is written as ORCA's {native}, the "
+                f"{functional_identity(canonical)['correlation_convention']} "
+                "form every program runs under this name; ORCA's bare "
+                "keyword of the same spelling is a different functional."
+            )
+        return native
+    if canonical is not None:
+        # A synonym (``pbe1pbe``) is spelled as the literal it means, which
+        # is ORCA's own keyword wherever the table above is silent.
+        return canonical
     return ORCA_FUNCTIONAL_ALIASES.get(literal.casefold(), literal)
+
+
+def orca_functional_literal(native_keyword):
+    """Return the ChemSmart literal an ORCA functional keyword applies.
+
+    The inverse of ``ORCA_FUNCTIONAL_NATIVE``: ORCA's ``B3LYP`` is
+    ``b3lyp5`` and ``B3LYP/G`` is ``b3lyp``.  A keyword the table does not
+    name answers itself, lower-cased, as the route parser always did.
+    """
+
+    if native_keyword is None:
+        return None
+    key = str(native_keyword).strip().casefold()
+    for literal, (native, _lda) in ORCA_FUNCTIONAL_NATIVE.items():
+        if native.casefold() == key:
+            return literal
+    return key
+
+
+def orca_functional_lda_label(literal):
+    """The ``LDAOpt`` label ORCA prints when it applies *literal*, or None."""
+
+    entry = ORCA_FUNCTIONAL_NATIVE.get(canonical_functional_literal(literal))
+    return entry[1] if entry else None
+
+
+def describe_functional_resolution(functional=None, *, ab_initio=None):
+    """What ORCA is told for a project functional, as a host record.
+
+    The same record ``chemsmart.jobs.pyscf.settings`` answers, derived from
+    the writer's own spelling, so a receipt minted for an ORCA project
+    states the functional ORCA will run in the program-neutral vocabulary.
+    """
+
+    try:
+        native = _normalize_orca_functional(functional)
+    except ValueError:
+        native = None
+    return functional_resolution_record(
+        program="orca",
+        functional=functional,
+        ab_initio=ab_initio,
+        native=native,
+        source="chemsmart.jobs.orca.settings._normalize_orca_functional",
+    )
 
 
 def _normalize_orca_semiempirical(value):
@@ -648,13 +777,11 @@ class ORCAJobSettings(MolecularJobSettings):
                 )
             if self.nstates <= 0:
                 raise ValueError("ORCA td nstates must be a positive integer")
-            if self.state_manifold in ORCA_TD_STATE_MANIFOLDS and (
-                self.multiplicity is not None and int(self.multiplicity) != 1
-            ):
-                raise ValueError(
-                    "ORCA singlet TD roots require a singlet reference "
-                    "multiplicity"
-                )
+            refusal = td_manifold_reference_refusal(
+                self.state_manifold, self.multiplicity
+            )
+            if refusal:
+                raise ValueError(refusal)
             if self.freq or self.numfreq:
                 raise ValueError(
                     "ChemSmart ORCA td is a fixed-geometry vertical response "

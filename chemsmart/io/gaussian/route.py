@@ -19,6 +19,46 @@ logger = logging.getLogger(__name__)
 
 GAUSSIAN_EMPIRICAL_DISPERSIONS = frozenset({"pfd", "gd2", "gd3", "gd3bj"})
 
+#: A response calculation's route keyword: ``TD``, ``TDA`` (Gaussian's
+#: Tamm-Dancoff keyword, which takes the same options) or ``CIS``.
+_GAUSSIAN_RESPONSE_KEYWORD = re.compile(
+    r"(?<![a-z0-9_])(td|tda|cis)(?![a-z0-9_])"
+)
+
+
+def route_requests_response(route_string):
+    """Whether a Gaussian route asks for a response (TD/TDA/CIS) calculation.
+
+    A route carrying one and no job keyword is a fixed-geometry response
+    calculation, which the route-word chain alone calls ``sp``.  One
+    function answers for a written input and for a completed log, so the
+    preview and the result reader cannot classify one route two ways.
+    """
+
+    return bool(
+        _GAUSSIAN_RESPONSE_KEYWORD.search(str(route_string or "").lower())
+    )
+
+
+def modredundant_rows_drive_a_scan(rows):
+    """Whether ModRedundant rows drive a coordinate rather than hold one.
+
+    ``opt=modredundant`` is written for a relaxed scan and for a
+    constrained optimisation alike, so the rows decide: a scan row ends
+    ``S <steps> <size>`` and a frozen row ends ``F``.  The test is
+    positional, on a row's own trailing tokens, because the bare letter
+    ``S`` is also an element symbol a row may carry.  An input writes the
+    same grammar a log echoes after "The following ModRedundant input
+    section has been read:", so one function reads both.
+    """
+
+    for line in rows or ():
+        tokens = str(line).split()
+        for index, token in enumerate(tokens):
+            if token.upper() == "S" and len(tokens) - index >= 3:
+                return True
+    return False
+
 
 def normalize_gaussian_dispersion(value):
     """Return the Gaussian-native empirical-dispersion value."""
@@ -556,7 +596,17 @@ class GaussianRoute:
                         stripped = part[len(prefix) :]
                         break
                 stripped_parts.append(stripped)
-            functional = ":".join(stripped_parts)
+            # The route word is Gaussian's and the answer is ChemSmart's:
+            # ``pbe1pbe`` is the literal ``pbe0``, so a written input reads
+            # back to what was requested and a Gaussian result names its
+            # functional the way ORCA's and PySCF's do.
+            from chemsmart.jobs.gaussian.settings import (
+                gaussian_functional_literal,
+            )
+
+            functional = ":".join(
+                gaussian_functional_literal(part) for part in stripped_parts
+            )
 
         # Merge empirical dispersion into functional shorthand
         # e.g., b3lyp + empiricaldispersion=gd3bj -> b3lyp-d3bj

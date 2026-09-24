@@ -873,12 +873,13 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "leaf.pyscf.a_matching_name_is_not_a_matching_functional",
         "reference:about_pyscf",
         "T1",
-        "functional is the name the project asked for; b3lyp and b3lypg "
-        "are one libxc functional here and b3lyp5 another, and ORCA's "
-        "b3lyp is the VWN5 form, so a string that matches across programs "
-        "is necessary and never sufficient.",
+        "functional on a result is the literal whose form the program "
+        "applied, in one vocabulary for every program; the host writes "
+        "each program's spelling of a literal, so compare functionals by "
+        "that value, never by a project string.",
         "PySCF round 2026-09-12: b3lyp == b3lypg == libxc 402 measured; "
-        "an owner ruling on the applied literal was reversed on it",
+        "R10 q2 (CUHK Slurm 2149277/2149278): ORCA's b3lyp had been the "
+        "VWN5 form, 2.35 kcal/mol off Gaussian and PySCF in a vertical IP",
     ),
     _r(
         "leaf.pyscf.no_imaginary_mode_is_not_a_stationary_point",
@@ -1441,8 +1442,84 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "observable-regression gate",
     ),
     # R10 Q1 claims: append rules below this line
+    _r(
+        "wake.reading_turn",
+        "wake:reading",
+        "T1",
+        "This is the goal's reading turn: the one session that looks at "
+        "the goal's results after they exist. The approved work is "
+        "finished and the host has certified the delivery; "
+        "reading.settlement_before_reading is the word and the reasons "
+        "the goal will settle with, and nothing recorded here changes "
+        "that word, reopens the goal or runs anything -- this turn "
+        "launches no engine, its budgets are zero, a plan with a "
+        "calculation node is refused, and no plan made here is decided. "
+        "Read the results as a chemist reads an output: all of it, not "
+        "only the number that was asked for. inspect_run with a result's "
+        "program and artifact_id lists what that result holds; "
+        "extract_result_quantities reads what you choose into receipts; "
+        "record_analysis_claims renders "
+        "what a conclusion will rest on; record_scientific_decision's "
+        "findings bind your own sentence to relations the host checks "
+        "over those claims. If the results show something that bears on "
+        "the question or on the chemistry and that nobody asked about, "
+        "record it as a finding and say what it means for the delivered "
+        "answer. A check that the delivery holds as it stands -- a "
+        "minimum confirmed, a mode assigned, a refutation that did not "
+        "stand -- belongs in the decision's words, not in a finding. If "
+        "the results show nothing of the kind, say so in the "
+        "decision and end: finding nothing is a result, a finding the "
+        "evidence does not support is worse than none, and one that "
+        "restates a delivered number or an anomaly the host already "
+        "recorded adds nothing. What you record reaches the settlement "
+        "beside the host's word as this session's reading, with its "
+        "receipts.",
+        "R10 Q1 census: in 10 of 23 archived successful engine goals no "
+        "session ever read the results of the last run, because a "
+        "complete delivery settled with no interpretation turn",
+    ),
     # R10 Q1 claims: end
     # R10 Q2 one name, one physics: append rules below this line
+    _r(
+        "reference.excitations.a_state_is_named_by_its_manifold",
+        "reference:about_rotational_constants_and_excitations",
+        "T1",
+        "Every program's td serves one list in one order: states in "
+        "ascending energy with a unique rank (excited_state_indices), each "
+        "state's spin (excited_state_multiplicities: 1 or 3, none on an "
+        "open-shell reference, whose roots are not spin eigenfunctions) and "
+        "its rank in its own manifold (excited_state_manifold_roots: S_k, "
+        "T_k), what it is made of (excited_state_dominant_excitations: "
+        "HOMO-1 -> LUMO, beta HOMO -> LUMO; with its weight), and each "
+        "spin block by name (singlet_*, triplet_*). state_manifold takes "
+        "singlet, triplet or singlet_triplet on a closed shell and "
+        "unrestricted on an open shell in every program. Name a state by "
+        "its manifold, rank and character, never by its position in one "
+        "program's list.",
+        "R10 q8 (a86d9658 -> 28b8b48c): one acrolein singlet_triplet request "
+        "read T1 at index 0 in Gaussian and S1 in ORCA, ORCA's indices "
+        "repeated (1,2,3,1,2,3) and Gaussian declared no manifold selector; "
+        "oracle O1 (CUHK 2150194) now reads one list in three programs",
+    ),
+    _r(
+        "reference.excitations.a_window_is_not_a_spectrum",
+        "reference:about_rotational_constants_and_excitations",
+        "T1",
+        "A td result is the lowest roots the program's iterative solver "
+        "found, not proof that no state lies below the top of the window: "
+        "six-root windows have missed a state below their top in each of "
+        "Gaussian, ORCA and PySCF -- once the brightest band of the "
+        "spectrum -- and a ten-root window held it. Ask for more roots "
+        "than you will use, and before calling two results' k-th roots one "
+        "state, compare their strengths, <S^2> and multiplicities. "
+        "An open-shell root's <S^2> is served under TDA, where the programs "
+        "agree; full TD-DFT has none.",
+        "R10 q7 O4 (CUHK 2150078): formaldehyde, Gaussian and ORCA missed "
+        "the f=0.47 root at nstates 6; R10 q8 O1 (CUHK 2150194): allyl "
+        "radical, PySCF missed root 6 at TD-DFT and ORCA the f=0.56 root "
+        "at TDA, and full-TD-DFT <S^2> of D1 read 0.713 (Gaussian) vs "
+        "0.801 (ORCA)",
+    ),
     # R10 Q2 one name, one physics: end
     # R10 Q3 knowledge: append rules below this line
     # R10 Q3 knowledge: end

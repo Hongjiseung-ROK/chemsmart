@@ -380,6 +380,47 @@ def record_run(
                     "recorded_at": stamp,
                 }
             )
+        elif kind == "scientific_decision_recorded":
+            # Every finding is the goal's, not its cycle's: one that
+            # answers a declared question is that question's delivery at
+            # goal grain, exactly as a claim row is a number's (claim_id
+            # is the question it answers), and every one reaches a later
+            # cycle's settlement through this record rather than through
+            # the stream it was written in.
+            for finding in payload.get("findings") or ():
+                if not isinstance(finding, Mapping):
+                    continue
+                entries.append(
+                    {
+                        "kind": "finding",
+                        "goal_id": goal_id,
+                        "cycle": int(cycle),
+                        "run": run,
+                        "claim_id": str(
+                            finding.get("answers_observable_id") or ""
+                        ),
+                        "finding_id": str(finding.get("finding_id") or ""),
+                        "standing": str(finding.get("standing") or ""),
+                        "statement": str(finding.get("statement") or ""),
+                        "host_signals": tuple(
+                            str(item)
+                            for item in finding.get("host_signals") or ()
+                        ),
+                        "supersedes_finding_id": str(
+                            finding.get("supersedes_finding_id") or ""
+                        ),
+                        "finding_receipt_sha256": str(
+                            finding.get("receipt_sha256") or ""
+                        ),
+                        # The words the host read, when it answers.
+                        "answer": tuple(
+                            dict(item)
+                            for item in finding.get("answer") or ()
+                            if isinstance(item, Mapping)
+                        ),
+                        "recorded_at": stamp,
+                    }
+                )
         elif kind == "analysis_claims_recorded":
             record = payload.get("record") or {}
             # The assessment travels with the number it judges. Without

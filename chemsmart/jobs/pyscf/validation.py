@@ -42,7 +42,6 @@ from ase.data import atomic_masses as ASE_ATOMIC_MASSES
 from ase.data import atomic_numbers as ASE_ATOMIC_NUMBERS
 
 from chemsmart.jobs.pyscf.settings import (
-    FUNCTIONAL_DIVERGENCES,
     PYSCF_AB_INITIO_METHODS,
     PYSCF_ANALYTIC_HESSIAN_STAGES,
     PYSCF_COUPLED_CLUSTER_METHODS,
@@ -55,12 +54,13 @@ from chemsmart.jobs.pyscf.settings import (
     PYSCF_MOVING_STAGES,
     PYSCF_OPT_SOLVERS,
     PYSCF_RESPONSE_METHODS,
-    PYSCF_RESTRICTED_MANIFOLDS,
     PYSCF_SOLVENT_MODELS,
     PYSCF_STATE_MANIFOLDS,
+    PYSCF_TWO_BLOCK_MANIFOLD,
     PYSCF_UNRESTRICTED_MANIFOLD,
     is_double_hybrid_functional,
     pyscf_correlated_method,
+    pyscf_native_functional,
     pyscf_stages,
 )
 
@@ -3604,17 +3604,22 @@ def _validate_excited_state_results(results, stage_statuses):
                     f"h5:/results/{name}",
                 )
             )
-    dipoles = results.get("transition_dipole_moments")
-    if dipoles is not None:
-        values = _result_array(dipoles)
-        if values is None or values.shape != (count, 3):
+    for name, width in (
+        ("transition_dipole_moments", 3),
+        ("excited_state_dominant_excitations", 4),
+    ):
+        per_root = results.get(name)
+        if per_root is None:
+            continue
+        values = _result_array(per_root)
+        if values is None or values.shape != (count, width):
             findings.append(
                 _result_finding(
                     RULE_RESULT_EXCITED,
-                    "results.transition_dipole_moments",
-                    (count, 3),
+                    f"results.{name}",
+                    (count, width),
                     _array_observation(values),
-                    "h5:/results/transition_dipole_moments",
+                    f"h5:/results/{name}",
                 )
             )
     td_status = stage_statuses.get("td")
@@ -4940,42 +4945,53 @@ def _check_response_settings(
     if resolved_multiplicity is not _MISSING and manifold in (
         PYSCF_STATE_MANIFOLDS
     ):
-        restricted = int(resolved_multiplicity) == 1
-        if restricted and manifold not in PYSCF_RESTRICTED_MANIFOLDS:
+        # One rule for every program: which manifolds a reference has.
+        from chemsmart.jobs.settings import td_manifold_reference_refusal
+
+        refusal = td_manifold_reference_refusal(
+            manifold, int(resolved_multiplicity)
+        )
+        if refusal:
+            restricted = int(resolved_multiplicity) == 1
             violations.append(
                 PySCFViolation(
                     rule_id=RULE_TD_REFERENCE,
                     field="state_manifold",
-                    expected=PYSCF_RESTRICTED_MANIFOLDS,
+                    expected=(
+                        tuple(
+                            word
+                            for word in PYSCF_STATE_MANIFOLDS
+                            if word != PYSCF_UNRESTRICTED_MANIFOLD
+                        )
+                        if restricted
+                        else PYSCF_UNRESTRICTED_MANIFOLD
+                    ),
                     observed={
                         "state_manifold": manifold,
                         "multiplicity": int(resolved_multiplicity),
-                        "reason": (
-                            "a closed-shell reference asks for singlet or "
-                            "triplet excitations"
-                        ),
-                    },
-                    evidence_ref="resolved:multiplicity",
-                )
-            )
-        elif not restricted and manifold != PYSCF_UNRESTRICTED_MANIFOLD:
-            violations.append(
-                PySCFViolation(
-                    rule_id=RULE_TD_REFERENCE,
-                    field="state_manifold",
-                    expected=PYSCF_UNRESTRICTED_MANIFOLD,
-                    observed={
-                        "state_manifold": manifold,
-                        "multiplicity": int(resolved_multiplicity),
-                        "reason": (
-                            "an open-shell reference has one "
-                            "spin-conserving excitation manifold"
-                        ),
+                        "reason": refusal,
                     },
                     evidence_ref="resolved:multiplicity",
                 )
             )
     if excited_root is not None:
+        if manifold == PYSCF_TWO_BLOCK_MANIFOLD:
+            violations.append(
+                PySCFViolation(
+                    rule_id=RULE_INVALID_SETTING,
+                    field="state_manifold",
+                    expected="one manifold (singlet or triplet) for a root",
+                    observed={
+                        "state_manifold": manifold,
+                        "excited_state_root": excited_root,
+                        "reason": (
+                            "excited_state_root follows one root of one "
+                            "manifold; singlet_triplet holds two"
+                        ),
+                    },
+                    evidence_ref="settings:state_manifold",
+                )
+            )
         if (
             isinstance(excited_root, bool)
             or not isinstance(excited_root, Integral)
@@ -5908,10 +5924,9 @@ def _requested_spec(settings):
     elif ab_initio is not _MISSING and str(ab_initio).lower() == "hf":
         requested["xc"] = None
     elif functional is not _MISSING and functional is not None:
-        key = str(functional).strip().lower()
-        requested["xc"] = FUNCTIONAL_DIVERGENCES.get(key, (functional, None))[
-            0
-        ]
+        # The writer's own spelling, from the table it spells with, so a
+        # literal and its synonyms verify against the xc the driver ran.
+        requested["xc"] = pyscf_native_functional(functional)
 
     if ab_initio not in (_MISSING, None):
         requested["method"] = str(ab_initio).lower()

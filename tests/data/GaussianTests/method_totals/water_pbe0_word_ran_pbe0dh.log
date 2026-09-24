@@ -1,0 +1,274 @@
+ Entering Gaussian System, Link 0=/project/xlzhang/shared/bin/g16C02/g16
+ Input=/scratch/s1/xlzhang/jiseung/r10/q2/F_water_gaussian_pbe0_tight_gas_phase/F_water_gaussian_pbe0_tight_gas_phase.com
+ Output=/scratch/s1/xlzhang/jiseung/r10/q2/F_water_gaussian_pbe0_tight_gas_phase/F_water_gaussian_pbe0_tight_gas_phase.log
+ Initial command:
+ /project/xlzhang/shared/bin/g16C02/l1.exe "/scratch/s1/xlzhang/jiseung/r10/q2/Gau-3537633.inp" -scrdir="/scratch/s1/xlzhang/jiseung/r10/q2/"
+ Entering Link 1 = /project/xlzhang/shared/bin/g16C02/l1.exe PID=   3537641.
+  
+ Copyright (c) 1988-2021, Gaussian, Inc.  All Rights Reserved.
+  
+ This is part of the Gaussian(R) 16 program.  It is based on
+ the Gaussian(R) 09 system (copyright 2009, Gaussian, Inc.),
+ the Gaussian(R) 03 system (copyright 2003, Gaussian, Inc.),
+ the Gaussian(R) 98 system (copyright 1998, Gaussian, Inc.),
+ the Gaussian(R) 94 system (copyright 1995, Gaussian, Inc.),
+ the Gaussian 92(TM) system (copyright 1992, Gaussian, Inc.),
+ the Gaussian 90(TM) system (copyright 1990, Gaussian, Inc.),
+ the Gaussian 88(TM) system (copyright 1988, Gaussian, Inc.),
+ the Gaussian 86(TM) system (copyright 1986, Carnegie Mellon
+ University), and the Gaussian 82(TM) system (copyright 1983,
+ Carnegie Mellon University). Gaussian is a federally registered
+ trademark of Gaussian, Inc.
+  
+ This software contains proprietary and confidential information,
+ including trade secrets, belonging to Gaussian, Inc.
+  
+ This software is provided under written license and may be
+ used, copied, transmitted, or stored only in accord with that
+ written license.
+  
+ The following legend is applicable only to US Government
+ contracts under FAR:
+  
+                    RESTRICTED RIGHTS LEGEND
+  
+ Use, reproduction and disclosure by the US Government is
+ subject to restrictions as set forth in subparagraphs (a)
+ and (c) of the Commercial Computer Software - Restricted
+ Rights clause in FAR 52.227-19.
+  
+ Gaussian, Inc.
+ 340 Quinnipiac St., Bldg. 40, Wallingford CT 06492
+  
+  
+ ---------------------------------------------------------------
+ Warning -- This program may not be used in any manner that
+ competes with the business of Gaussian, Inc. or will provide
+ assistance to any competitor of Gaussian, Inc.  The licensee
+ of this program is prohibited from giving any competitor of
+ Gaussian, Inc. access to this program.  By using this program,
+ the user acknowledges that Gaussian, Inc. is engaged in the
+ business of creating and licensing software in the field of
+ computational chemistry and represents and warrants to the
+ licensee that it is not a competitor of Gaussian, Inc. and that
+ it will not use this program in any manner prohibited above.
+ ---------------------------------------------------------------
+  
+
+ Cite this work as:
+ Gaussian 16, Revision C.02,
+ M. J. Frisch, G. W. Trucks, H. B. Schlegel, G. E. Scuseria, 
+ M. A. Robb, J. R. Cheeseman, G. Scalmani, V. Barone, 
+ G. A. Petersson, H. Nakatsuji, X. Li, M. Caricato, A. V. Marenich, 
+ J. Bloino, B. G. Janesko, R. Gomperts, B. Mennucci, H. P. Hratchian, 
+ J. V. Ortiz, A. F. Izmaylov, J. L. Sonnenberg, D. Williams-Young, 
+ F. Ding, F. Lipparini, F. Egidi, J. Goings, B. Peng, A. Petrone, 
+ T. Henderson, D. Ranasinghe, V. G. Zakrzewski, J. Gao, N. Rega, 
+ G. Zheng, W. Liang, M. Hada, M. Ehara, K. Toyota, R. Fukuda, 
+ J. Hasegawa, M. Ishida, T. Nakajima, Y. Honda, O. Kitao, H. Nakai, 
+ T. Vreven, K. Throssell, J. A. Montgomery, Jr., J. E. Peralta, 
+ F. Ogliaro, M. J. Bearpark, J. J. Heyd, E. N. Brothers, K. N. Kudin, 
+ V. N. Staroverov, T. A. Keith, R. Kobayashi, J. Normand, 
+ K. Raghavachari, A. P. Rendell, J. C. Burant, S. S. Iyengar, 
+ J. Tomasi, M. Cossi, J. M. Millam, M. Klene, C. Adamo, R. Cammi, 
+ J. W. Ochterski, R. L. Martin, K. Morokuma, O. Farkas, 
+ J. B. Foresman, and D. J. Fox, Gaussian, Inc., Wallingford CT, 2019.
+ 
+ ******************************************
+ Gaussian 16:  ES64L-G16RevC.02  7-Dec-2021
+                24-Sep-2026 
+ ******************************************
+ %chk=F_water_gaussian_pbe0_tight_gas_phase.chk
+ %nprocshared=8
+ Will use up to    8 processors via shared memory.
+ %mem=24GB
+ --------------------------------------
+ # pbe0 def2svp scf=tight int=ultrafine
+ --------------------------------------
+ 1/38=1,172=1/1;
+ 2/12=2,17=6,18=5,40=1/2;
+ 3/5=43,7=101,11=9,25=1,30=1,74=-78,75=-5/1,2,3;
+ 4//1;
+ 5/5=2,32=2,38=5/2;
+ 8/10=1/1;
+ 9/16=-3/6;
+ 6/7=2,8=2,9=2,10=2/1;
+ 99/5=1,9=1/99;
+ ----------------------------------
+ Gaussian job with default settings
+ ----------------------------------
+ Symbolic Z-matrix:
+ Charge =  0 Multiplicity = 1
+ O                     0.        0.        0.1173 
+ H                     0.        0.7572   -0.4692 
+ H                     0.       -0.7572   -0.4692 
+ 
+                          Input orientation:                          
+ ---------------------------------------------------------------------
+ Center     Atomic      Atomic             Coordinates (Angstroms)
+ Number     Number       Type             X           Y           Z
+ ---------------------------------------------------------------------
+      1          8           0        0.000000    0.000000    0.117300
+      2          1           0        0.000000    0.757200   -0.469200
+      3          1           0        0.000000   -0.757200   -0.469200
+ ---------------------------------------------------------------------
+                    Distance matrix (angstroms):
+                    1          2          3
+     1  O    0.000000
+     2  H    0.957776   0.000000
+     3  H    0.957776   1.514400   0.000000
+ Stoichiometry    H2O
+ Framework group  C2V[C2(O),SGV(H2)]
+ Deg. of freedom     2
+ Full point group                 C2V     NOp   4
+ Largest Abelian subgroup         C2V     NOp   4
+ Largest concise Abelian subgroup C2      NOp   2
+                         Standard orientation:                         
+ ---------------------------------------------------------------------
+ Center     Atomic      Atomic             Coordinates (Angstroms)
+ Number     Number       Type             X           Y           Z
+ ---------------------------------------------------------------------
+      1          8           0        0.000000   -0.000000    0.117300
+      2          1           0        0.000000    0.757200   -0.469200
+      3          1           0       -0.000000   -0.757200   -0.469200
+ ---------------------------------------------------------------------
+ Rotational constants (GHZ):         820.7510204         437.3013824         285.2945990
+ Standard basis: def2SVP (5D, 7F)
+ There are    12 symmetry adapted cartesian basis functions of A1  symmetry.
+ There are     2 symmetry adapted cartesian basis functions of A2  symmetry.
+ There are     4 symmetry adapted cartesian basis functions of B1  symmetry.
+ There are     7 symmetry adapted cartesian basis functions of B2  symmetry.
+ There are    11 symmetry adapted basis functions of A1  symmetry.
+ There are     2 symmetry adapted basis functions of A2  symmetry.
+ There are     4 symmetry adapted basis functions of B1  symmetry.
+ There are     7 symmetry adapted basis functions of B2  symmetry.
+    24 basis functions,    39 primitive gaussians,    25 cartesian basis functions
+     5 alpha electrons        5 beta electrons
+       nuclear repulsion energy         9.1895337629 Hartrees.
+ NAtoms=    3 NActive=    3 NUniq=    2 SFac= 2.25D+00 NAtFMM=   60 NAOKFM=F Big=F
+ Integral buffers will be    131072 words long.
+ Regular integral format.
+ Two-electron integral symmetry is turned on.
+ One-electron integrals computed using PRISM.
+   4 Symmetry operations used in ECPInt.
+ ECPInt:  NShTT=      78 NPrTT=     272 LenC2=      79 LenP2D=     271.
+ LDataN:  DoStor=T MaxTD1= 4 Len=   56
+ NBasis=    24 RedAO= T EigKep=  3.76D-02  NBF=    11     2     4     7
+ NBsUse=    24 1.00D-06 EigRej= -1.00D+00 NBFU=    11     2     4     7
+ ExpMin= 1.22D-01 ExpMax= 2.27D+03 ExpMxC= 3.41D+02 IAcc=3 IRadAn=         5 AccDes= 0.00D+00
+ Harris functional with IExCor= 1009 and IRadAn=       5 diagonalized for initial guess.
+ HarFok:  IExCor= 1009 AccDes= 0.00D+00 IRadAn=         5 IDoV= 1 UseB2=F ITyADJ=14
+ ICtDFT=  3500011 ScaDFX=  1.000000  1.000000  1.000000  1.000000
+ FoFCou: FMM=F IPFlag=           0 FMFlag=      100000 FMFlg1=           0
+         NFxFlg=           0 DoJE=T BraDBF=F KetDBF=T FulRan=T
+         wScrn=  0.000000 ICntrl=       500 IOpCl=  0 I1Cent=   200000004 NGrid=           0
+         NMat0=    1 NMatS0=      1 NMatT0=    0 NMatD0=    1 NMtDS0=    0 NMtDT0=    0
+ Petite list used in FoFCou.
+ Initial guess orbital symmetries:
+       Occupied  (A1) (A1) (B2) (A1) (B1)
+       Virtual   (A1) (B2) (B2) (A1) (A1) (B1) (B2) (A1) (A2) (A1)
+                 (B1) (B2) (B2) (A1) (B1) (A2) (A1) (A1) (B2)
+ The electronic state of the initial guess is 1-A1.
+ Keep R1 ints in memory in symmetry-blocked form, NReq=6953751.
+ Requested convergence on RMS density matrix=1.00D-08 within 128 cycles.
+ Requested convergence on MAX density matrix=1.00D-06.
+ Requested convergence on             energy=1.00D-06.
+ No special actions if energy rises.
+ Integral accuracy reduced to 1.0D-05 until final iterations.
+ Initial convergence to 1.0D-05 achieved.  Increase integral accuracy.
+ SCF Done:  E(RPBE0DH) =  -76.2397989302     A.U. after    9 cycles
+            NFock=  9  Conv=0.80D-08     -V/T= 2.0057
+ DoSCS=T DFT=T ScalE2(SS,OS)=  0.125000  0.125000
+ ExpMin= 1.22D-01 ExpMax= 2.27D+03 ExpMxC= 3.41D+02 IAcc=3 IRadAn=         5 AccDes= 0.00D+00
+ HarFok:  IExCor=  205 AccDes= 0.00D+00 IRadAn=         5 IDoV=-2 UseB2=F ITyADJ=14
+ ICtDFT= 12500011 ScaDFX=  1.000000  1.000000  1.000000  1.000000
+ Range of M.O.s used for correlation:     2    24
+ NBasis=    24 NAE=     5 NBE=     5 NFC=     1 NFV=     0
+ NROrb=     23 NOA=     4 NOB=     4 NVA=    19 NVB=    19
+ DoSCS=T DFT=T ScalE2(SS,OS)=  0.125000  0.125000
+ Fully in-core method, ICMem=     6142054.
+ JobTyp=1 Pass  1 fully in-core, NPsUse=  8.
+ Spin components of T(2) and E(2):
+     alpha-alpha T2 =       0.9114774972D-02 E2=     -0.3764102136D-02
+     alpha-beta  T2 =       0.5559451696D-01 E2=     -0.2255259826D-01
+     beta-beta   T2 =       0.9114774972D-02 E2=     -0.3764102136D-02
+ E2(PBE0DH) =    -0.3008080253D-01 E(PBE0DH) =    -0.76269879732702D+02
+
+ **********************************************************************
+
+            Population analysis using the SCF Density.
+
+ **********************************************************************
+
+ Orbital symmetries:
+       Occupied  (A1) (A1) (B2) (A1) (B1)
+       Virtual   (A1) (B2) (B2) (A1) (A1) (B1) (B2) (A1) (A2) (A1)
+                 (B1) (B2) (B2) (A1) (B1) (A2) (A1) (A1) (B2)
+ The electronic state is 1-A1.
+ Alpha  occ. eigenvalues --  -19.64651  -1.12027  -0.59640  -0.45122  -0.37762
+ Alpha virt. eigenvalues --    0.10098   0.18043   0.64723   0.71271   1.01624
+ Alpha virt. eigenvalues --    1.02722   1.10410   1.17946   1.42656   1.49617
+ Alpha virt. eigenvalues --    1.63558   1.87922   2.34219   2.38255   3.08363
+ Alpha virt. eigenvalues --    3.13597   3.31998   3.64274   3.96700
+          Condensed to atoms (all electrons):
+               1          2          3
+     1  O    7.651308   0.338749   0.338749
+     2  H    0.338749   0.524721  -0.027873
+     3  H    0.338749  -0.027873   0.524721
+ Mulliken charges:
+               1
+     1  O   -0.328806
+     2  H    0.164403
+     3  H    0.164403
+ Sum of Mulliken charges =  -0.00000
+ Mulliken charges with hydrogens summed into heavy atoms:
+               1
+     1  O   -0.000000
+ Electronic spatial extent (au):  <R**2>=             18.7888
+ Charge=             -0.0000 electrons
+ Dipole moment (field-independent basis, Debye):
+    X=             -0.0000    Y=             -0.0000    Z=             -2.0690  Tot=              2.0690
+ Quadrupole moment (field-independent basis, Debye-Ang):
+   XX=             -7.0065   YY=             -4.1861   ZZ=             -5.9275
+   XY=              0.0000   XZ=              0.0000   YZ=              0.0000
+ Traceless Quadrupole moment (field-independent basis, Debye-Ang):
+   XX=             -1.2998   YY=              1.5206   ZZ=             -0.2207
+   XY=              0.0000   XZ=              0.0000   YZ=              0.0000
+ Octapole moment (field-independent basis, Debye-Ang**2):
+  XXX=              0.0000  YYY=             -0.0000  ZZZ=             -1.1984  XYY=             -0.0000
+  XXY=              0.0000  XXZ=             -0.3142  XZZ=              0.0000  YZZ=             -0.0000
+  YYZ=             -1.2246  XYZ=             -0.0000
+ Hexadecapole moment (field-independent basis, Debye-Ang**3):
+ XXXX=             -4.8229 YYYY=             -5.6821 ZZZZ=             -5.9515 XXXY=             -0.0000
+ XXXZ=             -0.0000 YYYX=             -0.0000 YYYZ=              0.0000 ZZZX=             -0.0000
+ ZZZY=             -0.0000 XXYY=             -2.0263 XXZZ=             -1.8493 YYZZ=             -1.6018
+ XXYZ=              0.0000 YYXZ=              0.0000 ZZXY=             -0.0000
+ N-N= 9.189533762935D+00 E-N=-1.988932304151D+02  KE= 7.580706219346D+01
+ Symmetry A1   KE= 6.768089980325D+01
+ Symmetry A2   KE= 1.150573320870D-33
+ Symmetry B1   KE= 4.590629157480D+00
+ Symmetry B2   KE= 3.535533232733D+00
+ Unable to Open any file for archive entry.
+ 1\1\GINC-CHPC-CN072\SP\RPBE0DH-FC\def2SVP\H2O1\B169250\24-Sep-2026\0\\
+ # pbe0 def2svp scf=tight int=ultrafine\\Gaussian job with default sett
+ ings\\0,1\O,0,0.,0.,0.1173\H,0,0.,0.7572,-0.4692\H,0,0.,-0.7572,-0.469
+ 2\\Version=ES64L-G16RevC.02\State=1-A1\HF=-76.2397989\MP2=-76.2698797\
+ RMSD=8.011e-09\PG=C02V [C2(O1),SGV(H2)]\\@
+ The archive entry for this job was punched.
+
+
+ CHARLIE BROWN.."I CAN'T GET THAT STUPID KITE IN THE
+ AIR... I CAN'T... I C A N N O T..."
+ LUCY.."OH COME NOW CHARLIE BROWN...THAT'S NO WAY TO TALK...
+ THE TROUBLE WITH YOU IS YOU DON'T BELIEVE IN YOURSELF... YOU
+ DON'T BELIEVE IN YOUR OWN ABILITIES...  YOU'VE GOT TO SAY TO
+ YOURSELF...'I BELIEVE I CAN FLY THIS KITE.'... GO AHEAD SAY
+ IT...."
+ CHARLIE BROWN.."I BELIEVE THAT I CAN FLY THIS STUPID
+ KITE.....I BELIEVE THAT I CAN FLY THIS KITE........
+ I  A C T U A L L Y  B E L I E V E  T H A T  I  C A N ******"
+ LUCY.."I'LL BET YOU TEN-TO-ONE YOU'RE WRONG......."    SCHULZ
+ Job cpu time:       0 days  0 hours  0 minutes  2.9 seconds.
+ Elapsed time:       0 days  0 hours  0 minutes  1.4 seconds.
+ File lengths (MBytes):  RWF=     17 Int=      0 D2E=      0 Chk=      2 Scr=      2
+ Normal termination of Gaussian 16 at Thu Sep 24 02:00:09 2026.
