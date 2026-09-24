@@ -936,11 +936,15 @@ def refusal_read_against_results(
             "name)"
         )
     if selector and not selector_declared and unread:
+        # One line can name both the selector and the observable; it is
+        # quoted once (LG1, CUHK 2151662, quoted it twice).
         printed = tuple(
-            line
-            for _artifact_id, path in unread
-            for name in (selector, observable_id)
-            for line in _printed_lines_naming(name, Path(path))
+            dict.fromkeys(
+                line
+                for _artifact_id, path in unread
+                for name in (selector, observable_id)
+                for line in _printed_lines_naming(name, Path(path))
+            )
         )[:3]
         return False, (
             basis

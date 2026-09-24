@@ -710,6 +710,9 @@ def test_a_refusal_made_before_the_run_is_read_again_when_the_goal_settles(
     assert "read again against them" in text
     assert "spatial-extent" in text
     assert "Electronic spatial extent" in text
+    # LG1 (CUHK 2151662) quoted the one line twice, found once through the
+    # selector's words and once through the observable id's.
+    assert text.count("water_sp.log:210:") == 1, text
 
 
 def test_a_blocked_node_does_not_verify_over_a_result_that_prints_the_name(
