@@ -342,3 +342,9 @@ N; a null here says the lever is not large, not that it is absent.
   `_inspect_run_outcome`, their tool specs, the catalogue's reading
   entries, `_reading_context`, `wake.reading_turn`, `_system_prompt`).
   No provider session and no cluster job issued yet.
+- 2026-09-24, later: the lever committed (29adc265), witness red on a
+  2c1050c7 export (4 of 5) and green here; arm U built on the side branch
+  (e77a0b47); development goals run locally (dA, dB, dC so far; dD, dE, dF
+  queued), the later ones from a `git archive` export of 29adc265 so the
+  worktree stays free; both code packs verified on CUHK; pre-registration
+  committed; harness check hc1 running (2152986, 2152987).
