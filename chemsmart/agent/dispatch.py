@@ -27,6 +27,7 @@ from chemsmart.agent._contracts import ContractError
 from chemsmart.agent.cohort import (
     build_cohort_manifest,
     cohort_completion,
+    cohort_lines,
     execution_result_file,
 )
 
@@ -172,6 +173,35 @@ def _approved_bundle_digest(approval_file: Path | str) -> str:
             "approval it belongs to"
         )
     return digest
+
+
+def _approved_data_edges(
+    approval_file: Path | str,
+) -> tuple[tuple[str, str], ...]:
+    """The approved plan's data edges, as (producer, consumer) pairs.
+
+    A wave's lines are read from the plan the approval froze, so an array
+    element runs a consumer the Agent named in the same process as the
+    producer that hands it its input.
+    """
+
+    try:
+        record = json.loads(Path(approval_file).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ContractError(
+            f"the approval bundle at {approval_file} cannot be read, so "
+            "a cohort's lines cannot be derived from it"
+        ) from exc
+    body = record.get("workflow_execution_approval_bundle") or record
+    plan = (body or {}).get("approved_scientific_plan") or {}
+    return tuple(
+        (
+            str(edge.get("source_node_id") or ""),
+            str(edge.get("target_node_id") or ""),
+        )
+        for edge in plan.get("edges") or ()
+        if isinstance(edge, dict) and edge.get("edge_kind") == "data"
+    )
 
 
 def build_dispatch_script(
@@ -451,6 +481,12 @@ def dispatch_run_to_scheduler(
             created_at=datetime.now(timezone.utc)
             .isoformat()
             .replace("+00:00", "+00:00"),
+            # One element per line: a consumer the Agent named beside its
+            # producer runs after it in the producer's element.
+            element_node_ids=cohort_lines(
+                tuple(str(item) for item in cohort_node_ids),
+                _approved_data_edges(approval_file),
+            ),
         )
         manifest.write(run_directory)
         script = build_cohort_dispatch_script(
@@ -459,7 +495,7 @@ def dispatch_run_to_scheduler(
             approval_file=Path(approval_file).resolve(),
             workspace=Path(workspace).resolve(),
             run_directory=run_directory.resolve(),
-            cohort_size=len(manifest.node_ids),
+            cohort_size=manifest.element_count,
         )
     else:
         script = build_dispatch_script(

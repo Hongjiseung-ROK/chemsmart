@@ -47,6 +47,13 @@ class GaussianRefs:
         "genecp",
         "sv",
         "tzv",
+        # Built-in names a result's level read as no basis at all: a
+        # D95V or CEP-31G run (CUHK Slurm 2151890) stated its angular form
+        # and core potentials beside a basis nobody named.
+        "d95",
+        "cep-",
+        "sdd",
+        "sto-",
     ]
 
     # Semi-empirical methods

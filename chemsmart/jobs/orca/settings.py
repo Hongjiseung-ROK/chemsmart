@@ -225,6 +225,13 @@ ORCA_RELATIVISTIC_BASIS_MARKERS = (
     "x2c-",
 )
 
+#: The angular functions ORCA builds every basis from: spherical
+#: harmonics, the only form it has.  Its ``Basis Dimension`` is the
+#: spherical count on every species measured (CH2O at 6-31G(d): 32, where
+#: Gaussian's default builds 34; CUHK Slurm 2151772).  A result's level
+#: states it from here.
+ORCA_BASIS_FUNCTIONS = "spherical"
+
 #: Reference determinants ORCA exposes through ``%scf HFTyp``.
 ORCA_REFERENCE_DETERMINANTS = {
     "rhf": "RHF",

@@ -349,12 +349,13 @@ def _legacy_tool_definitions(
                 "point it came from, at what coordinate and energy. Using "
                 "the returned geometry is a changed molecular input, so the "
                 "stage that consumes it is a new workflow needing its own "
-                "review. When the point you want is the surface's "
+                "review. When the point you want is an ORCA scan's "
                 "minimum-energy sample, you do not need this tool or a "
                 "second workflow: declare the consumer's geometry input as a "
                 "producer edge from the scan node, and one approval covers "
-                "scan and consumer. artifact_id must identify a completed "
-                "scan result already registered in this workspace."
+                "scan and consumer; a Gaussian scan's points are carried by "
+                "this tool. artifact_id must identify a completed scan "
+                "result already registered in this workspace."
             ),
             {
                 "artifact_id": _string(),
@@ -1613,7 +1614,11 @@ def _legacy_tool_definitions(
                 "completed before you reason again. One member is valid; "
                 "several mean you do not need one member's result before "
                 "deciding whether the others run. Name them in the order "
-                "you want them."
+                "you want them. A calculation that takes another member's "
+                "output through an edge this workflow declares may be named "
+                "with it: it runs after that member validates and the host "
+                "hands the output on, inside the same wave. Leave it out to "
+                "read the producer's evidence before choosing it."
             ),
             {
                 "workflow_id": _public_identifier(),

@@ -525,7 +525,14 @@ def test_embedded_basis_probe_returns_known_maximum_angular_momentum():
         assert basis_max_l("def2-svp", ["H", "O"]) == 2
 
 
-def test_environment_blocks_basis_that_requires_unmaterialized_ecp():
+def test_a_basis_core_potential_runs_on_cpu_and_is_refused_on_gpu():
+    """The driver attaches the potential the basis defines; only CPU ran it.
+
+    This test pinned the refusal the driver now translates: def2-SVP on
+    iodine ran as one basis in ORCA and Gaussian and was refused here
+    (CUHK Slurm 2151773).
+    """
+
     receipt = {
         "status": "available",
         "interpreter": sys.executable,
@@ -540,12 +547,14 @@ def test_environment_blocks_basis_that_requires_unmaterialized_ecp():
         "basis_ecp_required_elements": ["Xe"],
     }
 
-    findings = environment_blockers(receipt, engine="cpu")
+    cpu = environment_blockers(receipt, engine="cpu")
+    gpu = environment_blockers(receipt, engine="gpu")
 
+    assert not any("ecp" in finding["rule_id"] for finding in cpu)
     assert any(
-        finding["rule_id"] == "pyscf.environment.ecp_unmaterialized"
-        and finding["observed"]["elements_requiring_ecp"] == ["Xe"]
-        for finding in findings
+        finding["rule_id"] == "pyscf.gpu.ecp_unqualified"
+        and finding["observed"]["elements_with_core_potential"] == ["Xe"]
+        for finding in gpu
     )
 
 

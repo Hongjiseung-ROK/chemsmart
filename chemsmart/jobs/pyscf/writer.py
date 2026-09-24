@@ -388,6 +388,15 @@ def pyscf_td_response_materialization(settings, *, reference_family=None):
     }
 
 
+#: The angular functions every basis shell is built from.  A basis name
+#: is one basis set in every program only with one form: Gaussian's own
+#: default for the 6-31G family is Cartesian d (six functions), ORCA has
+#: spherical harmonics alone, and at Cartesian d the same ``6-31G(d)``
+#: lay 0.25-4.1 mEh below the spherical set (CUHK Slurm 2151772). The
+#: driver passes this to ``pyscf.M`` and the level reads it here.
+PYSCF_BASIS_FUNCTIONS = "spherical"
+
+
 #: What makes two results the same electronic surface. Every entry is a
 #: value the host applied, never a value a project asked for: ``b3lyp``
 #: and ``b3lypg`` are one functional in this build and must not hash
@@ -980,6 +989,42 @@ def _apply_threads(config):
     lib.num_threads(config["num_threads"])
 
 
+def _basis_ecp(config):
+    """The core potential the named basis defines, element by element.
+
+    A basis set that replaces an element's core electrons by a potential
+    is one object with that potential: ORCA and Gaussian attach def2's to
+    iodine whenever def2 is named.  PySCF attaches none unless told, and
+    given the valence-only def2 functions alone it runs the element
+    all-electron (54 electrons for HI) with no complaint, so the potential
+    is taken from the same library entry the functions come from.
+    """
+    from pyscf import gto
+
+    ecp = {}
+    for symbol in sorted(set(config["symbols"])):
+        try:
+            defined = gto.basis.load_ecp(config["basis"], symbol)
+        except Exception:  # noqa: BLE001 - the basis defines none here
+            defined = None
+        if defined:
+            ecp[symbol] = config["basis"]
+    return ecp
+
+
+def _ecp_core_electrons(mol):
+    """Core electrons the built molecule replaced, per element present.
+
+    Every element is named, all-electron ones with zero, so a reader
+    comparing two results can tell "no potential" from "not recorded".
+    """
+    cores = {}
+    for index in range(mol.natm):
+        symbol = mol.atom_pure_symbol(index)
+        cores.setdefault(symbol, int(mol.atom_nelec_core(index)))
+    return cores
+
+
 def _build_mole(config, log_path):
     import pyscf
 
@@ -994,9 +1039,15 @@ def _build_mole(config, log_path):
         # PySCF's spin is 2S = Nalpha - Nbeta, not the multiplicity.
         spin=config["spin"],
         unit=config["unit"],
+        # Spherical harmonics, which is what the project literal means in
+        # every program (``PYSCF_BASIS_FUNCTIONS``, read by the level).
+        cart=__CHEMSMART_CART__,
         output=log_path,
         verbose=4,
     )
+    ecp = _basis_ecp(config)
+    if ecp:
+        kwargs["ecp"] = ecp
     if config["max_memory_mb"]:
         kwargs["max_memory"] = config["max_memory_mb"]
     return pyscf.M(**kwargs)
@@ -3009,8 +3060,15 @@ def main():
         results["positions"] = np.asarray(
             mol.atom_coords(unit="Angstrom"), dtype=float
         )
+        # The nuclear charge, not the effective one: under a core potential
+        # ``atom_charges()`` is Z less the replaced core (25 for iodine),
+        # which is no element's identity.
         results["atomic_numbers"] = np.asarray(
-            mol.atom_charges(), dtype=int
+            [
+                int(mol.atom_charge(index)) + int(mol.atom_nelec_core(index))
+                for index in range(mol.natm)
+            ],
+            dtype=int,
         )
         results["mo_energy"] = _to_host_array(mf.mo_energy).astype(float)
         results["mo_occ"] = _to_host_array(mf.mo_occ).astype(float)
@@ -3200,6 +3258,10 @@ def main():
         spec["num_shells"] = int(mol.nbas)
         spec["num_electrons"] = int(mol.nelectron)
         spec["nelec"] = [int(n) for n in mol.nelec]
+        # Read off the molecule the electrons above were counted on, so
+        # the two cannot disagree: the explicit electrons plus these are
+        # the nuclear charges less the molecular charge.
+        spec["ecp_core_electrons"] = _ecp_core_electrons(mol)
 
         status["engine_complete"] = (
             len(status["stages"]) == len(CONFIG["stages"])
@@ -3252,4 +3314,8 @@ _SKELETON = _SKELETON.replace(
 _SKELETON = _SKELETON.replace(
     "__CHEMSMART_STABILITY_UNRETURNED_SPACE__",
     repr(PYSCF_STABILITY_UNRETURNED_SPACE),
+)
+# The angular form the driver builds with is the one the level reads.
+_SKELETON = _SKELETON.replace(
+    "__CHEMSMART_CART__", repr(PYSCF_BASIS_FUNCTIONS == "cartesian")
 )

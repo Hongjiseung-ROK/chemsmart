@@ -276,3 +276,19 @@ combinations that differ.
 
 `projects/{sp,opt}-b3lyp-svp-{smd,cpcm}-water.yaml`, `projects/sp-b3lyp-svp-d3bj.yaml`
 and `projects/sp-b3lyp-svp-gas.yaml` are the project files these ran from.
+
+## A basis that defines a core potential (2026-09-24, R10 q12)
+
+Produced through the ordinary CLI on CUHK (**Slurm 2152029**, oracle O2',
+code `d31f1170`) at PySCF 2.14.0, on HI at r = 1.609 A
+(`inputs/hi_1609.xyz`), def2-SVP, `scf_tol 1e-10`, no density fitting.
+The driver attached the core potential def2-SVP defines for iodine
+(28 core electrons, taken from PySCF's own library entry for the basis),
+as ORCA and Gaussian do for the same name; before, the environment probe
+refused the run at execution time. Every receipt `validated`.
+
+| directory | what it is | why it is here |
+|---|---|---|
+| `hi_hf_def2svp_ecp` | HF | 26 explicit electrons, `spec/ecp_core_electrons` {H: 0, I: 28}, atomic numbers [1, 53]; total -297.2315316634 Eh, 9.5e-11 from ORCA's and 1.2e-8 from Gaussian's def2-SVP (CUHK 2151773) |
+| `hi_mp2_def2svp_ecp_auto` | MP2 with `frozen_core: auto` | 4 frozen orbitals (4s4p: the chemical core less the potential's 14), ORCA's and Gaussian's default count; total within 2e-9 Eh of ORCA's |
+| `hi_mp2_def2svp_ecp_all_electron` | MP2 with `frozen_core` unset | every explicit electron correlated: 14.87 mEh below the frozen one, the HI bond energy 0.27 kcal/mol higher -- one project literal, a different core treatment from ORCA's default |

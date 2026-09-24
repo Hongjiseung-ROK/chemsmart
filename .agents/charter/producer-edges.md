@@ -18,6 +18,13 @@ therefore remains admitted, previewable intent rather than completed Agent
 execution. Wavefunction
 (gbw) reuse has no CLI surface and is not claimed.
 
+Admission is not execution. From 2026-09-17 no admitted consumer on the CUHK
+target ran under the approval that admitted it (0 of 92 bound edges in R10 Q11's
+replay): the wave barrier refused a consumer beside its producer, and every goal
+cycle planned a new workflow. Since R10 Q11 (merge d894bddf) a consumer runs in
+its producer's wave, after the producer validates, when the Agent names it there;
+a consumer it does not name still waits.
+
 The fourth producer selection rule (``validated_scan_minimum_geometry``)
 carries a validated ORCA relaxed scan's minimum-energy sampled point into
 a downstream calculation inside one approval. A scan ends at a surface,
