@@ -354,6 +354,20 @@ refuses a maximum at an end of the scan (pick_max.py sha256 9eb1ed3d...).
 Predictions unchanged. The same trap is open to the Agent (its tZt start
 relaxed along two single bonds most naturally reaches the helix).
 
+O1e (2153621), first part READ before G1 was issued (the check the brief
+asks for before committing to the system):
+- The Cs relaxed scan has an interior maximum at C1...C6 2.25 A
+  (-233.462827 Eh; 2.50 A -233.471631, 1.95 A -233.491007), the C2 path
+  lying higher at every distance compared.
+- OptTS from it converged: one imaginary mode, -570.2 cm-1 (O-A |nu| band
+  PASS), E -233.462824585 Eh; B3LYP-D3(BJ)/def2-TZVP dE++ (tZt -> TS) 29.06
+  kcal/mol (O-E PASS), 19.7 above cZc.
+- PySCF stability at the saddle (host reader, PySCFOutput.scf_stability):
+  RKS -> UKS lowest external eigenvalue +0.0642 Eh (stable; Q15's Bergman
+  saddle was +0.0047, p-benzyne -0.064), internal +0.624, real -> complex
+  +0.150 Eh. O-C PASS at the saddle: the question stays closed shell, and G1
+  is issued on it.
+
 O-D read from O1's finished part (B3LYP-D3(BJ)/def2-TZVP, ORCA, unscaled
 RRHO of my own, which reproduces ORCA's 298.15 K enthalpy to 0.01
 kcal/mol): tZt E -233.509133588 Eh, lowest mode 106 cm-1; cZc E
@@ -392,6 +406,11 @@ conformer trap is about 9 kcal/mol.
   shape, `{"coords": ..., "dist_start": [<list>], ...}` (`utils/cli.py:629`).
   `tssearch_type` is project-settable and the coordinate belongs on the node,
   so a session can reach it; it fails at preview (no engine call).
+- 2026-09-25: O1c (2153578), O1d (2153585) cancelled by me (see above);
+  O1e, CUHK Slurm 2153621 (r10-q20-a), pre-registration 3831e8bd992c,
+  running the rest of O1 (CHD, stabilities, IRCs, tZc, CCSD(T) in both
+  programs).
+- 2026-09-25: G1, next submission (r10-q20-b), code r2.
 - G1 files (sha256): TASK.md 8843eee2b482a0fe..., envelope.yaml
   aef67402..., goal.sh 38104bb0... (PYTHONPATH r2/code); g0 = the same
   task, envelope and code with provider alibaba-dryrun, decision deny.
