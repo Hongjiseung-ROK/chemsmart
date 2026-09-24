@@ -336,6 +336,18 @@ predictions stand as written.
   B3LYP-D3(BJ)), in cli/o1b with O1's tZt and cZc outputs copied in.
 - 2026-09-25: O1b, CUHK Slurm 2153573 (r10-q20-a), pre-registration
   9e6aa6783a44.
+- 2026-09-25: g0 dry run, CUHK Slurm 2153574 (r10-q20-b), pre-registration
+  97239de72052: imported r2 (tree 5c72afb5 verified on the node), admitted
+  the workspace, and ended where the dryrun profile ends it ("context budget
+  would be exceeded"), settlement returned_to_human, no provider turn, no
+  engine call. The plumbing for G1 holds.
+- Found and left (not in radius; on the road): ORCA ScanTS through the CLI
+  crashes at write time. `chemsmart/cli/orca/ts.py:230` builds
+  `{"coordinates": ..., "dist_start": <scalar>, ...}`; the writer
+  (`jobs/orca/writer.py:929`, `_write_modred_if_dict`) reads the scan job's
+  shape, `{"coords": ..., "dist_start": [<list>], ...}` (`utils/cli.py:629`).
+  `tssearch_type` is project-settable and the coordinate belongs on the node,
+  so a session can reach it; it fails at preview (no engine call).
 - G1 files (sha256): TASK.md 8843eee2b482a0fe..., envelope.yaml
   aef67402..., goal.sh 38104bb0... (PYTHONPATH r2/code); g0 = the same
   task, envelope and code with provider alibaba-dryrun, decision deny.
