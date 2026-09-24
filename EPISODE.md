@@ -163,6 +163,62 @@ tree, provider-free) on these outputs:
   basis sets) and PySCF minus Gaussian as written: no observation; both
   levels say `basis: 6-31g(d)` and nothing else about the basis.
 
+## Repairs committed (before O2)
+
+- adc130b1 pyscf: the driver attaches the core potential the basis defines
+  (PySCF's own library entry), records per-element core electrons; the
+  validator counts explicit electrons with them; CPU no longer refuses,
+  GPU refuses by name.
+- ab42ab5d gaussian: `5d` is written for the basis names Gaussian builds
+  with Cartesian d (manual list: 3-21G, 6-21G, 4-31G, 6-31G family,
+  CEP-31G, D95, D95V) unless the route names an angular form.
+- 4002da10 analysis: levels state `basis_functions`,
+  `ecp_core_electrons` per element and, for correlated levels,
+  `frozen_core_conventions`; the expression observation compares a frozen
+  core by rule, core potentials per shared element, and the angular form
+  among operands that state it.
+
+## Oracle O2 (pre-registered before submission; repaired tree 4002da10)
+
+Same private config, geometries and tight numerics as O1; the comparison
+values are O1's. Job o2a: PySCF at def2-SVP on HI, H, I, CH3I, CH3 (HF,
+B3LYP, MP2 `frozen_core: auto`), MP2 with frozen core unset on HI, I, H,
+CCSD(T) auto on HI, HF/def2-TZVP on HI in PySCF and ORCA, the HF/def2-SVP
+Hessian of HI in PySCF and ORCA (analytic `Freq` and `NumFreq`). Job o2b:
+Gaussian as written now (B3LYP/6-31G(d) water, CH2O, CH3Cl, Cl; MP2 CH2O;
+B3LYP water at 6-31+G(d,p), 6-311+G(d,p), D95V, CEP-31G; CH3Cl at
+3-21G*), ORCA B3LYP/6-31+G(d,p) water, and the CH2O handoff (Gaussian
+opt=verytight as written, PySCF Hessian on the geometry reached).
+
+E2-A. PySCF HF/def2-SVP totals within 1e-6 Eh of O1's ORCA on all five
+species; recorded core electrons {I: 28} on the iodine species, 0
+elsewhere; electrons 26 / 1 / 25 / 34 / 9; every PySCF receipt
+`validated`. Failure (a different potential or basis behind the name, or
+a wrong record) if any total is further or any validation finding.
+E2-B. B3LYP within 1e-5 Eh of ORCA on all five.
+E2-C. MP2 auto: frozen orbitals 4 / 0 / 4 / 5 / 1 (ORCA's and Gaussian's);
+totals within 2e-6 of ORCA; HI -> H + I MP2 bond energy within 0.01
+kcal/mol of 71.43922.
+E2-D. MP2 frozen core unset (all electrons): HI and I lie more than 1 mEh
+below their auto totals; the HI bond energy change is recorded, expected
+below 1 kcal/mol. Replay: PySCF-default HI minus ORCA HI carries a
+`frozen_core` observation; PySCF-auto HI minus ORCA HI carries none.
+E2-E. CCSD(T) auto HI within 5e-6 Eh of O1's ORCA and Gaussian.
+E2-F. HF/def2-TZVP HI: PySCF within 1e-6 Eh of ORCA.
+E2-G. HI HF/def2-SVP harmonic wavenumber (r = 1.609 A, not a minimum):
+PySCF analytic within 1 cm-1 of ORCA analytic, within 2 cm-1 of ORCA
+NumFreq; PySCF's recorded max|gradient| within 1e-5 Eh/Bohr of ORCA's
+printed gradient.
+P2-A. Gaussian prints `(5D, 7F)` for every Gaussian run in o2b, with no
+`5d` written for 6-311+G(d,p).
+P2-B. Gaussian B3LYP/6-31G(d) as written within 1e-6 Eh of O1's G5 and
+within 1.5e-6 of O1's ORCA on water, CH2O, CH3Cl, Cl; MP2 CH2O within
+1e-7 of O1's G5.
+P2-C. Gaussian B3LYP/6-31+G(d,p) water within 1e-6 Eh of ORCA's.
+P2-D. CEP-31G water: Gaussian's level states {O: 2, H: 0} core electrons.
+H2. PySCF max|g| at the CH2O minimum Gaussian reaches as written now
+<= 3e-5 Eh/Bohr (O1: 9.45e-5 as written then, 8.6e-7 with `5d 7f`).
+
 ## Status
 
 - step 1: tree read; O1 pre-registered above; code unchanged.
