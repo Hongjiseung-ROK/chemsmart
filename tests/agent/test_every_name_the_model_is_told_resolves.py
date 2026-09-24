@@ -17,7 +17,12 @@ registered rule -- and every host handler name, advisory document id or
 reference name found there must be an entry of that session's catalogue,
 because the catalogue is what a call by name and a search can load. A
 family written as ``name_<program>`` or ``name_*`` must match at least one
-entry.
+name the host serves: a catalogue entry, or a word of an act's own
+vocabulary -- a result selector the extraction act reads, an operation
+the expression act evaluates. (A rule naming the ``singlet_*`` and
+``triplet_*`` selector blocks is served by the extraction act, and the
+first version of this witness, which asked only the catalogue, called it
+unserved.)
 """
 
 from __future__ import annotations
@@ -58,12 +63,25 @@ def _unserved_names(text: str, served: set[str]) -> set[str]:
     return unserved
 
 
+def _served_vocabulary(exposure) -> set[str]:
+    """Every name a session can reach: catalogue entries and act vocabularies."""
+
+    from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
+    from chemsmart.analysis.result_quantities import supported_selectors
+
+    return (
+        set(exposure.catalogue.names())
+        | set(supported_selectors())
+        | set(OPERATION_DESCRIPTIONS)
+    )
+
+
 @pytest.mark.parametrize("mode", EXPOSURE_MODES)
 def test_every_name_the_rendered_surface_names_is_one_a_session_can_load(
     mode,
 ):
     exposure = build_exposure(mode)
-    served = set(exposure.catalogue.names())
+    served = _served_vocabulary(exposure)
     prompt = _coordinator_base_messages(
         context={}, approved_workflow=None, exposure=exposure
     )[0]["content"]
