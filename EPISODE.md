@@ -443,5 +443,26 @@ engine calls, 183 s engine wall):
   sibling's absence). The full suite on a pristine export of 470f3257 had
   one new failure, the fixture-keys pin 22e22752 broke (2f0a635c, shared);
   438276d6 documents Gaussian's two new options.
-- step 5: release records for the cells G1 and G3 qualified; merge
-  r10-integration; hand back.
+- step 5: 4fdec488 (shared) records the fifteen cells G1 and G3 qualified;
+  r10-integration merged (ac3b3d05; nothing newer). All five jobs
+  COMPLETED 0:0 (sacct): 9:34, 21:32, 24:20, 2:15, 25:10.
+
+## Close
+
+Milestone A claimed: every manifold word runs in all three programs as one
+calculation (O1: B1-B3 pass, every paired closed-shell state G-P <= 0.0009,
+G-O <= 0.0042 eV) or is refused by one shared rule with a route; states read
+back in one order under one set of names, with what each root is made of
+(O1, O2); and the manifold and identity cells the live goals ran are on the
+ladder by their runs (G1: ORCA and PySCF singlet_triplet with singlet_* and
+triplet_* bound; G3: ORCA unrestricted). Milestone B not claimed: G1 and G3
+paired states correctly across two programs, but neither needed character to
+do it inside its window (G3's only index mismatch lies above 7 eV), and
+neither session read the character selectors. A goal whose requested window
+itself holds a gap in one program is the test B still needs.
+
+Premise (b) of the brief is false and stays false: one order and one set of
+names do not make identity by index safe, because a window can lack a state
+below its top in every program (Q7 O4; O1; G3's ORCA 30-root window). The
+host can now say what a root is made of in every program; it cannot say that
+a window is complete.
