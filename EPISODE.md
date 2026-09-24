@@ -574,6 +574,30 @@ It applies from now and identically to every arm.
   hc1's real records (under the ruling none of hc1's 9 goals would stop;
   its 2 throttled goals were recovered).
 
+### Correction to the ruling (the master, 2026-09-25)
+
+The ruling was not meant to replace the pre-registered rule, and a
+pre-registered rule does not change mid-run: a session that ends on
+`turn_deadline_exceeded` (or a goal the runner stops at its wall cap) is
+re-issued once, as pre-registered. The run stops only on:
+- a second deadline ending for the same goal (its re-issue ends on the
+  deadline again);
+- deadline endings on three consecutive goals;
+- the other conditions as recorded: `quota_exhausted` or
+  `credential_invalid`; a session with zero provider turns; a session that
+  ended on a provider error other than the deadline; three consecutive
+  goals with throttled attempts.
+The line in the ruling above that reads "(This replaces the pre-registered
+re-issue-once ...)" is withdrawn by this correction. Runner 9ebfce01 in the
+running jobs already applies the pre-registered re-issue and is not
+touched. The runner for any continuation now matches the correction:
+sha256 eb77fd11bc000fb6... (replacing a7cc1679, never used), driven end to
+end with a fake goal process through ten scenarios (tools/test_runner_v3.py,
+fd0c60ce...): recovered throttles stop only at three in a row; a deadline
+ending is re-issued once and stops on the second; an ending on any other
+provider error, zero turns and quota each stop. A durable copy is on CUHK
+(packs/q17-tools-v4.tar.gz, not unpacked).
+
 First sealed goal done 16:12 UTC: 17 provider turns, 1.45 M input tokens,
 456 s, no stop condition; it settled returned_to_human on a precision
 requirement its own session declared (a behaviour ending, not a host
