@@ -76,13 +76,24 @@ class GaussianInputWriter(InputWriter):
         logger.debug(f"Writing Gaussian input file: {job_inputfile}")
 
         f = open(job_inputfile, "w")
-        if self.settings.input_string:
-            # write the file itself for direct run
-            self._write_self(f)
-        else:
-            # Write complete input file from settings and molecule
-            logger.debug("Generating input file from settings and molecule")
-            self._write_all(f)
+        try:
+            if self.settings.input_string:
+                # write the file itself for direct run
+                self._write_self(f)
+            else:
+                # Write complete input file from settings and molecule
+                logger.debug(
+                    "Generating input file from settings and molecule"
+                )
+                self._write_all(f)
+        except Exception:
+            # A refused input leaves no file behind: a header-only .com was
+            # read back as an input that dropped the functional, the basis,
+            # the state and broken_symmetry, five findings about fields that
+            # were never the problem (R10 Q26 census).
+            f.close()
+            os.remove(job_inputfile)
+            raise
         logger.info(f"Finished writing Gaussian input file: {job_inputfile}")
         f.close()
 

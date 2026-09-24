@@ -958,8 +958,10 @@ class PySCFScriptWriter:
         path = os.path.join(directory, f"{self.job.label}.py")
         if config is None:
             config = self.build_config()
+        # Rendered before the file is opened, so a refusal leaves no file.
+        text = self.render(config)
         with open(path, "w") as handle:
-            handle.write(self.render(config))
+            handle.write(text)
         logger.debug(f"Wrote PySCF driver script: {path}")
         return path
 
