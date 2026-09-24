@@ -1,0 +1,194 @@
+{
+ "artifact": "o2_singlet_relaxed_hess_stability_heard_gas_phase.h5",
+ "command": "reference.py o2_singlet_relaxed_hess_stability_heard_gas_phase.h5",
+ "frontier_orbitals": {
+  "alpha_homo_ev": -6.771641278245961,
+  "alpha_lumo_ev": -4.835172583066343,
+  "beta_homo_ev": -6.771641278245961,
+  "beta_lumo_ev": -4.835172583066343,
+  "gap_ev": 1.9364686951796184,
+  "homo_ev": -6.771641278245961,
+  "lumo_ev": -4.835172583066343
+ },
+ "harmonic_analysis_freq_wavenumber": [
+  1680.72731452149
+ ],
+ "jobtype": "hess",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  15.999
+ ],
+ "point_group_detect_symm": "Dooh",
+ "pyscf_version": "2.14.0",
+ "reduced_mass_amu": [
+  15.999000000000008
+ ],
+ "scf_converged": true,
+ "scf_energy_eh": -150.14186607532463,
+ "scf_stability": {
+  "log_status_lines": [
+   "<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis",
+   "<class 'pyscf.dft.rks.RKS'> wavefunction has an real -> complex instability",
+   "<class 'pyscf.dft.rks.RKS'> wavefunction has an RHF/RKS -> UHF/UKS instability"
+  ],
+  "reference_class": "RKS",
+  "stable_external": false,
+  "stable_internal": true
+ },
+ "stored_frequencies_match_recomputed_max_abs_cm1": 1.1368683772161603e-12,
+ "symm_geom_tol_bohr": 1e-05,
+ "thermo_298K_1atm": {
+  "Cp_elec": [
+   0,
+   "Eh/K"
+  ],
+  "Cp_rot": [
+   3.166810518619021e-06,
+   "Eh/K"
+  ],
+  "Cp_tot": [
+   1.1146437841036052e-05,
+   "Eh/K"
+  ],
+  "Cp_trans": [
+   7.917026296547553e-06,
+   "Eh/K"
+  ],
+  "Cp_vib": [
+   6.260102586947797e-08,
+   "Eh/K"
+  ],
+  "Cv_elec": [
+   0,
+   "Eh/K"
+  ],
+  "Cv_rot": [
+   3.166810518619021e-06,
+   "Eh/K"
+  ],
+  "Cv_tot": [
+   7.979627322417031e-06,
+   "Eh/K"
+  ],
+  "Cv_trans": [
+   4.750215777928532e-06,
+   "Eh/K"
+  ],
+  "Cv_vib": [
+   6.260102586947797e-08,
+   "Eh/K"
+  ],
+  "E0": [
+   -150.1418661312842,
+   "Eh"
+  ],
+  "E_0K": [
+   -150.13803715272303,
+   "Eh"
+  ],
+  "E_elec": [
+   -150.1418661312842,
+   "Eh"
+  ],
+  "E_rot": [
+   0.0009441845561262611,
+   "Eh"
+  ],
+  "E_tot": [
+   -150.13567439079276,
+   "Eh"
+  ],
+  "E_trans": [
+   0.0014162768341893916,
+   "Eh"
+  ],
+  "E_vib": [
+   0.0038312791011081374,
+   "Eh"
+  ],
+  "G_elec": [
+   -150.1418661312842,
+   "Eh"
+  ],
+  "G_rot": [
+   -0.004024032819824293,
+   "Eh"
+  ],
+  "G_tot": [
+   -150.15695846421698,
+   "Eh"
+  ],
+  "G_trans": [
+   -0.014896995072663646,
+   "Eh"
+  ],
+  "G_vib": [
+   0.0038286949596685192,
+   "Eh"
+  ],
+  "H_elec": [
+   -150.1418661312842,
+   "Eh"
+  ],
+  "H_rot": [
+   0.0009441845561262611,
+   "Eh"
+  ],
+  "H_tot": [
+   -150.13473020623664,
+   "Eh"
+  ],
+  "H_trans": [
+   0.0023604613903156525,
+   "Eh"
+  ],
+  "H_vib": [
+   0.0038312791011081374,
+   "Eh"
+  ],
+  "S_elec": [
+   0.0,
+   "Eh/K"
+  ],
+  "S_rot": [
+   1.6663482730003536e-05,
+   "Eh/K"
+  ],
+  "S_tot": [
+   7.455394258047785e-05,
+   "Eh/K"
+  ],
+  "S_trans": [
+   5.78817925976163e-05,
+   "Eh/K"
+  ],
+  "S_vib": [
+   8.667252858019044e-09,
+   "Eh/K"
+  ],
+  "ZPE": [
+   0.0038289785611630507,
+   "Eh"
+  ],
+  "pressure": [
+   101325,
+   "Pa"
+  ],
+  "rot_const": [
+   [
+    Infinity,
+    43.78309434583609,
+    43.78309434583609
+   ],
+   "GHz"
+  ],
+  "sym_number": [
+   2,
+   ""
+  ],
+  "temperature": [
+   298.15,
+   "K"
+  ]
+ }
+}

@@ -644,14 +644,17 @@ def test_the_route_the_wake_prescribes_answers_an_earlier_cycles_verdict(
 
 #: A PySCF Hessian of the same closed-shell O2, with its stability analysis:
 #: the criterion fails exactly as on the single point, and the result also
-#: carries the frequencies a thermochemistry derivation reads.
+#: carries the frequencies a thermochemistry derivation reads. It is taken at
+#: the structure the RKS relaxation reached (max|g| 6.2e-8 Eh/Bohr): the
+#: unrelaxed o2_singlet_hess_stability_heard sits at 0.0099 Eh/Bohr, which is
+#: no stationary point and so has no zero-point energy to derive (R10 Q21).
 _HESSIAN = (
     Path(__file__).resolve().parents[1]
     / "data"
     / "PySCFTests"
     / "outputs"
-    / "o2_singlet_hess_stability_heard"
-    / "o2_singlet_hess_stability_heard_gas_phase.h5"
+    / "o2_singlet_relaxed_hess_stability_heard"
+    / "o2_singlet_relaxed_hess_stability_heard_gas_phase.h5"
 )
 
 

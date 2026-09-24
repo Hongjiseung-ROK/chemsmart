@@ -4249,11 +4249,20 @@ def build_stationary_point_characterisation(
             f"{int(order_claimed)}; the order a structure has is what its "
             "own printed frequencies say"
         )
-    gradient = reader.stationarity_gradient_for_output(output)
-    if (
-        gradient is not None
-        and gradient > HESS_STATIONARITY_GRADIENT_EH_PER_BOHR
-    ):
+    # Whether the structure is stationary at all is asked of the one
+    # function a free energy asks it of (R10 Q21): the gradient alone let
+    # an OptTS that printed its own non-convergence be certified order 1
+    # (ax41 po3-r19, 2026-09-12) while the free energy standing on it was
+    # delivered, and a held coordinate was never asked about.
+    from chemsmart.analysis.result_quantities import structure_stationarity
+
+    stationarity = structure_stationarity(normalized, output)
+    gradient = (
+        stationarity.max_abs_gradient_eh_per_bohr
+        if stationarity.basis == "measured_gradient"
+        else None
+    )
+    if stationarity.stationarity == "not_stationary":
         raise RoutedContractError(
             gate="result.order_needs_a_stationary_point",
             invariant=(
@@ -4261,13 +4270,19 @@ def build_stationary_point_characterisation(
                 "stationary point."
             ),
             diagnosis=(
-                f"the largest gradient component at this geometry is "
-                f"{gradient:.4g} Eh/Bohr, above the optimiser's own "
-                f"criterion of {HESS_STATIONARITY_GRADIENT_EH_PER_BOHR:g} "
-                f"(geomeTRIC convergence_gmax), so this structure is not a "
-                f"stationary point of this surface and has no order; the "
-                f"{observed} mode(s) below -20 cm^-1 are the curvature "
-                "there, which is a different statement."
+                (
+                    f"the largest gradient component at this geometry is "
+                    f"{gradient:.4g} Eh/Bohr, above the optimiser's own "
+                    "criterion of "
+                    f"{HESS_STATIONARITY_GRADIENT_EH_PER_BOHR:g} "
+                    "(geomeTRIC convergence_gmax), so this structure is not "
+                    "a stationary point of this surface and has no order"
+                    if gradient is not None
+                    else f"this structure is {stationarity.sentence()}, "
+                    "and has no order"
+                )
+                + f"; the {observed} mode(s) below -20 cm^-1 are the "
+                "curvature there, which is a different statement."
             ),
             route=(
                 "the spectrum and every other number on this result stay "

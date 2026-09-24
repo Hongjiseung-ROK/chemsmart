@@ -1,0 +1,23 @@
+{
+ "artifact": "o2_singlet_opt_gas_phase.h5",
+ "command": "reference.py o2_singlet_opt_gas_phase.h5",
+ "frontier_orbitals": {
+  "alpha_homo_ev": -6.771642560164733,
+  "alpha_lumo_ev": -4.835170302873602,
+  "beta_homo_ev": -6.771642560164733,
+  "beta_lumo_ev": -4.835170302873602,
+  "gap_ev": 1.9364722572911308,
+  "homo_ev": -6.771642560164733,
+  "lumo_ev": -4.835170302873602
+ },
+ "jobtype": "opt",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  15.999
+ ],
+ "point_group_detect_symm": "Dooh",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -150.14186614552185,
+ "symm_geom_tol_bohr": 1e-05
+}
