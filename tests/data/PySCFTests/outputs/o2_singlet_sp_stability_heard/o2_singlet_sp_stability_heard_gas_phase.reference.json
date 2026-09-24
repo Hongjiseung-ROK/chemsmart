@@ -1,0 +1,33 @@
+{
+ "artifact": "o2_singlet_sp_stability_heard_gas_phase.h5",
+ "command": "reference.py o2_singlet_sp_stability_heard_gas_phase.h5",
+ "frontier_orbitals": {
+  "alpha_homo_ev": -6.828039619141884,
+  "alpha_lumo_ev": -4.8937307437814015,
+  "beta_homo_ev": -6.828039619141884,
+  "beta_lumo_ev": -4.8937307437814015,
+  "gap_ev": 1.9343088753604825,
+  "homo_ev": -6.828039619141884,
+  "lumo_ev": -4.8937307437814015
+ },
+ "jobtype": "sp",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  15.999
+ ],
+ "point_group_detect_symm": "Dooh",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -150.1418068161968,
+ "scf_stability": {
+  "log_status_lines": [
+   "<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis",
+   "<class 'pyscf.dft.rks.RKS'> wavefunction has an real -> complex instability",
+   "<class 'pyscf.dft.rks.RKS'> wavefunction has an RHF/RKS -> UHF/UKS instability"
+  ],
+  "reference_class": "RKS",
+  "stable_external": false,
+  "stable_internal": true
+ },
+ "symm_geom_tol_bohr": 1e-05
+}

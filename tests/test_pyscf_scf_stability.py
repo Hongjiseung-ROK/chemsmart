@@ -14,9 +14,11 @@ designed around:
   a bare "externally unstable" means different things on a restricted and
   an unrestricted reference and the record names the space.
 - Both of those functions *also* solve the real -> complex question, log
-  it, and return only the other flag.  This host cannot determine it, so
-  it is recorded by name as undetermined rather than folded into a
-  boolean a reader would take for it.
+  it, and return only the other flag.  It is never folded into a boolean
+  a reader would take for it: the first records named it undetermined,
+  by name, while PySCF's log beside them said the answer; the driver now
+  listens to the analysis and records that answer under its own question,
+  with the lowest eigenvalues every verdict is drawn from.
 - ``rohf_stability`` runs the internal Davidson and then raises
   ``NotImplementedError`` from ``rohf_external``, so one combined call
   throws away an answer PySCF already computed.  The driver asks the two
@@ -29,6 +31,7 @@ not carry the field, or a run nobody asked, reads as ``None`` and
 """
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -37,6 +40,7 @@ from click.testing import CliRunner
 
 from chemsmart.io.pyscf.output import PySCFOutput, read_pyscf_h5
 from chemsmart.jobs.pyscf.settings import (
+    PYSCF_STABILITY_PRINTED_KINDS,
     PYSCF_STABILITY_SPACES,
     PYSCF_STABILITY_UNRETURNED_SPACE,
 )
@@ -73,6 +77,46 @@ STABILITY_CASES = {
     ),
 }
 
+#: The same eight runs regenerated (CUHK Slurm 2151881, code 0a77574f,
+#: PySCF 2.14.0, the human CLI) by the driver that listens to PySCF's
+#: analysis: real -> complex is answered and every question carries the
+#: lowest eigenvalues PySCF's Davidson logged.
+HEARD_CASES = {
+    "water_sp_stability_heard": (
+        "rks",
+        "water_sp_stability_heard_gas_phase.h5",
+    ),
+    "o2_singlet_sp_stability_heard": (
+        "rks",
+        "o2_singlet_sp_stability_heard_gas_phase.h5",
+    ),
+    "o2_singlet_hf_sp_stability_heard": (
+        "rhf",
+        "o2_singlet_hf_sp_stability_heard_gas_phase.h5",
+    ),
+    "o2_triplet_sp_stability_heard": (
+        "uks",
+        "o2_triplet_sp_stability_heard_gas_phase.h5",
+    ),
+    "water_sp_stability_cpcm_heard": (
+        "rks",
+        "water_sp_stability_cpcm_heard_cpcm_water.h5",
+    ),
+    "hydrogen_atom_sp_stability_heard": (
+        "rohf",
+        "hydrogen_atom_sp_stability_heard_gas_phase.h5",
+    ),
+    "o2_singlet_sp_unconverged_stability_heard": (
+        "rks",
+        "o2_singlet_sp_unconverged_stability_heard_gas_phase.h5",
+    ),
+    "o2_singlet_hess_stability_heard": (
+        "rks",
+        "o2_singlet_hess_stability_heard_gas_phase.h5",
+    ),
+}
+ALL_CASES = {**STABILITY_CASES, **HEARD_CASES}
+
 _WATER_XYZ = (
     "3\nwater\nO 0.083323 0.083323 0.0\n"
     "H 1.043716 -0.026894 0.0\nH -0.026894 1.043716 0.0\n"
@@ -80,7 +124,7 @@ _WATER_XYZ = (
 
 
 def _artifact(case):
-    directory, name = case, STABILITY_CASES[case][1]
+    directory, name = case, ALL_CASES[case][1]
     path = FIXTURES / directory / name
     if not path.exists():  # pragma: no cover - fixture inventory
         pytest.skip(f"archived stability fixture {case} is not present")
@@ -241,22 +285,23 @@ def test_a_run_nobody_asked_records_that_nobody_asked(case):
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("case", sorted(STABILITY_CASES))
+@pytest.mark.parametrize("case", sorted(ALL_CASES))
 def test_every_recorded_answer_names_the_space_it_is_about(case):
     """A boolean with no named question is the defect this prevents."""
 
-    family = STABILITY_CASES[case][0]
+    family = ALL_CASES[case][0]
     output = PySCFOutput(filename=str(_artifact(case)))
     assert output.scf_stability_requested is True
     record = output.scf_stability
     assert record is not None, "a requested analysis recorded nothing"
     assert record["reference_family"] == family
     assert record["applies_to"] == "reference"
-    assert record["scf_converged"] is True
+    assert record["scf_converged"] is ("unconverged" not in case)
 
-    spaces = PYSCF_STABILITY_SPACES[family]
+    spaces = dict(PYSCF_STABILITY_SPACES[family])
+    spaces["real_to_complex"] = PYSCF_STABILITY_UNRETURNED_SPACE
     questions = record["analyses"]
-    assert set(questions) == {"internal", "external"}
+    assert {"internal", "external"} <= set(questions) <= set(spaces)
     for question, entry in questions.items():
         if entry.get("stable") is None:
             # An answer this host did not get must say why, and must not
@@ -295,14 +340,21 @@ def test_external_means_two_different_questions_across_references():
     }, spaces
 
 
-@pytest.mark.parametrize("case", sorted(STABILITY_CASES))
-def test_the_question_pyscf_discards_is_recorded_as_undetermined(case):
-    """PySCF solves real -> complex inside the external analysis and logs
-    it without returning it, so the record names it rather than letting a
-    reader take the returned flag for it."""
+@pytest.mark.parametrize("case", sorted(ALL_CASES))
+def test_the_question_pyscf_does_not_return_is_answered_or_named(case):
+    """PySCF solves real -> complex inside the external analysis and
+    returns only the other flag, so a record never lets a reader take the
+    returned flag for it: it carries PySCF's answer under its own
+    question, or names it not determined -- never both, never neither.
+
+    Records written before the driver listened to the analysis name it
+    not determined although PySCF's log beside them says it; the driver
+    that listens answers it on every reference whose external analysis
+    ran."""
 
     record = PySCFOutput(filename=str(_artifact(case))).scf_stability
     external = record["analyses"]["external"]
+    answered = "real_to_complex" in record["analyses"]
     undetermined = {
         entry["rotation_space"] for entry in record["not_determined"].values()
     }
@@ -310,9 +362,69 @@ def test_the_question_pyscf_discards_is_recorded_as_undetermined(case):
         # No external analysis ran, so nothing solved real -> complex
         # either; claiming it was left undetermined would be a second
         # false sentence.
+        assert not undetermined and not answered
+    elif answered:
         assert not undetermined
+        assert case in HEARD_CASES
     else:
         assert undetermined == {PYSCF_STABILITY_UNRETURNED_SPACE}
+        assert case not in HEARD_CASES
+
+
+#: What PySCF prints for each Davidson it runs, and how it words each
+#: verdict (``scf/stability.py``): the oracle the record is held to.
+_PRINTED_EIGENVALUES = re.compile(
+    r"^(?:rhf|uhf|rohf)_(internal|real2complex|external): "
+    r"lowest eigs of H = \[(.*)\]$"
+)
+
+
+def _printed_eigenvalues(case):
+    """``{question: [lowest eigenvalues]}`` as this run's own log prints
+    them (numpy's default print, 8 significant digits)."""
+
+    log = _artifact(case).with_suffix(".out")
+    printed = {}
+    for line in log.read_text(encoding="utf-8").splitlines():
+        match = _PRINTED_EIGENVALUES.match(line.strip())
+        if match:
+            question = PYSCF_STABILITY_PRINTED_KINDS[match.group(1)]
+            printed[question] = [float(v) for v in match.group(2).split()]
+    return printed
+
+
+@pytest.mark.parametrize("case", sorted(HEARD_CASES))
+def test_the_record_holds_what_pyscfs_analysis_said(case):
+    """The record against PySCF's own words, two independent ways.
+
+    Every question's lowest eigenvalues equal the arrays this run's log
+    prints, to the printed precision; the real -> complex verdict equals
+    what PySCF's own recomputation (``reference.py``, which never imports
+    chemsmart) logged for the same artifact.  A question the log prints
+    is never missing from the record.
+    """
+
+    record = PySCFOutput(filename=str(_artifact(case))).scf_stability
+    assert record["eigenvalue_unit"] == "Eh"
+    printed = _printed_eigenvalues(case)
+    assert printed, f"{case}: the log printed no stability analysis"
+    for question, values in printed.items():
+        recorded = record["analyses"][question]["lowest_eigenvalues"]
+        assert recorded == pytest.approx(values, rel=1e-7, abs=5e-9), (
+            f"{case}: {question} recorded {recorded}, the log prints "
+            f"{values}"
+        )
+        stable = record["analyses"][question]["stable"]
+        # PySCF's own rule, from its own threshold.
+        assert stable is not (values[0] < record["instability_threshold"])
+
+    words = " ".join(_reference(case)["scf_stability"]["log_status_lines"])
+    entry = record["analyses"].get("real_to_complex")
+    if "real -> complex" in words:
+        assert entry is not None, f"{case}: real -> complex went unrecorded"
+        assert entry["stable"] is ("is stable in the real -> complex" in words)
+    else:
+        assert entry is None
 
 
 def test_an_unavailable_external_never_costs_the_internal_answer():
@@ -332,13 +444,18 @@ def test_an_unavailable_external_never_costs_the_internal_answer():
     assert "NotImplementedError" in questions["external"]["unavailable"]
 
 
-@pytest.mark.parametrize("case", sorted(STABILITY_CASES))
+@pytest.mark.parametrize("case", sorted(ALL_CASES))
 def test_the_recorded_flags_are_what_pyscf_itself_answers(case):
-    """The differential oracle: PySCF's own recomputation beside each."""
+    """The differential oracle: PySCF's own recomputation beside each.
+
+    The two returned flags; the real -> complex answer, which no flag
+    carries, is held to PySCF's printed words above."""
 
     record = PySCFOutput(filename=str(_artifact(case))).scf_stability
     reference = _reference(case)["scf_stability"]
     for question, entry in record["analyses"].items():
+        if question == "real_to_complex":
+            continue
         key = f"stable_{question}"
         if entry.get("stable") is None:
             assert reference.get(key) is None

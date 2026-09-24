@@ -2364,6 +2364,84 @@ class Gaussian16Output(GaussianFileMixin):
         return len(self.forces)
 
     @cached_property
+    def molecular_volumes_bohr3(self):
+        """Every molecular volume the ``volume`` keyword printed, bohr^3.
+
+        ``Molar volume = X bohr**3/mol ( Y cm**3/mol)``: the volume inside
+        the 0.001 e/bohr^3 contour of the density, by Monte Carlo
+        integration.  Gaussian labels the first number "bohr**3/mol" but it
+        is per molecule (178.644 bohr^3 x N_A = 15.94 cm^3/mol, as printed
+        beside it).  A PCM/SMD run prints its *solvent's* parameter under
+        the same words -- "Molar volume = 0.000000 cm**3/mol" for a generic
+        solvent -- with no bohr**3 figure, and that line is not this.
+        """
+        values = []
+        for line in self.contents:
+            text = line.strip()
+            if not text.startswith("Molar volume") or "bohr**3" not in text:
+                continue
+            try:
+                values.append(float(text.split("=", 1)[1].split()[0]))
+            except (IndexError, ValueError):
+                continue
+        return values
+
+    @cached_property
+    def smd_cds_energies_kcal_per_mol(self):
+        """Every SMD cavity-dispersion-solvent-structure term Gaussian printed.
+
+        An SMD SCF prints ``SMD-CDS (non-electrostatic) energy (kcal/mol) =
+        X`` beneath its ``SCF Done`` line, "(included in total energy
+        above)": the non-electrostatic part of the solvation free energy
+        the model charged, in kcal/mol to two decimals.  One print per SCF
+        that ran in the continuum, in order -- an optimisation prints one
+        per step, and the last belongs to the structure it reached.
+        """
+        values = []
+        for line in self.contents:
+            if "SMD-CDS (non-electrostatic) energy" not in line:
+                continue
+            try:
+                values.append(float(line.split("=")[-1].split()[0]))
+            except (IndexError, ValueError):
+                continue
+        return values
+
+    @cached_property
+    def electronic_spatial_extents(self):
+        """Every ``<R**2>`` Gaussian printed, with the density it belongs to.
+
+        Each population analysis prints ``Electronic spatial extent (au):
+        <R**2>= X`` -- the expectation value of r^2 over the electron
+        density, in bohr^2 -- just after the header naming the density it
+        analyses (``Population analysis using the SCF Density.``).  The
+        value depends on the origin: Gaussian takes it about the origin of
+        the frame it computes in, the centre of nuclear charge of the
+        standard orientation, and about the user's own origin when the
+        route suppresses reorientation.  Returned as
+        ``[{"value": float, "density": str | None}, ...]`` in print order,
+        so a consumer can take the last and still say whose density it is.
+        """
+        records = []
+        density = None
+        for line in self.contents:
+            if "Population analysis using the" in line:
+                density = (
+                    line.split("Population analysis using the", 1)[1]
+                    .strip()
+                    .rstrip(".")
+                )
+            elif (
+                "Electronic spatial extent (au):" in line and "<R**2>=" in line
+            ):
+                try:
+                    value = float(line.split("<R**2>=", 1)[1].split()[0])
+                except (IndexError, ValueError):
+                    continue
+                records.append({"value": value, "density": density})
+        return records
+
+    @cached_property
     def has_dipole_moment(self):
         """Check if the output file contains dipole moment calculations."""
         for line in self.contents:
@@ -2708,21 +2786,86 @@ class Gaussian16Output(GaussianFileMixin):
         a stability calculation.  A linked job can first find an instability
         and later optimize to a stable solution, so the full ordered history
         remains available and the result reader selects the final verdict.
+        The words are those of ``wavefunction_stability_records``.
         """
 
-        history = []
+        return [
+            record["verdict"] for record in self.wavefunction_stability_records
+        ]
+
+    @cached_property
+    def wavefunction_stability_records(self):
+        """Every stability analysis Gaussian printed, as it printed it.
+
+        One record per verdict line, in order: the verdict word, the
+        rotation Gaussian names in it, and the eigenvalues of the stability
+        matrix printed just before it (``Eigenvector N: <label>
+        Eigenvalue= X <S**2>= Y``, hartree, lowest first, with the
+        eigenvector's <S**2>).  Gaussian words an unstable answer "The
+        wavefunction has an <space> instability." and names the space --
+        ``internal``, or the larger space it fell into, ``RHF -> UHF`` for a
+        restricted reference -- and a stable one "...is stable under the
+        perturbations considered.", naming none.  A reader matching only
+        "internal" and "external" read the RHF -> UHF sentence as no
+        verdict at all, so a closed-shell singlet Gaussian itself called
+        unstable reached the host as a result that said nothing (singlet O2
+        at RB3LYP/def2-SVP, CUHK 2152098).
+        """
+
+        records = []
+        eigenvalues = []
         for line in self.contents:
-            text = line.casefold()
-            if "wavefunction has an internal instability" in text:
-                history.append("internal_instability")
-            elif "wavefunction has an external instability" in text:
-                history.append("external_instability")
+            text = line.strip()
+            if text.startswith("Eigenvectors of the stability matrix"):
+                eigenvalues = []
+                continue
+            if text.startswith("Eigenvector") and "Eigenvalue=" in text:
+                try:
+                    value = float(text.split("Eigenvalue=", 1)[1].split()[0])
+                except (IndexError, ValueError):
+                    continue
+                spin_square = None
+                if "<S**2>=" in text:
+                    try:
+                        spin_square = float(
+                            text.split("<S**2>=", 1)[1].split()[0]
+                        )
+                    except (IndexError, ValueError):
+                        spin_square = None
+                eigenvalues.append(
+                    {"eigenvalue": value, "spin_square": spin_square}
+                )
+                continue
+            lowered = text.casefold()
+            if lowered.startswith("the wavefunction has an") and (
+                lowered.endswith("instability.")
+            ):
+                space = text[len("The wavefunction has an") :].strip()
+                space = space[: -len("instability.")].strip()
+                verdict = (
+                    "internal_instability"
+                    if space.casefold() == "internal"
+                    else "external_instability"
+                )
             elif (
                 "wavefunction is stable under the perturbations considered"
-                in text
+                in lowered
             ):
-                history.append("stable_under_considered_perturbations")
-        return history
+                space = None
+                verdict = "stable_under_considered_perturbations"
+            else:
+                continue
+            records.append(
+                {
+                    "verdict": verdict,
+                    "rotation_space": space,
+                    "eigenvalues": tuple(
+                        sorted(eigenvalues, key=lambda row: row["eigenvalue"])
+                    ),
+                }
+            )
+            eigenvalues = []
+        return records
 
     @cached_property
     def excitation_energies_eV(self):

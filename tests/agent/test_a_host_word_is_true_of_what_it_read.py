@@ -676,7 +676,13 @@ def _gaussian_run_delivering_the_energy(tmp_path):
 @pytest.mark.parametrize(
     "producer",
     [
-        {"selector": "electronic_spatial_extent", "jobtype": "sp"},
+        # The named selector must be one no reader serves.  It was
+        # ``electronic_spatial_extent`` until R10 Q13 served <R**2> from
+        # every Gaussian population analysis; the nuclear repulsion energy
+        # is printed in the same log and still served by no reader, so the
+        # settle-time read finds the value through the observable's words
+        # exactly as before.
+        {"selector": "nuclear_repulsion_energy", "jobtype": "sp"},
         {"blocked_node_id": "mp2-freq"},
     ],
     ids=["named-selector", "blocked-node"],

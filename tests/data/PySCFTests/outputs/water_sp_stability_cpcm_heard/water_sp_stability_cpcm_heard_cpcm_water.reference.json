@@ -1,0 +1,36 @@
+{
+ "artifact": "water_sp_stability_cpcm_heard_cpcm_water.h5",
+ "command": "reference.py water_sp_stability_cpcm_heard_cpcm_water.h5",
+ "frontier_orbitals": {
+  "alpha_homo_ev": -7.936277540594145,
+  "alpha_lumo_ev": 1.7521275172810642,
+  "beta_homo_ev": -7.936277540594145,
+  "beta_lumo_ev": 1.7521275172810642,
+  "gap_ev": 9.68840505787521,
+  "homo_ev": -7.936277540594145,
+  "lumo_ev": 1.7521275172810642
+ },
+ "jobtype": "sp",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  1.008,
+  1.008
+ ],
+ "point_group_detect_symm": "C2v",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -76.36763897128141,
+ "scf_stability": {
+  "log_status_lines": [
+   "<class 'pyscf.solvent._attach_solvent.PCMRKS'> wavefunction is stable in the internal stability analysis",
+   "<class 'pyscf.solvent._attach_solvent.PCMRKS'> wavefunction is stable in the real -> complex stability analysis",
+   "<class 'pyscf.solvent._attach_solvent.PCMRKS'> wavefunction is stable in the RHF/RKS -> UHF/UKS stability analysis"
+  ],
+  "reference_class": "PCMRKS",
+  "stable_external": true,
+  "stable_internal": true
+ },
+ "scf_summary_e_solvent_eh": -0.010344412633308224,
+ "stored_solvation_electrostatic_energy_minus_recomputed_eh": -2.949029909160572e-17,
+ "symm_geom_tol_bohr": 1e-05
+}

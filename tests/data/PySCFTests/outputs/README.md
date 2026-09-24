@@ -277,6 +277,30 @@ combinations that differ.
 `projects/{sp,opt}-b3lyp-svp-{smd,cpcm}-water.yaml`, `projects/sp-b3lyp-svp-d3bj.yaml`
 and `projects/sp-b3lyp-svp-gas.yaml` are the project files these ran from.
 
+## The stability record heard (2026-09-24, R10 Q13)
+
+The eight stability runs above regenerated through the ordinary CLI on CUHK
+(**Slurm 2151881**, code `0a77574f`, PySCF 2.14.0; the same projects, inputs
+and states; `reference.py` beside each) by a driver that hands
+`mf.stability()` a logger and keeps what the analysis says. Every record
+above names real -> complex "not determined" while the log beside it prints
+PySCF's verdict and eigenvalues; these carry `analyses/real_to_complex` and,
+on every question, the `lowest_eigenvalues` PySCF's Davidson logged (Eh, its
+own normalisation), with `eigenvalue_unit` and PySCF's
+`instability_threshold` (-1e-5 Eh). Each recorded array equals its own log's
+printed array to the printed precision, in all eight.
+
+| directory | lowest eigenvalue, Eh: internal / real -> complex / external | what it adds |
+|---|---|---|
+| `o2_singlet_sp_stability_heard` | 1.97e-6 / **-0.03830** / **-0.09262** | the singlet the older record called real -> complex "not determined" is unstable to complex orbitals: the real (pi_x*)^2 determinant is not the proper a1-Delta_g component. The internal root at zero is the rotation within the degenerate pi* pair |
+| `o2_singlet_hf_sp_stability_heard` | 9.8e-7 / **-0.04903** / **-0.13108** | the same at HF: both instabilities without a functional |
+| `o2_triplet_sp_stability_heard` | 0.3696 / 0.2123 / **-0.02928** | stable to complex orbitals, unstable UHF/UKS -> GHF/GKS; the next two external roots are near-degenerate at 0.0167 |
+| `water_sp_stability_heard` | 1.151 / 0.2650 / 0.2377 | the stable control: how far from each instability, which the word never said |
+| `water_sp_stability_cpcm_heard` | 1.214 / 0.2578 / 0.2276 | the same under C-PCM water (`PCMRKS`) |
+| `hydrogen_atom_sp_stability_heard` | 1.362 / -- / -- | ROHF: internal only, and nothing recorded as undetermined, since no external analysis ran |
+| `o2_singlet_sp_unconverged_stability_heard` | **-4.0e-4** / -0.03832 / -0.09268 | receipt `failed`, `scf_converged: false`: the internal root crosses PySCF's line only on orbitals that never became stationary |
+| `o2_singlet_hess_stability_heard` | -2.6e-6 / -0.03830 / -0.09262 | the Hessian case; the internal zero root's sign is numerical noise inside PySCF's threshold |
+
 ## A basis that defines a core potential (2026-09-24, R10 q12)
 
 Produced through the ordinary CLI on CUHK (**Slurm 2152029**, oracle O2',

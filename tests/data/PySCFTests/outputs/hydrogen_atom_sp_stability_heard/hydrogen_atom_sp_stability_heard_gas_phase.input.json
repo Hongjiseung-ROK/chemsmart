@@ -1,0 +1,25 @@
+{
+  "compute_interpreter": "/lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/bin/python3.10",
+  "config_sha256": "468619c30c4cb6c3bcbeb79217d53a66f7a1981434a05393774189081cf411cc",
+  "engine": "cpu",
+  "environment_receipt_sha256": "529c5b6d154dcbfa9660f9c78309c499a8da5acc5770ed897417587eba87085b",
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "input_geometry_sha256": "9fec4215acd1084ada49fc5f1d5d5becccb0dc742674f3f0d68ddc7a4c86e3f9",
+  "label": "hydrogen_atom_sp_stability_heard_gas_phase",
+  "materializations": {},
+  "project_yaml_sha256": "8c854addd6316edb8a9096bd5c6cfa6e6b6c47eecdc21038d7d5a7aaf399775f",
+  "quarantined_targets": [],
+  "receipt_sha256": "c3a16e8262fe1a33827d1815f903d726b574f79219f168766a22778d42df9485",
+  "requested_settings_sha256": "2ba1854ced39d285a79413386decad55ef305a2ed860de8b82685777e1105d28",
+  "run_id": "1d861178-6b4c-46bd-9b72-eea7e1f2df7d",
+  "run_nonce": "2460531953fde89a07a723406812358c677f305636be4c07c7d63ef811206e79",
+  "schema_version": "chemsmart.pyscf-input.v1",
+  "script_path": "hydrogen_atom_sp_stability_heard_gas_phase.py",
+  "script_sha256": "3c7274697efce5c2b3ddb79114cedda0c83660b9570d6e1e3767fc77f497b794",
+  "stages": [
+    "scf"
+  ],
+  "state": "previewed"
+}
