@@ -365,6 +365,50 @@ name the same excitation at every index; PySCF's 2|X|^2 = Gaussian's 2c^2 to
 PySCF's sixth is HOMO -> LUMO+2 at 11.233, f 0.47, G/O's HOMO -> LUMO+3 at
 11.254). Falsifier not met.
 
+G3 (Slurm 2150299, code 68f77aa1, digest 6ae2ba3d on the node, settled
+`unreachable_from_evidence` at cycle 2 after an analysis-only revision, 2
+engine calls, 183 s engine wall):
+- Cycle 1: an ORCA and a PySCF td node on the supplied minimum, both
+  written `response_method: tddft`, `state_manifold: unrestricted`,
+  `nstates: 30` (ORCA adds `reference: uhf`); the hub wrote ORCA's
+  `%tddft NRoots 30 TDA false` with no Triplets line under `HFTyp UHF`.
+  The first Agent run of ORCA's open-shell TD-DFT: executed, validated,
+  parsed (69.5 s; PySCF 113.3 s).
+- PASS on every pre-registered band. Claimed below 7 eV, ORCA (RIJCOSX) /
+  PySCF: 4.0024/4.0013, 5.9992/6.0003, 6.3129/6.3106 (f 0.3876/0.3875, the
+  strongest), 6.4351/6.4356, 6.6304/6.6363, 6.9001/6.9000 eV -- every state
+  within 0.0053 eV of O1 (ORCA's largest shift is D5, RI vs NoRI) and PySCF
+  within 1e-4; largest program difference 0.0059 eV (D5); the next root just
+  above the window claimed in both (7.075/7.080). No per-root <S^2>
+  presented: the reader refused ORCA's with the TDA route (b082d045), the
+  session declared both per-root observables unreachable, the host verified
+  each, and the reference <S^2> 0.7921 was delivered as context -- the
+  settlement word is that honest refusal.
+- Recorded, not scored: TDA considered and rejected in `approaches` ("the
+  task explicitly requests full LR-TDDFT, and changing the response method
+  would change the physical answer"); 30 roots for a 7 eV question; states
+  paired by index with a stated uncertainty ("Roots are indices, not state
+  identities ... with in-window gaps >= 0.09 eV, reordering within the
+  window is unlikely") -- the dominant-excitation selectors were available
+  and not read. Read through them (scratch analyse_g3.py), the six
+  in-window states carry the same character at the same index in both
+  programs, so the pairing was right. Above the window it is not: ORCA's
+  30-root window lacks PySCF's 11.232 eV state (alpha HOMO-2 -> LUMO+3), so
+  indices 29-30 hold different states (ORCA 29 = PySCF 30, beta HOMO ->
+  LUMO+6, dE 0.0054 eV). The session's cycle-1 expression paired all 30
+  roots by index (largest 0.067 eV, a different-state pair); its cycle-2
+  claims kept to the window and claimed no agreement above it.
+- Host defect, cycle 1: the session's own window check (each program's
+  highest root >= 7 eV) failed as "scientific validation input is not typed
+  evidence from its planned producer" because one extraction node beside
+  the energies had a refused selector (ORCA's <S^2>) and the host's
+  receipt-to-node relation was still node-level. Repaired in c726cb08.
+  Provider-free replay of the approved cycle-1 chain (plan 55dfdadf) on the
+  goal's own two outputs (scratch replay_chain.py): 438276d6 reproduces the
+  live node states exactly; c726cb08 evaluates coverage-7ev (verdict 1).
+  Note the check is necessary, not sufficient: O1's six-root PySCF window
+  topped out at 7.080 eV and still lacked the 6.900 eV state.
+
 ## Jobs issued
 
 | Slurm | slot | what | code | pre-registration |
@@ -390,3 +434,14 @@ PySCF's sixth is HOMO -> LUMO+2 at 11.233, f 0.47, G/O's HOMO -> LUMO+3 at
   made of, in all three programs).
 - step 3: G1 and G2 issued on fcb115eb (before 43862950: the goals have no
   character selector); O2 queued on 5d2dfc54.
+- step 4: G1, G2, O2 and G3 read (above). Repairs from what they showed:
+  60c78113 (shared: the sibling-structure sensor compares the energies the
+  readers serve), 22e22752 (shared: the bootstrap probe previews td on the
+  manifold the molecule has), a3f552ab / 7045daa0 (the command lines take
+  the shared words), 5d8a0c98 (PySCF character on 2.14 artifacts),
+  c726cb08 (shared: a validation over delivered values is not refused for a
+  sibling's absence). The full suite on a pristine export of 470f3257 had
+  one new failure, the fixture-keys pin 22e22752 broke (2f0a635c, shared);
+  438276d6 documents Gaussian's two new options.
+- step 5: release records for the cells G1 and G3 qualified; merge
+  r10-integration; hand back.
