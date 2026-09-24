@@ -1,988 +1,5 @@
-"""Generate the standalone PySCF driver script for a job.
-
-The emitted ``label.py`` is a **fixed skeleton plus one configuration dict**.
-The skeleton runs the ground-state SCF, an optimisation (on the ground
-state, on an excited root, or on a correlated surface), a TDA/TDDFT
-response stage, a correlated-energy stage and an analytic Hessian, as the
-resolved stages ask. The driver logic is invariant, so
-nothing is gained by templating source text -- and free-form generation adds a
-quoting, escaping and injection surface for no benefit. Only ``CONFIG``
-varies, and it holds scalars, strings and a geometry array.
-
-The script imports ``pyscf``, ``numpy``, ``h5py`` and the standard library
-**only**. It must never import ``chemsmart``: that would drag ChemSmart's
-``numpy~=1.26.4`` pin and the rdkit/pymatgen/ase tree into every compute
-process, and would make the per-program ``CONDA_ENV`` -- the mechanism that
-lets a GPU job run in its own environment -- unusable.
-"""
-
-import hashlib
-import json
-import logging
-import math
-import os
-from numbers import Integral, Real
-
-from ase.data import atomic_numbers as ASE_ATOMIC_NUMBERS
-
-from chemsmart import __version__ as chemsmart_version
-from chemsmart.io.pyscf.output import pyscf_source_artifact_binding
-from chemsmart.jobs.pyscf.settings import (
-    PYSCF_CORRELATED_METHODS,
-    PYSCF_DEFGRIDS,
-    PYSCF_FD_STEP_ANGSTROM,
-    PYSCF_MOVING_STAGES,
-    PYSCF_SOLVENT_MODELS,
-    PYSCF_STABILITY_EIGENVALUE_UNIT,
-    PYSCF_STABILITY_PRINTED_KINDS,
-    PYSCF_STABILITY_SPACES,
-    PYSCF_STABILITY_THRESHOLD,
-    PYSCF_STABILITY_UNRETURNED_SPACE,
-    PYSCF_TWO_BLOCK_MANIFOLD,
-    PYSCF_UNRESTRICTED_MANIFOLD,
-)
-
-logger = logging.getLogger(__name__)
-
-#: Bumped when the layout of ``label.h5`` changes in a non-additive way.
-#: Version 1.0 stored ``spec``, ``provenance`` and ``status`` as JSON string
-#: datasets. Version 2.0 makes all four sections real HDF5 groups so an agent
-#: can inspect individual fields without first decoding an opaque blob.
-RESULTS_SCHEMA_VERSION = "2.0"
-LEGACY_RESULTS_SCHEMA_VERSION = "1.0"
-
-#: Additive contract marker carried inside ``spec``.  The HDF5 container
-#: remains schema 2.0 so historical artifacts stay readable; this marker
-#: identifies records that satisfy the stricter state, status, and runtime
-#: reference checks required for new execution/data-edge admission.
-RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v11"
-#: Contract versions this ChemSmart still reads as executed evidence.  v3 and
-#: v4 share one applied-spec vocabulary; v4 adds datasets (forces at the
-#: Hessian geometry, spin populations) and status facts (the mass convention
-#: behind the frequencies, the symmetry tolerance behind the point group, the
-#: optimiser's criteria, the continuation SCF) without touching any v3 field,
-#: so a v3 artifact stays analysis-ready and stays a legal geometry source.
-#: v5 makes the response stage executable, adds the excited-state and
-#: correlated-method datasets and status blocks, and widens the applied-spec
-#: vocabulary by four fields -- under its own version only, because the
-#: applied-settings digest of every archived artifact is reconstructed from
-#: the vocabulary of *that* artifact's contract.
-#: v6 adds one field to the applied-spec vocabulary, ``surface``: the
-#: electronic surface a result's geometry and total energy belong to,
-#: recorded so two results can be compared as surfaces rather than as
-#: strings. Under its own version only, for the same reason v5 was.
-#: v7 adds ``scf_stability``: whether the driver asked PySCF whether the
-#: converged reference is a minimum in orbital-rotation space, and the
-#: answer rides ``status/properties/scf_stability``.  Under its own
-#: version only, because the archived v6 digests were computed over the
-#: v6 vocabulary and extending it in place would mark them tampered.
-#: v8 adds ``irc_direction`` and the ``irc`` stage: the branch an IRC was
-#: asked to walk, and ``results/irc/`` -- the start's Hessian and
-#: spectrum on the walked surface, the transition vector followed, and
-#: the accepted path with its energies, gradients and mass-weighted arc
-#: length.  Under its own version for the same reason v7 was.
-#: v9 adds the ``ts`` stage and ``results/ts/`` -- the seed's Hessian and
-#: spectrum on the surface the search climbs, and the accepted search
-#: path with its energies, gradients and cumulative mass-weighted
-#: displacement.  It adds no applied-spec field, because a saddle search
-#: is driven entirely by settings the vocabulary already carries, so its
-#: digest vocabulary *is* v8's; the version still moves because an
-#: artifact whose ``stages`` names a stage an older reader has never
-#: heard of is a different contract.
-#: v10 adds the decomposition of the total energy the program itself
-#: computed: ``solvation_electrostatic_energy`` and, under SMD,
-#: ``solvation_nonelectrostatic_energy``, and ``dispersion_energy`` -- the
-#: terms PySCF adds into ``e_tot`` and records in its own ``scf_summary``
-#: at the converged density of the final geometry.  It adds no
-#: applied-spec field, because every setting that produces a term is
-#: already in the vocabulary (``solvent_model``, ``solvent_id``,
-#: ``solvent_eps``, ``dispersion``), so its digest vocabulary *is* v9's,
-#: exactly as v9's was v8's.  The version moves because under v10 a
-#: solvated artifact that carries no solvation term is a defective
-#: record rather than an older one, which is a distinction only a
-#: version can make.
-#: v11 adds ``broken_symmetry``: whether the job asked for the
-#: broken-symmetry open-shell singlet, which the scf stage reaches by
-#: following the restricted solution's own RHF/RKS -> UHF/UKS instability
-#: and records under ``status/stages/scf/broken_symmetry``.  It is the one
-#: singlet whose ``reference_family`` is unrestricted, and the validator
-#: reads the field to expect that family.  Under its own version, because
-#: the archived v10 digests were computed over the v10 vocabulary.
-PREVIOUS_RESULT_CONTRACT_VERSIONS = (
-    "chemsmart.pyscf-result-contract.v3",
-    "chemsmart.pyscf-result-contract.v4",
-    "chemsmart.pyscf-result-contract.v5",
-    "chemsmart.pyscf-result-contract.v6",
-    "chemsmart.pyscf-result-contract.v7",
-    "chemsmart.pyscf-result-contract.v8",
-    "chemsmart.pyscf-result-contract.v9",
-    "chemsmart.pyscf-result-contract.v10",
-)
-SUPPORTED_RESULT_CONTRACT_VERSIONS = PREVIOUS_RESULT_CONTRACT_VERSIONS + (
-    RESULT_CONTRACT_VERSION,
-)
-TD_RESPONSE_MATERIALIZATION_SCHEMA_VERSION = (
-    "chemsmart.pyscf-td-response-materialization.v1"
-)
-
-#: Marker used for an explicit JSON-style null. HDF5 has no native null scalar,
-#: so a marked empty uint8 dataset distinguishes "known to be unavailable" from
-#: a missing field.
-H5_NULL_ATTRIBUTE = "chemsmart_is_null"
-
-#: Fields copied from the resolved driver configuration into ``spec/``.
-#: Fake and real artifacts use the same applied-settings vocabulary.
-LEGACY_APPLIED_SPEC_FIELDS = (
-    "run_id",
-    "run_nonce",
-    "label",
-    "title",
-    "program",
-    "jobtype",
-    "engine",
-    "stages",
-    "symbols",
-    "positions",
-    "unit",
-    "xc",
-    "ab_initio",
-    "method",
-    "basis",
-    "charge",
-    "spin",
-    "multiplicity",
-    "dispersion",
-    "density_fit",
-    "aux_basis",
-    "defgrid",
-    "atom_grid",
-    "scf_tol",
-    "scf_maxiter",
-    "solvent_model",
-    "solvent_call",
-    "solvent_method",
-    "solvent_id",
-    "solvent_eps",
-    "solvent_lebedev_order",
-    "opt_solver",
-    "opt_maxsteps",
-    "response_method",
-    "state_manifold",
-    "nstates",
-    "preview_only",
-    "materializations",
-    "num_threads",
-    "max_memory_mb",
-    "input_geometry_sha256",
-    "input_artifact_kind",
-    "input_artifact_sha256",
-    "requested_settings_sha256",
-    "applied_settings_sha256",
-    "settings_digest",
-)
-
-#: The v3/v4 vocabulary, frozen: the digest stored in every archived v3/v4
-#: artifact was computed over exactly these fields.
-APPLIED_SPEC_FIELDS_V4 = LEGACY_APPLIED_SPEC_FIELDS + (
-    "result_contract_version",
-    "reference_family",
-)
-
-#: The v5 vocabulary, frozen: the excited-root, frozen-core and iteration
-#: controls, over which every archived v5 digest was computed.
-APPLIED_SPEC_FIELDS_V5 = APPLIED_SPEC_FIELDS_V4 + (
-    "excited_state_root",
-    "frozen_core",
-    "td_max_cycle",
-    "cc_max_cycle",
-)
-
-#: The v6 vocabulary, frozen: the surface identity and the Hessian
-#: derivative controls, over which every archived v6 digest was computed.
-APPLIED_SPEC_FIELDS_V6 = APPLIED_SPEC_FIELDS_V5 + (
-    "surface",
-    "hessian_derivative",
-    "fd_step_angstrom",
-)
-
-#: The v7 vocabulary, frozen: whether the stability of the converged
-#: reference was asked for.
-APPLIED_SPEC_FIELDS_V7 = APPLIED_SPEC_FIELDS_V6 + ("scf_stability",)
-
-#: The v8 vocabulary, frozen: the branch an IRC was asked to walk.
-APPLIED_SPEC_FIELDS_V8 = APPLIED_SPEC_FIELDS_V7 + ("irc_direction",)
-
-#: The v9 vocabulary, frozen.  Identical to v8's by construction: the
-#: ts stage introduced no setting the vocabulary did not already carry,
-#: and inventing a field to mark the version would change nothing a
-#: digest reconstructs.
-APPLIED_SPEC_FIELDS_V9 = APPLIED_SPEC_FIELDS_V8
-
-#: The v10 vocabulary, frozen.  Identical to v9's for the same reason:
-#: the energy decomposition is *read* from the program, not asked for, so
-#: it introduces no setting.
-APPLIED_SPEC_FIELDS_V10 = APPLIED_SPEC_FIELDS_V9
-
-#: The current (v11) vocabulary: whether the broken-symmetry singlet was
-#: asked for.
-APPLIED_SPEC_FIELDS = APPLIED_SPEC_FIELDS_V10 + ("broken_symmetry",)
-
-#: Digest vocabulary per contract version.  Extending the current tuple in
-#: place would silently change the reconstruction for every archived
-#: artifact, so each version names its own.
-APPLIED_SPEC_FIELDS_BY_CONTRACT = {
-    "chemsmart.pyscf-result-contract.v3": APPLIED_SPEC_FIELDS_V4,
-    "chemsmart.pyscf-result-contract.v4": APPLIED_SPEC_FIELDS_V4,
-    "chemsmart.pyscf-result-contract.v5": APPLIED_SPEC_FIELDS_V5,
-    "chemsmart.pyscf-result-contract.v6": APPLIED_SPEC_FIELDS_V6,
-    "chemsmart.pyscf-result-contract.v7": APPLIED_SPEC_FIELDS_V7,
-    "chemsmart.pyscf-result-contract.v8": APPLIED_SPEC_FIELDS_V8,
-    "chemsmart.pyscf-result-contract.v9": APPLIED_SPEC_FIELDS_V9,
-    "chemsmart.pyscf-result-contract.v10": APPLIED_SPEC_FIELDS_V10,
-    RESULT_CONTRACT_VERSION: APPLIED_SPEC_FIELDS,
-}
-
-# Units are part of the machine contract rather than prose in a reader.  Every
-# numeric dataset the fixed driver can emit has one explicit unit, including
-# quantities that are dimensionless.
-RESULT_UNITS = {
-    "atomic_numbers": "dimensionless",
-    "ccsd_correlation_energy": "Eh",
-    "correlation_energy": "Eh",
-    "dipole_moment": "Debye",
-    # The decomposition of the total (contract v10): the terms PySCF adds
-    # into ``e_tot`` and records in ``scf_summary`` at the converged
-    # density.  Hartree, as every other energy this driver writes.
-    "dispersion_energy": "Eh",
-    "solvation_electrostatic_energy": "Eh",
-    "solvation_nonelectrostatic_energy": "Eh",
-    "energies": "Eh",
-    "excitation_energies": "Eh",
-    "excited_state_converged": "dimensionless",
-    # Per root: the occupied orbital's offset from the HOMO, the virtual's
-    # from the LUMO, the weight of that single excitation, and its spin
-    # channel (0 spin-adapted, +1 alpha, -1 beta).
-    "excited_state_dominant_excitations": "dimensionless",
-    "excited_state_multiplicities": "dimensionless",
-    "force_constants": "Dyne/Angstrom",
-    "forces": "Eh/Bohr",
-    "hessian": "Eh/Bohr^2",
-    "mo_energy": "Eh",
-    "mo_occ": "electron",
-    "mulliken_charges": "elementary_charge",
-    "mulliken_spin_populations": "electron",
-    "normal_modes": "atomic_mass_unit^-1/2",
-    "oscillator_strengths": "dimensionless",
-    # The IRC stage (contract v8), under ``results/irc/``.  The path is
-    # mass-weighted with geomeTRIC's own table, which rides beside it.
-    "path_arc_lengths": "atomic_mass_unit^1/2*Bohr",
-    "path_energies": "Eh",
-    "path_gradients": "Eh/Bohr",
-    "path_masses": "atomic_mass_unit",
-    "path_positions": "Angstrom",
-    "positions": "Angstrom",
-    "reduced_masses": "atomic_mass_unit",
-    "reference_energy": "Eh",
-    "scf_energy": "Eh",
-    # The transition-state stage (contract v9), under ``results/ts/``.
-    # The seed's curvature on the climbed surface, and the accepted
-    # search path, whose cumulative displacement is mass-weighted with
-    # geomeTRIC's own table the way the IRC's arc length is -- it is the
-    # distance the structure moved, never a reaction coordinate.
-    "search_displacements": "atomic_mass_unit^1/2*Bohr",
-    "search_energies": "Eh",
-    "search_gradients": "Eh/Bohr",
-    "search_masses": "atomic_mass_unit",
-    "search_positions": "Angstrom",
-    "seed_frequencies": "cm^-1",
-    "seed_hessian": "Eh/Bohr^2",
-    "seed_normal_modes": "atomic_mass_unit^-1/2",
-    "spin_square": "dimensionless",
-    "spin_square_effective_multiplicity": "dimensionless",
-    "start_frequencies": "cm^-1",
-    "start_hessian": "Eh/Bohr^2",
-    "start_normal_modes": "atomic_mass_unit^-1/2",
-    "total_energy": "Eh",
-    # A unit vector: the Cartesian displacement geomeTRIC followed from
-    # the saddle, normalised and signed by the host rule.
-    "transition_mode": "dimensionless",
-    "transition_dipole_moments": "Debye",
-    "triples_correction": "Eh",
-    "vibrational_frequencies": "cm^-1",
-}
-
-
-def applied_pyscf_spec(config):
-    """Return the resolved fields written under ``spec/``."""
-    return {key: config.get(key) for key in APPLIED_SPEC_FIELDS}
-
-
-def applied_pyscf_spec_fields(spec):
-    """Return the digest vocabulary of *this* artifact's contract version.
-
-    A v4 artifact's ``applied_settings_sha256`` was computed over the v4
-    fields; reconstructing it from the v5 vocabulary would mark every
-    archived artifact tampered.  A contract-less artifact keeps the legacy
-    vocabulary.
-    """
-
-    version = spec.get("result_contract_version")
-    if version in APPLIED_SPEC_FIELDS_BY_CONTRACT:
-        return APPLIED_SPEC_FIELDS_BY_CONTRACT[version]
-    return LEGACY_APPLIED_SPEC_FIELDS
-
-
-def pyscf_td_response_materialization(settings, *, reference_family=None):
-    """Map typed TDA/TDDFT intent to the PySCF response construction.
-
-    The manifest names the exact classes the driver instantiates, so the
-    review packet, the artifact and the validator agree on the response
-    object by construction.  It covers the ``td`` jobtype and an ``opt``
-    on an excited root; ``reference_family`` (``rks``/``uks``) selects the
-    restricted or unrestricted factory.
-    """
-
-    jobtype = str(getattr(settings, "jobtype", "")).strip().lower()
-    excited_root = getattr(settings, "excited_state_root", None)
-    if jobtype != "td" and not (jobtype == "opt" and excited_root):
-        return None
-    response_method = str(settings.response_method).strip().lower()
-    manifold = str(settings.state_manifold).strip().lower()
-    family = str(reference_family or "rks").strip().lower()
-    module = "uks" if family == "uks" else "rks"
-    factory_api = {
-        "tda": f"pyscf.tdscf.{module}.TDA",
-        "tddft": f"pyscf.tdscf.{module}.TDDFT",
-    }[response_method]
-    operations = ["ground_state_scf", "response_construct"]
-    if manifold == PYSCF_TWO_BLOCK_MANIFOLD:
-        # Two response objects on the one reference, one per spin block.
-        operations.extend(
-            (
-                "set_singlet_channel",
-                "response_construct",
-                "set_triplet_channel",
-            )
-        )
-    elif manifold != PYSCF_UNRESTRICTED_MANIFOLD:
-        operations.append(f"set_{manifold}_channel")
-    operations.append("set_nstates")
-    if getattr(settings, "td_max_cycle", None) is not None:
-        operations.append("set_max_cycle")
-    if excited_root:
-        operations.extend(
-            (
-                "gradient_scanner_on_root",
-                "geometry_optimisation",
-                "final_scf",
-            )
-        )
-    operations.append("vertical_excitation_kernel")
-    body = {
-        "schema_version": TD_RESPONSE_MATERIALIZATION_SCHEMA_VERSION,
-        "ground_state_reference_family": module,
-        "ground_state_stage": "scf",
-        "response_method": response_method,
-        "response_factory_api": factory_api,
-        "state_manifold": manifold,
-        "nstates": int(settings.nstates),
-        "excited_state_root": (
-            int(excited_root) if excited_root is not None else None
-        ),
-        "max_cycle": (
-            int(settings.td_max_cycle)
-            if getattr(settings, "td_max_cycle", None) is not None
-            else None
-        ),
-        "operation_order": tuple(operations),
-        "execution_policy": "executable",
-    }
-    payload = json.dumps(body, sort_keys=True, separators=(",", ":"))
-    return {
-        **body,
-        "receipt_sha256": hashlib.sha256(payload.encode("utf-8")).hexdigest(),
-    }
-
-
-#: The angular functions every basis shell is built from.  A basis name
-#: is one basis set in every program only with one form: Gaussian's own
-#: default for the 6-31G family is Cartesian d (six functions), ORCA has
-#: spherical harmonics alone, and at Cartesian d the same ``6-31G(d)``
-#: lay 0.25-4.1 mEh below the spherical set (CUHK Slurm 2151772). The
-#: driver passes this to ``pyscf.M`` and the level reads it here.
-PYSCF_BASIS_FUNCTIONS = "spherical"
-
-
-#: What makes two results the same electronic surface. Every entry is a
-#: value the host applied, never a value a project asked for: ``b3lyp``
-#: and ``b3lypg`` are one functional in this build and must not hash
-#: apart, and a frozen-core count of one is only equal to another when
-#: both are recorded -- two absent values establish nothing.
-#:
-#: What equality here does *not* establish is stated where the join
-#: reads it: an ordinal root is an index into an ascending list at one
-#: geometry and not a continuous electronic character, and a constrained
-#: optimum's character needs a curvature analysis this release does not
-#: compute. Constraint entries carry the requested target and never the
-#: achieved residual, so two runs of one constraint are one surface.
-SURFACE_IDENTITY_FIELDS = (
-    "basis",
-    "charge",
-    "constraints",
-    "density_fitting",
-    "dispersion",
-    "excited_root",
-    "frozen_core",
-    "functional_applied",
-    "method_family",
-    "multiplicity",
-    "reference",
-    "solvent",
-    "solvent_model",
-    "state_manifold",
-)
-
-
-def pyscf_surface_identity(config):
-    """The electronic surface a result's geometry and energy belong to.
-
-    A ``td`` spectrum is computed *on* its reference surface and its
-    total energy is the reference's, so it carries no followed root; an
-    optimisation that follows root k walks on the response surface and
-    does. A correlated single point is on the correlated surface.
-    """
-
-    response = str(config.get("response_method") or "").strip().lower()
-    ab_initio = str(config.get("ab_initio") or "").strip().lower()
-    root = config.get("excited_state_root")
-    functional = config.get("xc")
-    if root is not None and response:
-        method_family = response
-    elif ab_initio in PYSCF_CORRELATED_METHODS:
-        method_family = ab_initio
-    elif ab_initio == "hf":
-        method_family = "hf"
-    elif functional:
-        method_family = "dft"
-    else:
-        method_family = "unknown"
-    return {
-        "basis": config.get("basis"),
-        "charge": (
-            None if config.get("charge") is None else int(config["charge"])
-        ),
-        # No constrained surface is expressible in this release; the key
-        # exists so a constrained optimum is a different surface the day
-        # one is, rather than silently the same one.
-        "constraints": [],
-        "density_fitting": (
-            config.get("aux_basis") or "default"
-            if config.get("density_fit")
-            else None
-        ),
-        "dispersion": config.get("dispersion"),
-        "excited_root": None if root is None else int(root),
-        "frozen_core": config.get("frozen_core"),
-        "functional_applied": functional,
-        "method_family": method_family,
-        "multiplicity": (
-            None
-            if config.get("multiplicity") is None
-            else int(config["multiplicity"])
-        ),
-        "reference": config.get("reference_family"),
-        "solvent": config.get("solvent_id"),
-        "solvent_model": config.get("solvent_model"),
-        "state_manifold": (
-            config.get("state_manifold") if root is not None else None
-        ),
-    }
-
-
-def pyscf_reference_family(
-    *, symbols, charge, multiplicity, xc, broken_symmetry=False
-):
-    """Derive the PySCF reference family from host-owned molecular state.
-
-    ``pyscf.scf.HF`` selects its concrete class from electron count and spin;
-    in particular, the one-electron open-shell path is ``HF1e``/ROHF rather
-    than UHF.  Recording that decision before script generation lets result
-    validation detect a runtime reference substitution independently.  The
-    broken-symmetry request is the one singlet whose reference is
-    unrestricted (``uks``/``uhf`` at spin 0), because that is what it asks
-    for.
-    """
-
-    if isinstance(charge, bool) or not isinstance(charge, Integral):
-        raise ValueError("charge must be an integer, not a boolean")
-    if isinstance(multiplicity, bool) or not isinstance(
-        multiplicity, Integral
-    ):
-        raise ValueError("multiplicity must be an integer, not a boolean")
-    try:
-        electron_count = sum(
-            int(ASE_ATOMIC_NUMBERS[str(symbol)]) for symbol in symbols
-        ) - int(charge)
-    except (KeyError, TypeError) as exc:
-        raise ValueError("symbols must resolve to atomic numbers") from exc
-    spin = int(multiplicity) - 1
-    if electron_count < 0 or spin < 0 or spin > electron_count:
-        raise ValueError("electron count and multiplicity are inconsistent")
-    if (electron_count - spin) % 2:
-        raise ValueError("electron count and multiplicity have invalid parity")
-    unrestricted_singlet = bool(broken_symmetry) and spin == 0
-    if xc is not None:
-        return "rks" if spin == 0 and not unrestricted_singlet else "uks"
-    if spin == 0:
-        return "uhf" if unrestricted_singlet else "rhf"
-    if electron_count == 1:
-        return "rohf"
-    return "uhf"
-
-
-def write_pyscf_h5(
-    filename,
-    *,
-    spec,
-    provenance,
-    status,
-    results,
-    schema_version=RESULTS_SCHEMA_VERSION,
-):
-    """Write a versioned, machine-operable PySCF results artifact.
-
-    This public helper is also the contract for synthetic/fake runners. Numeric
-    result arrays are passed directly to h5py, preserving their dtype and shape;
-    mappings are represented as nested groups and scalar datasets. Unsupported
-    Python objects raise rather than being silently converted to strings.
-    """
-    import h5py
-
-    with h5py.File(filename, "w") as handle:
-        handle.attrs["schema_version"] = schema_version
-        spec_group = handle.create_group("spec")
-        _write_mapping(spec_group, spec)
-        _attach_supplied_geometry_unit(spec_group, spec)
-        _write_mapping(handle.create_group("provenance"), provenance)
-        _write_mapping(handle.create_group("status"), status)
-        results_group = handle.create_group("results")
-        _write_mapping(results_group, results)
-        _attach_result_units(results_group)
-
-
-def _attach_supplied_geometry_unit(spec_group, spec):
-    """State the unit of the supplied geometry on the dataset itself.
-
-    ``spec/positions`` is the structure the calculation was handed and
-    ``spec/unit`` its unit; a reader serving the supplied structure as a
-    typed quantity must find the unit where every other numeric dataset
-    carries it, not in a sibling field.
-    """
-
-    import h5py
-
-    node = spec_group.get("positions")
-    if not isinstance(node, h5py.Dataset):
-        return
-    if bool(node.attrs.get(H5_NULL_ATTRIBUTE, False)):
-        return
-    if node.dtype.kind not in {"f", "i", "u"}:
-        return
-    unit = spec.get("unit")
-    if isinstance(unit, str) and unit:
-        node.attrs["unit"] = unit
-
-
-def _attach_result_units(group):
-    """Attach mandatory units to every numeric result dataset."""
-
-    import h5py
-
-    for key, node in group.items():
-        if isinstance(node, h5py.Group):
-            _attach_result_units(node)
-            continue
-        if bool(node.attrs.get(H5_NULL_ATTRIBUTE, False)):
-            continue
-        if node.dtype.kind not in {"b", "i", "u", "f", "c"}:
-            continue
-        unit = RESULT_UNITS.get(key)
-        if unit is None:
-            raise ValueError(
-                f"Numeric PySCF result {node.name} has no declared unit."
-            )
-        node.attrs["unit"] = unit
-
-
-def _write_mapping(group, mapping):
-    """Write *mapping* below an open h5py group."""
-    for key in sorted(mapping):
-        _write_value(group, str(key), mapping[key])
-
-
-def _write_value(group, key, value):
-    """Write one supported scalar, array, null or nested mapping."""
-    import h5py
-    import numpy as np
-
-    if isinstance(value, dict):
-        _write_mapping(group.create_group(key), value)
-        return
-
-    if value is None:
-        dataset = group.create_dataset(
-            key, data=np.empty((0,), dtype=np.uint8)
-        )
-        dataset.attrs[H5_NULL_ATTRIBUTE] = True
-        return
-
-    string_dtype = h5py.string_dtype(encoding="utf-8")
-    if isinstance(value, str):
-        group.create_dataset(key, data=value, dtype=string_dtype)
-        return
-
-    array = np.asarray(value)
-    if array.dtype.kind in {"U", "S"}:
-        group.create_dataset(
-            key, data=array.astype(object), dtype=string_dtype
-        )
-        return
-    if array.dtype.kind == "O":
-        flat = array.reshape(-1).tolist()
-        if all(isinstance(item, str) for item in flat):
-            group.create_dataset(key, data=array, dtype=string_dtype)
-            return
-        raise TypeError(
-            f"Cannot store object-valued field {group.name}/{key} in the "
-            "PySCF HDF5 schema"
-        )
-    group.create_dataset(key, data=value)
-
-
-class PySCFScriptWriter:
-    """Write the generated driver script for a :class:`PySCFJob`."""
-
-    def __init__(self, job):
-        self.job = job
-
-    # ------------------------------------------------------------------
-    # configuration
-    # ------------------------------------------------------------------
-
-    def _solvent_config(self, settings):
-        """Resolve the solvent model without importing controller PySCF.
-
-        Returns a ``(call, method, solvent_id, eps)`` tuple.
-
-        The dielectric is deliberately left unresolved here.  The standalone
-        child may use another ``CONDA_ENV``/interpreter, so only that target
-        environment's solvent database is authoritative.  The generated
-        driver resolves PCM dielectric data before the first SCF cycle.
-        """
-        if settings.solvent_model is None:
-            return None, None, None, None
-
-        model = str(settings.solvent_model).lower()
-        call, method = PYSCF_SOLVENT_MODELS[model]
-        solvent_id = str(settings.solvent_id).strip().lower()
-        return call, method, solvent_id, None
-
-    def build_config(self):
-        """Return the configuration dict embedded in the generated script."""
-        job = self.job
-        settings = job.settings
-        settings.validate()
-
-        molecule = job.molecule
-        input_artifact = pyscf_source_artifact_binding(molecule)
-        symbols = list(molecule.chemical_symbols)
-        positions = [
-            [float(x), float(y), float(z)] for x, y, z in molecule.positions
-        ]
-
-        charge = settings.charge
-        if charge is None:
-            charge = molecule.charge
-        multiplicity = settings.multiplicity
-        if multiplicity is None:
-            multiplicity = molecule.multiplicity
-
-        atom_grid = None
-        if settings.xc is not None and settings.defgrid is not None:
-            atom_grid = list(PYSCF_DEFGRIDS[str(settings.defgrid).lower()])
-
-        call, method, solvent_id, eps = self._solvent_config(settings)
-
-        jobrunner = job.jobrunner
-        # OpenMP threads inside one PySCF process, not the allocation.
-        # A runner that names no threads falls back to its cores, which
-        # is the same rule the server profile applies: threads default to
-        # the allocation, so nothing that never set them changes.
-        num_threads = getattr(jobrunner, "num_threads", None)
-        if num_threads is None:
-            num_threads = getattr(jobrunner, "num_cores", None)
-        if (
-            isinstance(num_threads, bool)
-            or not isinstance(num_threads, Integral)
-            or int(num_threads) <= 0
-        ):
-            raise ValueError(
-                "num_threads must be a positive integer, got "
-                f"{num_threads!r}"
-            )
-        mem_gb = getattr(jobrunner, "mem_gb", None)
-        # PySCF's max_memory is per-process in MB and bounds integral
-        # buffering, not total allocation. Leave PySCF's own default in
-        # place when the runner has no explicit budget.
-        if mem_gb is not None and (
-            isinstance(mem_gb, bool)
-            or not isinstance(mem_gb, Real)
-            or not math.isfinite(float(mem_gb))
-            or float(mem_gb) <= 0
-        ):
-            raise ValueError(
-                f"mem_gb must be a positive finite scalar, got {mem_gb!r}"
-            )
-        max_memory_mb = float(mem_gb) * 1024 if mem_gb is not None else None
-
-        config = {
-            "schema_version": RESULTS_SCHEMA_VERSION,
-            "result_contract_version": RESULT_CONTRACT_VERSION,
-            "run_id": getattr(jobrunner, "_run_id", None),
-            "run_nonce": getattr(jobrunner, "_run_nonce", None),
-            # Captured by the ChemSmart process because the standalone driver
-            # deliberately cannot import chemsmart from the compute env.
-            "chemsmart_version": chemsmart_version,
-            "label": job.label,
-            "title": settings.title,
-            "program": "pyscf",
-            "jobtype": settings.jobtype or job.TYPE,
-            "stages": list(job.stages),
-            "symbols": symbols,
-            "positions": positions,
-            "unit": "Angstrom",
-            "basis": settings.basis,
-            "charge": int(charge),
-            "multiplicity": int(multiplicity),
-            # PySCF's spin is 2S = Nalpha - Nbeta, NOT the multiplicity.
-            "spin": int(multiplicity) - 1,
-            "xc": settings.xc,
-            "reference_family": pyscf_reference_family(
-                symbols=symbols,
-                charge=charge,
-                multiplicity=multiplicity,
-                xc=settings.xc,
-                broken_symmetry=getattr(settings, "broken_symmetry", False),
-            ),
-            # The broken-symmetry request (contract v11): the scf stage
-            # follows the restricted solution's own instability into the
-            # unrestricted reference above, and records what it found.
-            "broken_symmetry": bool(
-                getattr(settings, "broken_symmetry", False) is True
-            ),
-            "ab_initio": settings.ab_initio,
-            "method": settings.method_name,
-            "dispersion": settings.dispersion,
-            "density_fit": bool(settings.density_fit),
-            "aux_basis": settings.aux_basis if settings.density_fit else None,
-            "defgrid": settings.defgrid if settings.xc is not None else None,
-            "atom_grid": atom_grid,
-            "scf_tol": settings.scf_tol,
-            "scf_maxiter": settings.scf_maxiter,
-            "solvent_model": settings.solvent_model,
-            "solvent_call": call,
-            "solvent_method": method,
-            "solvent_id": solvent_id,
-            "solvent_eps": eps,
-            "solvent_lebedev_order": (
-                29 if settings.engine == "gpu" and call is not None else None
-            ),
-            # An IRC branch is geomeTRIC's walk and is bounded by the same
-            # step ceiling, so it records the solver and the ceiling too.
-            "opt_solver": (
-                settings.opt_solver
-                if set(PYSCF_MOVING_STAGES) & set(job.stages)
-                else None
-            ),
-            "opt_maxsteps": (
-                settings.opt_maxsteps
-                if set(PYSCF_MOVING_STAGES) & set(job.stages)
-                else None
-            ),
-            "irc_direction": (
-                str(settings.irc_direction).strip().lower()
-                if "irc" in job.stages
-                else None
-            ),
-            "response_method": (
-                str(getattr(settings, "response_method", None)).strip().lower()
-                if getattr(settings, "response_method", None) is not None
-                else None
-            ),
-            "state_manifold": (
-                str(getattr(settings, "state_manifold", None)).strip().lower()
-                if getattr(settings, "state_manifold", None) is not None
-                else None
-            ),
-            "nstates": (
-                int(getattr(settings, "nstates", None))
-                if getattr(settings, "nstates", None) is not None
-                else None
-            ),
-            "excited_state_root": (
-                int(settings.excited_state_root)
-                if getattr(settings, "excited_state_root", None) is not None
-                else None
-            ),
-            "td_max_cycle": (
-                int(settings.td_max_cycle)
-                if getattr(settings, "td_max_cycle", None) is not None
-                else None
-            ),
-            "frozen_core": (
-                None
-                if getattr(settings, "frozen_core", None) is None
-                else (
-                    str(settings.frozen_core).strip().lower()
-                    if isinstance(settings.frozen_core, str)
-                    else int(settings.frozen_core)
-                )
-            ),
-            "cc_max_cycle": (
-                int(settings.cc_max_cycle)
-                if getattr(settings, "cc_max_cycle", None) is not None
-                else None
-            ),
-            "hessian_derivative": (
-                str(settings.hessian_derivative).strip().lower()
-                if getattr(settings, "hessian_derivative", None) is not None
-                else None
-            ),
-            "fd_step_angstrom": (
-                float(settings.fd_step_angstrom)
-                if getattr(settings, "fd_step_angstrom", None) is not None
-                else PYSCF_FD_STEP_ANGSTROM
-            ),
-            "scf_stability": bool(
-                getattr(settings, "scf_stability", False) is True
-            ),
-            # Kept in the vocabulary for every artifact on disk; no stage
-            # is a preview any more, so it is False for every new run.
-            "preview_only": False,
-            "materializations": {},
-            "engine": settings.engine,
-            "num_threads": int(num_threads),
-            "max_memory_mb": max_memory_mb,
-            # The project-settings builder attaches this only when a concrete
-            # source YAML exists. A null records that it was unavailable; it
-            # is never inferred from a project name or regenerated content.
-            "project_yaml_digest": getattr(
-                settings, "project_yaml_digest", None
-            ),
-            "input_artifact_kind": (
-                input_artifact["kind"] if input_artifact else None
-            ),
-            "input_artifact_sha256": (
-                input_artifact["sha256"] if input_artifact else None
-            ),
-        }
-        td_materialization = pyscf_td_response_materialization(
-            settings, reference_family=config["reference_family"]
-        )
-        if td_materialization is not None:
-            config["materializations"]["td_response_plan"] = td_materialization
-        # Derived from the resolved configuration rather than supplied
-        # beside it, so the surface a result records is the surface the
-        # driver was configured to compute on and not a second opinion.
-        config["surface"] = pyscf_surface_identity(config)
-        geometry_payload = {
-            "symbols": config["symbols"],
-            "positions": config["positions"],
-            "unit": config["unit"],
-            "charge": config["charge"],
-            "multiplicity": config["multiplicity"],
-        }
-        config["input_geometry_sha256"] = self._json_digest(geometry_payload)
-        requested = self.settings_digest(config)
-        config["requested_settings_sha256"] = requested
-        config["applied_settings_sha256"] = None
-        # Historical field retained as the controller-side requested identity.
-        config["settings_digest"] = requested
-        return config
-
-    @staticmethod
-    def _json_digest(value):
-        body = json.dumps(value, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(body.encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def settings_digest(config):
-        """Return a stable digest of the scientifically meaningful settings.
-
-        Resource knobs, artifact labels, provenance-only software/source
-        identifiers and the HDF5 layout version are excluded: they do not
-        change the requested calculation. ``engine`` remains included because
-        changing CPU/GPU execution is a scientific change and must invalidate
-        approval.
-        """
-        ignored = {
-            "schema_version",
-            "result_contract_version",
-            "run_id",
-            "run_nonce",
-            "chemsmart_version",
-            "label",
-            "title",
-            "num_threads",
-            "max_memory_mb",
-            "project_yaml_digest",
-            "input_geometry_sha256",
-            "input_artifact_kind",
-            "input_artifact_sha256",
-            "requested_settings_sha256",
-            "applied_settings_sha256",
-            "settings_digest",
-        }
-        payload = {k: v for k, v in config.items() if k not in ignored}
-        body = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(body.encode("utf-8")).hexdigest()
-
-    # ------------------------------------------------------------------
-    # emission
-    # ------------------------------------------------------------------
-
-    def write(self, target_directory=None, config=None):
-        """Write ``label.py`` and return its path."""
-        directory = target_directory or self.job.folder
-        os.makedirs(directory, exist_ok=True)
-        path = os.path.join(directory, f"{self.job.label}.py")
-        if config is None:
-            config = self.build_config()
-        with open(path, "w") as handle:
-            handle.write(self.render(config))
-        logger.debug(f"Wrote PySCF driver script: {path}")
-        return path
-
-    @staticmethod
-    def render(config):
-        """Return the full script text for ``config``.
-
-        The configuration is embedded as a JSON document parsed at run time,
-        not as a Python literal. It stays readable and diffable, and it is
-        unambiguously *data*: nothing in CONFIG can execute, whatever a label
-        or solvent name happens to contain.
-        """
-        payload = json.dumps(config, indent=4)
-        # Well-formed JSON cannot contain three consecutive double quotes --
-        # a closing quote is always followed by , : } ] or whitespace -- so
-        # the triple-quoted literal below is safe. Assert it anyway.
-        assert '"""' not in payload, "JSON payload would break the literal"
-        return _SKELETON.replace("__CHEMSMART_CONFIG__", payload)
-
-
-# The skeleton is invariant. Only the CONFIG literal is substituted, and it
-# is emitted as JSON so the file stays readable and diffable.
-_SKELETON = '''#!/usr/bin/env python
+#INFO: **** input file is /lustre/project/xlzhang/jiseung/r10/q18/cli/o1/p_h2_200_bs_gas_phase.py ****
+#!/usr/bin/env python
 # ChemSmart PySCF driver
 """PySCF driver generated by ChemSmart.
 
@@ -1004,7 +21,103 @@ import traceback
 import h5py
 import numpy as np
 
-CONFIG = json.loads("""__CHEMSMART_CONFIG__""")
+CONFIG = json.loads("""{
+    "schema_version": "2.0",
+    "result_contract_version": "chemsmart.pyscf-result-contract.v11",
+    "run_id": "e9587da8-52cd-48bb-82fb-06234f275e3e",
+    "run_nonce": "8ec48f5156f5be14c7fdb2a4a69b0c4a16ce16b328db59e9f5ed8c672edd1a06",
+    "chemsmart_version": "3.1.4",
+    "label": "p_h2_200_bs_gas_phase",
+    "title": null,
+    "program": "pyscf",
+    "jobtype": "sp",
+    "stages": [
+        "scf"
+    ],
+    "symbols": [
+        "H",
+        "H"
+    ],
+    "positions": [
+        [
+            0.0,
+            0.0,
+            0.0
+        ],
+        [
+            0.0,
+            0.0,
+            2.0
+        ]
+    ],
+    "unit": "Angstrom",
+    "basis": "def2-svp",
+    "charge": 0,
+    "multiplicity": 1,
+    "spin": 0,
+    "xc": "b3lypg",
+    "reference_family": "uks",
+    "broken_symmetry": true,
+    "ab_initio": null,
+    "method": "b3lyp",
+    "dispersion": null,
+    "density_fit": false,
+    "aux_basis": null,
+    "defgrid": "defgrid3",
+    "atom_grid": [
+        99,
+        590
+    ],
+    "scf_tol": 1e-10,
+    "scf_maxiter": null,
+    "solvent_model": null,
+    "solvent_call": null,
+    "solvent_method": null,
+    "solvent_id": null,
+    "solvent_eps": null,
+    "solvent_lebedev_order": null,
+    "opt_solver": null,
+    "opt_maxsteps": null,
+    "irc_direction": null,
+    "response_method": null,
+    "state_manifold": null,
+    "nstates": null,
+    "excited_state_root": null,
+    "td_max_cycle": null,
+    "frozen_core": null,
+    "cc_max_cycle": null,
+    "hessian_derivative": null,
+    "fd_step_angstrom": 0.005,
+    "scf_stability": true,
+    "preview_only": false,
+    "materializations": {},
+    "engine": "cpu",
+    "num_threads": 64,
+    "max_memory_mb": 16384.0,
+    "project_yaml_digest": "0240da00112abb40a60aa24ecd4f5d6e42385751c58d2b3eed3196abf9d16a8b",
+    "input_artifact_kind": null,
+    "input_artifact_sha256": null,
+    "surface": {
+        "basis": "def2-svp",
+        "charge": 0,
+        "constraints": [],
+        "density_fitting": null,
+        "dispersion": null,
+        "excited_root": null,
+        "frozen_core": null,
+        "functional_applied": "b3lypg",
+        "method_family": "dft",
+        "multiplicity": 1,
+        "reference": "uks",
+        "solvent": null,
+        "solvent_model": null,
+        "state_manifold": null
+    },
+    "input_geometry_sha256": "c3dcf15833866b0aca1db7ff60711273d7a588481af26c6769c171a65d8855c4",
+    "requested_settings_sha256": "b84d3c4fd8ceb969a2e73fd3ccb4169a242f86258656282c7b87b2efee4b369c",
+    "applied_settings_sha256": null,
+    "settings_digest": "b84d3c4fd8ceb969a2e73fd3ccb4169a242f86258656282c7b87b2efee4b369c"
+}""")
 
 
 def _apply_threads(config):
@@ -1070,7 +183,7 @@ def _build_mole(config, log_path):
         unit=config["unit"],
         # Spherical harmonics, which is what the project literal means in
         # every program (``PYSCF_BASIS_FUNCTIONS``, read by the level).
-        cart=__CHEMSMART_CART__,
+        cart=False,
         output=log_path,
         verbose=4,
     )
@@ -2382,7 +1495,7 @@ def _write_h5(path, spec, provenance, status, results):
 
 def _attach_result_units(group):
     """Attach the controller-declared unit to each numeric result dataset."""
-    units = __CHEMSMART_RESULT_UNITS__
+    units = {'atomic_numbers': 'dimensionless', 'ccsd_correlation_energy': 'Eh', 'correlation_energy': 'Eh', 'dipole_moment': 'Debye', 'dispersion_energy': 'Eh', 'solvation_electrostatic_energy': 'Eh', 'solvation_nonelectrostatic_energy': 'Eh', 'energies': 'Eh', 'excitation_energies': 'Eh', 'excited_state_converged': 'dimensionless', 'excited_state_dominant_excitations': 'dimensionless', 'excited_state_multiplicities': 'dimensionless', 'force_constants': 'Dyne/Angstrom', 'forces': 'Eh/Bohr', 'hessian': 'Eh/Bohr^2', 'mo_energy': 'Eh', 'mo_occ': 'electron', 'mulliken_charges': 'elementary_charge', 'mulliken_spin_populations': 'electron', 'normal_modes': 'atomic_mass_unit^-1/2', 'oscillator_strengths': 'dimensionless', 'path_arc_lengths': 'atomic_mass_unit^1/2*Bohr', 'path_energies': 'Eh', 'path_gradients': 'Eh/Bohr', 'path_masses': 'atomic_mass_unit', 'path_positions': 'Angstrom', 'positions': 'Angstrom', 'reduced_masses': 'atomic_mass_unit', 'reference_energy': 'Eh', 'scf_energy': 'Eh', 'search_displacements': 'atomic_mass_unit^1/2*Bohr', 'search_energies': 'Eh', 'search_gradients': 'Eh/Bohr', 'search_masses': 'atomic_mass_unit', 'search_positions': 'Angstrom', 'seed_frequencies': 'cm^-1', 'seed_hessian': 'Eh/Bohr^2', 'seed_normal_modes': 'atomic_mass_unit^-1/2', 'spin_square': 'dimensionless', 'spin_square_effective_multiplicity': 'dimensionless', 'start_frequencies': 'cm^-1', 'start_hessian': 'Eh/Bohr^2', 'start_normal_modes': 'atomic_mass_unit^-1/2', 'total_energy': 'Eh', 'transition_mode': 'dimensionless', 'transition_dipole_moments': 'Debye', 'triples_correction': 'Eh', 'vibrational_frequencies': 'cm^-1'}
     for key, node in group.items():
         if isinstance(node, h5py.Group):
             _attach_result_units(node)
@@ -2668,10 +1781,10 @@ def _scf_stability(mf):
     named real -> complex not determined although the log beside it said.
     """
 
-    spaces = __CHEMSMART_STABILITY_SPACES__
-    unreturned = __CHEMSMART_STABILITY_UNRETURNED_SPACE__
-    kinds = __CHEMSMART_STABILITY_PRINTED_KINDS__
-    threshold = __CHEMSMART_STABILITY_THRESHOLD__
+    spaces = {'rhf': {'internal': 'internal', 'external': 'RHF/RKS -> UHF/UKS'}, 'rks': {'internal': 'internal', 'external': 'RHF/RKS -> UHF/UKS'}, 'uhf': {'internal': 'internal', 'external': 'UHF/UKS -> GHF/GKS'}, 'uks': {'internal': 'internal', 'external': 'UHF/UKS -> GHF/GKS'}, 'rohf': {'internal': 'internal', 'external': None}, 'roks': {'internal': 'internal', 'external': None}}
+    unreturned = 'real -> complex'
+    kinds = {'internal': 'internal', 'real2complex': 'real_to_complex', 'external': 'external'}
+    threshold = -1e-05
     family = _stability_family(mf)
     named = spaces.get(family or "", {})
     record = {
@@ -2696,7 +1809,7 @@ def _scf_stability(mf):
     # PySCF's eigenvalues are orbital-Hessian roots in its own
     # normalisation; the unit and the line PySCF draws are stated beside
     # them so a reader never has to know either.
-    record["eigenvalue_unit"] = __CHEMSMART_STABILITY_EIGENVALUE_UNIT__
+    record["eigenvalue_unit"] = 'Eh'
     record["instability_threshold"] = threshold
     started = time.time()
     external_answered = False
@@ -2790,7 +1903,7 @@ def _broken_symmetry_scf(config, mf, mol):
     """
     from pyscf.scf import stability as stability_module
 
-    kinds = __CHEMSMART_STABILITY_PRINTED_KINDS__
+    kinds = {'internal': 'internal', 'real2complex': 'real_to_complex', 'external': 'external'}
     started = time.time()
     restricted = _build_method(config, mol, restricted=True)
     restricted_energy = float(restricted.kernel())
@@ -2850,8 +1963,8 @@ def _broken_symmetry_scf(config, mf, mol):
     record["unrestricted_energy_by_step"] = energies
     record["unrestricted_energy"] = energy
     record["unrestricted_converged"] = bool(mf.converged)
-    record["eigenvalue_unit"] = __CHEMSMART_STABILITY_EIGENVALUE_UNIT__
-    record["instability_threshold"] = __CHEMSMART_STABILITY_THRESHOLD__
+    record["eigenvalue_unit"] = 'Eh'
+    record["instability_threshold"] = -1e-05
     record["seconds"] = round(time.time() - started, 3)
     return energy, record
 
@@ -3066,7 +2179,7 @@ def main():
     started_at = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     t0 = time.time()
 
-    spec_fields = __CHEMSMART_APPLIED_SPEC_FIELDS__
+    spec_fields = ('run_id', 'run_nonce', 'label', 'title', 'program', 'jobtype', 'engine', 'stages', 'symbols', 'positions', 'unit', 'xc', 'ab_initio', 'method', 'basis', 'charge', 'spin', 'multiplicity', 'dispersion', 'density_fit', 'aux_basis', 'defgrid', 'atom_grid', 'scf_tol', 'scf_maxiter', 'solvent_model', 'solvent_call', 'solvent_method', 'solvent_id', 'solvent_eps', 'solvent_lebedev_order', 'opt_solver', 'opt_maxsteps', 'response_method', 'state_manifold', 'nstates', 'preview_only', 'materializations', 'num_threads', 'max_memory_mb', 'input_geometry_sha256', 'input_artifact_kind', 'input_artifact_sha256', 'requested_settings_sha256', 'applied_settings_sha256', 'settings_digest', 'result_contract_version', 'reference_family', 'excited_state_root', 'frozen_core', 'td_max_cycle', 'cc_max_cycle', 'surface', 'hessian_derivative', 'fd_step_angstrom', 'scf_stability', 'irc_direction', 'broken_symmetry')
     spec = {key: CONFIG.get(key) for key in spec_fields}
     status = {
         "stages": {},
@@ -3564,36 +2677,253 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-'''
+#INFO: ******************** input file end ********************
 
-# Keep the standalone skeleton invariant while deriving its applied-spec field
-# tuple from the same declaration used by the fake runner.
-_SKELETON = _SKELETON.replace(
-    "__CHEMSMART_APPLIED_SPEC_FIELDS__", repr(APPLIED_SPEC_FIELDS)
-)
-_SKELETON = _SKELETON.replace("__CHEMSMART_RESULT_UNITS__", repr(RESULT_UNITS))
-# The space names are the settings module's declaration, substituted rather
-# than retyped: a writer and a reader that each hold their own copy of one
-# table are two tables that can disagree.
-_SKELETON = _SKELETON.replace(
-    "__CHEMSMART_STABILITY_SPACES__", repr(PYSCF_STABILITY_SPACES)
-)
-_SKELETON = _SKELETON.replace(
-    "__CHEMSMART_STABILITY_UNRETURNED_SPACE__",
-    repr(PYSCF_STABILITY_UNRETURNED_SPACE),
-)
-_SKELETON = _SKELETON.replace(
-    "__CHEMSMART_STABILITY_PRINTED_KINDS__",
-    repr(PYSCF_STABILITY_PRINTED_KINDS),
-)
-_SKELETON = _SKELETON.replace(
-    "__CHEMSMART_STABILITY_THRESHOLD__", repr(PYSCF_STABILITY_THRESHOLD)
-)
-_SKELETON = _SKELETON.replace(
-    "__CHEMSMART_STABILITY_EIGENVALUE_UNIT__",
-    repr(PYSCF_STABILITY_EIGENVALUE_UNIT),
-)
-# The angular form the driver builds with is the one the level reads.
-_SKELETON = _SKELETON.replace(
-    "__CHEMSMART_CART__", repr(PYSCF_BASIS_FUNCTIONS == "cartesian")
-)
+
+System: uname_result(system='Linux', node='chpc-cn072.rc.cuhk.edu.hk', release='5.14.0-570.12.1.el9_6.x86_64', version='#1 SMP PREEMPT_DYNAMIC Tue May 13 06:11:55 EDT 2025', machine='x86_64')  Threads 64
+Python 3.10.21 | packaged by conda-forge | (main, Aug 21 2026, 22:42:31) [GCC 14.4.0]
+numpy 1.26.4  scipy 1.15.3  h5py 3.16.0
+Date: Fri Sep 25 00:18:30 2026
+PySCF version 2.14.0
+PySCF path  /lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/lib/python3.10/site-packages/pyscf
+
+[ENV] CHEMSMART_PYSCF_ENVIRONMENT_RECEIPT_SHA256 13e1896bb98c7be42f0f126c1e8b4e958da043852e871445b9e5d93390e26836
+[ENV] CHEMSMART_PYSCF_SCRIPT_SHA256 34c8ba1f972615d4749799030f40d692df722550572d1fff647c3d1122c9da81
+[ENV] CHEMSMART_PYSCF_INPUT_RECEIPT_SHA256 d7b608906b1d1f8c2620f1321c8c1de50c2e3d741947136bef582984b55a7649
+[CONFIG] conf_file None
+[INPUT] verbose = 4
+[INPUT] num. atoms = 2
+[INPUT] num. electrons = 2
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 0
+[INPUT] symmetry False subgroup None
+[INPUT] Mole.unit = Angstrom
+[INPUT] Symbol           X                Y                Z      unit          X                Y                Z       unit  Magmom
+[INPUT]  1 H      0.000000000000   0.000000000000   0.000000000000 AA    0.000000000000   0.000000000000   0.000000000000 Bohr   0.0
+[INPUT]  2 H      0.000000000000   0.000000000000   2.000000000000 AA    0.000000000000   0.000000000000   3.779452249130 Bohr   0.0
+
+nuclear repulsion = 0.26458860546
+number of shells = 6
+number of NR pGTOs = 14
+number of NR cGTOs = 10
+basis = def2-svp
+ecp = {}
+CPU time:         2.40
+
+
+******** <class 'pyscf.dft.rks.RKS'> ********
+method = RKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-10
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmp7jvt8jm4
+max_memory 16384 MB (current use 84 MB)
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = b3lypg
+    P. J. Stephens, F. J. Devlin, C. F. Chabalowski, and M. J. Frisch.,  J. Phys. Chem. 98, 11623 (1994)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x14d4a3e8b760>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x14d4a3e8a170>
+User specified grid scheme (99, 590)
+small_rho_cutoff = 0
+Set gradient conv threshold to 1e-05
+Initial guess from minao.
+tot grids = 66448
+init E= -0.872450784058669
+  HOMO = -0.255430938026849  LUMO = -0.15032147236405  gap/eV = 2.86017
+cycle= 1 E= -0.998355437307546  delta_E= -0.126  |g|= 0.0224  |ddm|= 0.753
+  HOMO = -0.305851295630957  LUMO = -0.163028609359664  gap/eV = 3.88640
+cycle= 2 E= -0.998662607452063  delta_E= -0.000307  |g|= 0.00114  |ddm|= 0.0481
+  HOMO = -0.302522464871264  LUMO = -0.159625499126584  gap/eV = 3.88842
+cycle= 3 E= -0.998663351417704  delta_E= -7.44e-07  |g|= 6.64e-06  |ddm|= 0.00222
+  HOMO = -0.302533452530905  LUMO = -0.15963388703378  gap/eV = 3.88850
+cycle= 4 E= -0.998663351435713  delta_E= -1.8e-11  |g|= 2.78e-08  |ddm|= 7.81e-06
+  HOMO = -0.302533434805993  LUMO = -0.159633875306133  gap/eV = 3.88850
+Extra cycle  E= -0.998663351435713  delta_E= -6.66e-16  |g|= 1.42e-09  |ddm|= 5.88e-08
+converged SCF energy = -0.998663351435713
+rhf_real2complex: lowest eigs of H = [0.09357734 0.70748288 0.71100117]
+<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the real -> complex stability analysis
+rhf_external: lowest eigs of H = [-0.09710528  0.58393761  0.60554942]
+<class 'pyscf.dft.rks.RKS'> wavefunction has an RHF/RKS -> UHF/UKS instability
+
+
+******** <class 'pyscf.dft.uks.UKS'> ********
+method = UKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-10
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmp01d5by1d
+max_memory 16384 MB (current use 154 MB)
+number electrons alpha = 1  beta = 1
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = b3lypg
+    P. J. Stephens, F. J. Devlin, C. F. Chabalowski, and M. J. Frisch.,  J. Phys. Chem. 98, 11623 (1994)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x14d4a3e8b760>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x14d4a3e8a170>
+User specified grid scheme (99, 590)
+small_rho_cutoff = 0
+Set gradient conv threshold to 1e-05
+tot grids = 66448
+init E= -0.892279297510956
+  alpha nocc = 1  HOMO = -0.275457608651162  LUMO = -0.0579587512397606
+  beta  nocc = 1  HOMO = -0.386327931813371  LUMO = -0.0579587512397606
+  HOMO = -0.275457608651  LUMO = -0.0579587512398  gap/eV = 5.91845
+cycle= 1 E= -0.76727141781379  delta_E= 0.125  |g|= 0.287  |ddm|= 0.981
+  alpha nocc = 1  HOMO = -0.392307707264336  LUMO = -0.0330286484813467
+  beta  nocc = 1  HOMO = -0.359874439078512  LUMO = -0.0330286484813467
+  HOMO = -0.359874439079  LUMO = -0.0330286484813  gap/eV = 8.89393
+cycle= 2 E= -0.687248588533466  delta_E= 0.08  |g|= 0.321  |ddm|= 1.11
+  alpha nocc = 1  HOMO = -0.244361040671228  LUMO = -0.11522789062259
+  beta  nocc = 1  HOMO = -0.238532451343686  LUMO = -0.11522789062259
+  HOMO = -0.238532451344  LUMO = -0.115227890623  gap/eV = 3.35529
+cycle= 3 E= -0.994032726741809  delta_E= -0.307  |g|= 0.0596  |ddm|= 0.69
+  alpha nocc = 1  HOMO = -0.298417086167403  LUMO = -0.156994156031142
+  beta  nocc = 1  HOMO = -0.296888201312562  LUMO = -0.156994156031142
+  HOMO = -0.296888201313  LUMO = -0.156994156031  gap/eV = 3.80671
+cycle= 4 E= -0.999652499731242  delta_E= -0.00562  |g|= 0.0201  |ddm|= 0.0951
+  alpha nocc = 1  HOMO = -0.303768564123524  LUMO = -0.156221702431942
+  beta  nocc = 1  HOMO = -0.303096244293115  LUMO = -0.156221702431942
+  HOMO = -0.303096244293  LUMO = -0.156221702432  gap/eV = 3.99666
+cycle= 5 E= -1.00212360899728  delta_E= -0.00247  |g|= 0.0196  |ddm|= 0.0691
+  alpha nocc = 1  HOMO = -0.304042902168853  LUMO = -0.160079427875321
+  beta  nocc = 1  HOMO = -0.304179330821744  LUMO = -0.160079427875321
+  HOMO = -0.304042902169  LUMO = -0.160079427875  gap/eV = 3.91745
+cycle= 6 E= -0.998265141485412  delta_E= 0.00386  |g|= 0.0162  |ddm|= 0.176
+  alpha nocc = 1  HOMO = -0.303311245663805  LUMO = -0.15976851155576
+  beta  nocc = 1  HOMO = -0.30314258842172  LUMO = -0.15976851155576
+  HOMO = -0.303142588422  LUMO = -0.159768511556  gap/eV = 3.90141
+cycle= 7 E= -0.99830401944433  delta_E= -3.89e-05  |g|= 0.0153  |ddm|= 0.00826
+  alpha nocc = 1  HOMO = -0.305707969820005  LUMO = -0.160977556470675
+  beta  nocc = 1  HOMO = -0.306083396229563  LUMO = -0.160977556470675
+  HOMO = -0.30570796982  LUMO = -0.160977556471  gap/eV = 3.93832
+cycle= 8 E= -0.998782016941584  delta_E= -0.000478  |g|= 0.00973  |ddm|= 0.0453
+  alpha nocc = 1  HOMO = -0.300295494249587  LUMO = -0.158460035021267
+  beta  nocc = 1  HOMO = -0.300343516902008  LUMO = -0.158460035021267
+  HOMO = -0.30029549425  LUMO = -0.158460035021  gap/eV = 3.85954
+cycle= 9 E= -0.998675570882745  delta_E= 0.000106  |g|= 0.00208  |ddm|= 0.054
+  alpha nocc = 1  HOMO = -0.302418050704216  LUMO = -0.15955762317392
+  beta  nocc = 1  HOMO = -0.302347910715354  LUMO = -0.15955762317392
+  HOMO = -0.302347910715  LUMO = -0.159557623174  gap/eV = 3.88552
+cycle= 10 E= -0.998663528234576  delta_E= 1.2e-05  |g|= 0.000175  |ddm|= 0.0102
+  alpha nocc = 1  HOMO = -0.30253699581087  LUMO = -0.159634454248608
+  beta  nocc = 1  HOMO = -0.302533787097146  LUMO = -0.159634454248608
+  HOMO = -0.302533787097  LUMO = -0.159634454249  gap/eV = 3.88849
+cycle= 11 E= -0.998663351466914  delta_E= 1.77e-07  |g|= 3.5e-06  |ddm|= 0.00124
+  alpha nocc = 1  HOMO = -0.302532882800304  LUMO = -0.159633409647424
+  beta  nocc = 1  HOMO = -0.302532453155526  LUMO = -0.159633409647424
+  HOMO = -0.302532453156  LUMO = -0.159633409647  gap/eV = 3.88848
+cycle= 12 E= -0.998663351448724  delta_E= 1.82e-11  |g|= 1.31e-06  |ddm|= 2.86e-05
+  alpha nocc = 1  HOMO = -0.302533553891036  LUMO = -0.159633946435229
+  beta  nocc = 1  HOMO = -0.302533504743113  LUMO = -0.159633946435229
+  HOMO = -0.302533504743  LUMO = -0.159633946435  gap/eV = 3.88850
+Extra cycle  E= -0.998663351471835  delta_E= -2.31e-11  |g|= 2e-06  |ddm|= 6.68e-06
+converged SCF energy = -0.998663351471835  <S^2> = 7.6027562e-10  2S+1 = 1
+uhf_internal: lowest eigs of H = [-0.19421057  0.92797632  1.16787522]
+<class 'pyscf.dft.uks.UKS'> wavefunction has an internal instability
+
+
+******** <class 'pyscf.dft.uks.UKS'> ********
+method = UKS
+initial guess = minao
+damping factor = 0
+level_shift factor = 0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+diis_start_cycle = 1
+diis_space = 8
+diis_damp = 0
+SCF conv_tol = 1e-10
+SCF conv_tol_grad = None
+SCF max_cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /tmp/tmp01d5by1d
+max_memory 16384 MB (current use 166 MB)
+number electrons alpha = 1  beta = 1
+XC library pyscf.dft.libxc version 7.0.0
+    S. Lehtola, C. Steigemann, M. J.T. Oliveira, and M. A.L. Marques.,  SoftwareX 7, 1–5 (2018)
+XC functionals = b3lypg
+    P. J. Stephens, F. J. Devlin, C. F. Chabalowski, and M. J. Frisch.,  J. Phys. Chem. 98, 11623 (1994)
+radial grids: 
+    Treutler-Ahlrichs [JCP 102, 346 (1995); DOI:10.1063/1.469408] (M4) radial grids
+    
+becke partition: Becke, JCP 88, 2547 (1988); DOI:10.1063/1.454033
+pruning grids: <function nwchem_prune at 0x14d4a3e8b760>
+grids dens level: 3
+symmetrized grids: False
+atomic radii adjust function: <function treutler_atomic_radii_adjust at 0x14d4a3e8a170>
+User specified grid scheme (99, 590)
+small_rho_cutoff = 0
+Set gradient conv threshold to 1e-05
+init E= -1.00099423614407
+  alpha nocc = 1  HOMO = -0.325409245668528  LUMO = -0.0538895642321033
+  beta  nocc = 1  HOMO = -0.325401075979269  LUMO = -0.0538895642321033
+  HOMO = -0.325401075979  LUMO = -0.0538895642321  gap/eV = 7.38820
+cycle= 1 E= -1.01657070590193  delta_E= -0.0156  |g|= 0.019  |ddm|= 0.181
+  alpha nocc = 1  HOMO = -0.326696923576695  LUMO = -0.0791121082709967
+  beta  nocc = 1  HOMO = -0.326663337660442  LUMO = -0.0791121082709967
+  HOMO = -0.32666333766  LUMO = -0.079112108271  gap/eV = 6.73621
+cycle= 2 E= -1.0180659280964  delta_E= -0.0015  |g|= 0.00807  |ddm|= 0.0552
+  alpha nocc = 1  HOMO = -0.325211646013192  LUMO = -0.0973696926608654
+  beta  nocc = 1  HOMO = -0.32523601149079  LUMO = -0.0973696926608654
+  HOMO = -0.325211646013  LUMO = -0.0973696926609  gap/eV = 6.19990
+cycle= 3 E= -1.01848164954074  delta_E= -0.000416  |g|= 0.000874  |ddm|= 0.0459
+  alpha nocc = 1  HOMO = -0.324590409133559  LUMO = -0.0981828491522181
+  beta  nocc = 1  HOMO = -0.324582745663765  LUMO = -0.0981828491522181
+  HOMO = -0.324582745664  LUMO = -0.0981828491522  gap/eV = 6.16065
+cycle= 4 E= -1.01848658840257  delta_E= -4.94e-06  |g|= 9.69e-05  |ddm|= 0.00527
+  alpha nocc = 1  HOMO = -0.324687919970045  LUMO = -0.0985108538460184
+  beta  nocc = 1  HOMO = -0.324690978369162  LUMO = -0.0985108538460184
+  HOMO = -0.32468791997  LUMO = -0.098510853846  gap/eV = 6.15459
+cycle= 5 E= -1.01848664917766  delta_E= -6.08e-08  |g|= 8.36e-06  |ddm|= 0.000589
+  alpha nocc = 1  HOMO = -0.324678383980756  LUMO = -0.0985156317840483
+  beta  nocc = 1  HOMO = -0.32467707722884  LUMO = -0.0985156317840483
+  HOMO = -0.324677077229  LUMO = -0.098515631784  gap/eV = 6.15417
+cycle= 6 E= -1.01848664959425  delta_E= -4.17e-10  |g|= 6.92e-07  |ddm|= 5.41e-05
+  alpha nocc = 1  HOMO = -0.32467761131776  LUMO = -0.0985151547255241
+  beta  nocc = 1  HOMO = -0.32467764250859  LUMO = -0.0985151547255241
+  HOMO = -0.324677611318  LUMO = -0.0985151547255  gap/eV = 6.15419
+cycle= 7 E= -1.01848664959522  delta_E= -9.67e-13  |g|= 3.18e-08  |ddm|= 1.57e-06
+  alpha nocc = 1  HOMO = -0.324677651916263  LUMO = -0.0985151439634608
+  beta  nocc = 1  HOMO = -0.324677646149598  LUMO = -0.0985151439634608
+  HOMO = -0.32467764615  LUMO = -0.0985151439635  gap/eV = 6.15420
+Extra cycle  E= -1.01848664959522  delta_E= -2.66e-15  |g|= 1.13e-08  |ddm|= 8.83e-08
+converged SCF energy = -1.01848664959522  <S^2> = 0.70525856  2S+1 = 1.9547466
+uhf_internal: lowest eigs of H = [0.23153243 0.54238607 1.42120487]
+<class 'pyscf.dft.uks.UKS'> wavefunction is stable in the internal stability analysis
+uhf_internal: lowest eigs of H = [0.23153243 0.54238607 1.42120487]
+<class 'pyscf.dft.uks.UKS'> wavefunction is stable in the internal stability analysis
+uhf_real2complex: lowest eigs of H = [0.17696079 0.17696087 0.69133296]
+<class 'pyscf.dft.uks.UKS'> wavefunction is stable in the real -> complex stability analysis
+uhf_external: lowest eigs of H = [-0.51669244 -0.3904719   0.36631608]
+<class 'pyscf.dft.uks.UKS'> wavefunction has an UHF/UKS -> GHF/GKS instability

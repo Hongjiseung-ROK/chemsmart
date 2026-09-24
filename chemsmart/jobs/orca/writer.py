@@ -386,6 +386,17 @@ class ORCAInputWriter(InputWriter):
         logger.debug("Writing SCF block")
 
         reference = getattr(self.settings, "reference", None)
+        # The broken-symmetry request is refused here too, where the bound
+        # multiplicity is finally known: a project is validated before any
+        # molecule is, and an input written without the request would run
+        # the spin-symmetric solution under a review that names it.
+        refusal = getattr(self.settings, "broken_symmetry_refusal", None)
+        refusal = refusal() if callable(refusal) else None
+        if refusal:
+            raise ValueError(refusal)
+        broken_symmetry = getattr(
+            self.settings, "broken_symmetry_scf_lines", lambda: ()
+        )()
         if (
             self.settings.scf_convergence
             or self.settings.scf_maxiter
@@ -397,6 +408,8 @@ class ORCAInputWriter(InputWriter):
                 # not a convergence knob: ROHF/UHF describe an open shell that
                 # RHF cannot represent at all.
                 f.write(f"  HFTyp {ORCA_REFERENCE_DETERMINANTS[reference]}\n")
+            for line in broken_symmetry:
+                f.write(f"  {line}\n")
             self._write_scf_maxiter(f)
             self._write_scf_convergence(f)
             f.write("end\n")

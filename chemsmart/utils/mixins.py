@@ -923,6 +923,27 @@ class GaussianFileMixin(FileMixin):
         """
         return self.route_object.additional_route_parameters
 
+    @property
+    def broken_symmetry(self):
+        """Whether the route is the broken-symmetry request.
+
+        An unrestricted method started from ``guess=mix`` on a singlet,
+        which is how ``broken_symmetry: true`` is written, so the written
+        input reads back to the request that produced it.  The same two
+        words on an open shell are a native guess choice, not the request.
+        """
+        from chemsmart.jobs.settings import BROKEN_SYMMETRY_MULTIPLICITY
+
+        route = self.route_object
+        if route is None:
+            # A file whose route was not read requests nothing it can show.
+            return False
+        multiplicity = getattr(self, "multiplicity", None)
+        return bool(route.broken_symmetry) and (
+            multiplicity is None
+            or int(multiplicity) == BROKEN_SYMMETRY_MULTIPLICITY
+        )
+
     def read_settings(self):
         """
         Create GaussianJobSettings from file parameters.
@@ -967,6 +988,7 @@ class GaussianFileMixin(FileMixin):
             custom_solvent=self.custom_solvent,
             append_additional_info=None,
             forces=False,
+            broken_symmetry=self.broken_symmetry,
         )
 
 
@@ -1365,6 +1387,46 @@ class ORCAFileMixin(FileMixin):
                     continue
                 return by_keyword.get(fields[index + 1].casefold())
         return None
+
+    @property
+    def broken_symmetry(self):
+        """Whether the input asks ORCA for the broken-symmetry singlet.
+
+        ORCA's own mixing guess (``GuessMix`` in ``%scf`` or on the simple
+        input line) on an unrestricted singlet, which is how
+        ``broken_symmetry: true`` is written, so the written input -- or its
+        echo in an output -- reads back to the request that produced it.
+        """
+
+        from chemsmart.jobs.settings import BROKEN_SYMMETRY_MULTIPLICITY
+
+        echo = re.compile(r"^\|\s*\d+>\s?(.*)$")
+        mixing = False
+        unrestricted = self.reference == "uhf"
+        for raw_line in self.contents:
+            stripped = raw_line.strip()
+            match = echo.match(stripped)
+            if match is not None:
+                stripped = match.group(1)
+            words = [
+                word.casefold()
+                for word in stripped.split("#", 1)[0].replace("!", " ").split()
+            ]
+            if "guessmix" in words:
+                mixing = True
+            if stripped.lstrip().startswith("!") and (
+                "uks" in words or "uhf" in words
+            ):
+                unrestricted = True
+        multiplicity = getattr(self, "multiplicity", None)
+        return (
+            mixing
+            and unrestricted
+            and (
+                multiplicity is None
+                or int(multiplicity) == BROKEN_SYMMETRY_MULTIPLICITY
+            )
+        )
 
     @cached_property
     def _orca_method_values(self):
@@ -2012,6 +2074,7 @@ class ORCAFileMixin(FileMixin):
             geom_maxiter=getattr(self, "geom_maxiter", None),
             opt_convergence=getattr(self, "opt_convergence", None),
             reference=self.reference,
+            broken_symmetry=self.broken_symmetry,
             frozen_core=self.frozen_core,
             frozen_core_electrons=self.frozen_core_electrons,
             charge=self.charge,

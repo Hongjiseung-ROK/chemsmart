@@ -395,6 +395,25 @@ class PySCFOutput(FileMixin):
         return None if value is None else bool(value)
 
     @property
+    def broken_symmetry_record(self):
+        """What the scf stage followed for a broken-symmetry request, or None.
+
+        Written under ``status/stages/scf/broken_symmetry`` by contract v11:
+        the restricted solution's energy, PySCF's own RHF/RKS -> UHF/UKS
+        answer about it (stable or not, and the lowest eigenvalue in Eh),
+        and the internal instabilities of the unrestricted solution that
+        were followed.  None for a run that asked for nothing.
+        """
+        stages = (
+            self.status.get("stages")
+            if isinstance(self.status, dict)
+            else None
+        )
+        scf = stages.get("scf") if isinstance(stages, dict) else None
+        record = scf.get("broken_symmetry") if isinstance(scf, dict) else None
+        return record if isinstance(record, dict) else None
+
+    @property
     def scf_stability(self):
         """PySCF's stability analysis of the converged reference, or None.
 

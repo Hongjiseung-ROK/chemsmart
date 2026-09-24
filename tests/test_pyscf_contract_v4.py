@@ -34,6 +34,7 @@ from chemsmart.jobs.pyscf.writer import (
     APPLIED_SPEC_FIELDS_V7,
     APPLIED_SPEC_FIELDS_V8,
     APPLIED_SPEC_FIELDS_V9,
+    APPLIED_SPEC_FIELDS_V10,
     LEGACY_APPLIED_SPEC_FIELDS,
     PREVIOUS_RESULT_CONTRACT_VERSIONS,
     RESULT_CONTRACT_VERSION,
@@ -105,6 +106,7 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
         "chemsmart.pyscf-result-contract.v7": APPLIED_SPEC_FIELDS_V7,
         "chemsmart.pyscf-result-contract.v8": APPLIED_SPEC_FIELDS_V8,
         "chemsmart.pyscf-result-contract.v9": APPLIED_SPEC_FIELDS_V9,
+        "chemsmart.pyscf-result-contract.v10": APPLIED_SPEC_FIELDS_V10,
     }
     for version in PREVIOUS_RESULT_CONTRACT_VERSIONS:
         vocabulary = applied_pyscf_spec_fields(
@@ -144,7 +146,12 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
     # And what v10 adds: nothing either. The decomposition of the total
     # is read off the program rather than asked for, so no setting
     # produces it that the vocabulary did not already carry.
-    assert APPLIED_SPEC_FIELDS == APPLIED_SPEC_FIELDS_V9
+    assert APPLIED_SPEC_FIELDS_V10 == APPLIED_SPEC_FIELDS_V9
+    # What v11 adds: whether the broken-symmetry singlet was asked for,
+    # the one singlet whose reference family is unrestricted.
+    assert APPLIED_SPEC_FIELDS[len(APPLIED_SPEC_FIELDS_V10) :] == (
+        "broken_symmetry",
+    )
 
     complete_spec = {
         "reference_family": "rks",
