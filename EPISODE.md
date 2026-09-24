@@ -319,3 +319,21 @@ route with a scientific reason, R2 holds on every handoff, and B1-B3 pass
 
 - 2026-09-24: base verified; chemistry and references chosen and read;
   rehearsal next.
+- 2026-09-24: rehearsal done provider-free: CLI heartbeat of the ORCA and
+  PySCF writers the route leans on; the producer-edge admission matrix
+  from `producer_edge_selection_rule` (opt/ts/modred hand structures to
+  any program; ORCA scan minimum and PySCF IRC endpoint admitted; ORCA and
+  Gaussian IRC endpoints refused in-approval, Q11's frontier); the engine
+  rehearsal O1 (14/14 commands exit 0, all eight predictions PASS). No hub
+  break found in radius before G1. tests/agent on a pristine export of
+  0a3a24b9: 3060 passed; full suite 23 failed (the round baseline set:
+  test_structures 19, pyscf dispersion 2, PyscfSettings 1, aggregation 1),
+  4614 passed.
+- 2026-09-24 (G1 running, cycle 2 wave executing): WAITING ON JOB 2152875.
+  On resume read, in order: the ledger and settlement (read_goal.py); the
+  Gaussian ts-search and pbnz-opt logs for `SCF Done: E(R...)` vs
+  `E(U...)` and any `S**2` line (did guess=mix take effect?); whether the
+  later cycles ran the six CCSD(T) nodes and the IRCs, and what each
+  handoff receipt says (ORCA -> Gaussian enediyne edge); the thermochemistry
+  and expression receipts; the claims and their stated uncertainty and
+  level. Then B1-B5 and R1-R4, against O1.
