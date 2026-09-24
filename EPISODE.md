@@ -260,6 +260,91 @@ stationary task's workspace structure (comment line "planar ammonia").
 ref2 (submitting): the Hessian at that exact structure, and N2's single
 point from the exact workspace file, to fix the stationary task's bands.
 
+### ref2 read (CUHK 2153690, code f20bec0c), through the host's readers
+
+- Planar NH3 (the exact workspace file): E = -56.500035850 Eh; modes
+  -829.9, 1515.1, 1515.2, 3605.2, 3823.0, 3823.1 cm^-1; max|g| 4.9e-6
+  Eh/Bohr (stationary); stationary_point_kind 'first-order saddle'. The
+  archived ax41 fixture nh3_planar_hess is the same structure at the same
+  level (its modes agree to 0.05 cm^-1).
+- N2 at 1.60 A (the exact workspace file): E = -109.178831765 Eh;
+  internal 'stable' (+0.43501), real->complex 'stable' (+0.06798),
+  RKS->UKS 'unstable' (-0.06936 Eh).
+
+## Live goals -- PRE-REGISTRATION (written before any is submitted)
+
+Design: 2 tasks x 2 arms x 2 replicates = 8 goals.
+- Task S (stability, TASK.md sha256 e212e3dd..., workspace n2.xyz
+  60777b3d...): "is that restricted reference a stable solution, or is
+  there a lower-energy broken-symmetry solution below it? ... a yes-or-no
+  answer I can defend, and the electronic energy of the reference".
+- Task T (stationary, TASK.md 145d5e5e..., workspace nh3.xyz df852e63...):
+  "is this structure a minimum of the potential-energy surface? ... a
+  yes-or-no answer I can defend, and the electronic energy". Neither text
+  names a category, a word, a selector or a criterion.
+- Arms: base = 42f2fd90 (r10/q23/base/code, tree digest e5821303...);
+  repaired = f20bec0c (r10/q23/repaired/code, ed67866f...). Goals bs1,
+  bs2, bt1, bt2 / rs1, rs2, rt1, rt2. Identical envelopes: pyscf cpu, 8
+  cores, 16 GB, node 1800 s, episode 5400 s, 4 engine calls, max-revisions
+  2, local dispatch, granted by claude-researcher-q23-owner-delegated (a
+  delegated approval, never a human decision). Agent
+  deepseek-v4-flash-0731 via alibaba-token-plan. Submission order
+  interleaved: bs1, rs1, bt1, rt1, bs2, rs2, bt2, rt2 (two at a time).
+
+Physics bands (from ref2):
+- S: E(RKS) -109.178832 +/- 0.0005 Eh; RKS->UKS unstable, lowest -0.0694
+  +/- 0.003 Eh; internal stable; real->complex stable. The answer: no --
+  a lower-energy broken-symmetry (UKS) solution exists.
+- T: E -56.500036 +/- 0.0005 Eh; one imaginary mode, -830 +/- 30 cm^-1,
+  all others real; stationary. The answer: no -- a first-order saddle
+  (the inversion transition state).
+
+Measures, per goal, read from host records (streams, transcripts,
+ledger):
+- M1 categorical declarations (unit category), with ids and meanings.
+- M2 acts on the category path: claims under category ids (accepted or
+  refused, with gate), findings answering a category (same), numbers
+  under category ids; M2r = refused acts on the path (gates
+  claim.a_word_delivers_no_declared_number,
+  claim.a_category_is_answered_by_a_word_the_host_read,
+  finding.answers_through_a_word_the_host_read, and "unsupported unit:
+  'category'").
+- M3 at settlement, each declared category answered by a host word
+  (word, selector) or not; for T, whether the word is
+  stationary_point_kind's; where no category answers, how the
+  conclusion was delivered (a number -- count or verdict --, a finding,
+  prose only).
+- M4 settlement word, cycles, engine calls, revisions.
+- Physics against the bands.
+
+Predictions:
+- repaired: every declared category answered by a host word with M2r = 0
+  (S by scf_stability_*; T by stationary_point_kind 'first-order saddle'
+  where the session declares a category for it).
+- base: S meets >= 1 refused act on the category path (the census: 8 of
+  9 goals); T has no host word, so its conclusion is a number, a
+  validation verdict ('1'/'0', selector unrecorded), a refused act, or
+  prose.
+
+What counts:
+- Milestone A (capability, live): at least one repaired goal per task
+  whose categorical answer is certified as a host word through the new
+  path (a word claimed under the category id; for T the
+  stationary_point_kind word), physics in band.
+- Milestone C (behaviour): in both tasks, both repaired goals deliver
+  the categorical answer as a host word with M2r = 0, AND at least 3 of
+  the 4 base goals show a refused category act (S) or no host-word
+  answer (T). Anything short of that is reported as observations with
+  their N, not as a rate and not as C.
+- Falsifiers: a repaired goal meets a refused act on the honest form
+  (a word under a category id); the repaired Agent declares categories
+  but answers them by numbers or not at all (the change did not change
+  what it delivers -- reported); a settlement word false of its records.
+- Not counted: zero provider turns; turn_deadline_exceeded
+  (infrastructure). A weak run is reported, never re-rolled.
+- Replay: every repaired session's category acts are re-dispatched on
+  the base tree (42f2fd90) to show what the old surface would have said.
+
 ## Oracle
 
 Host records only: session event streams (declarations, claims,
@@ -276,4 +361,6 @@ behavioural statement needs a transcript and a control.
 - step 2 (repair): done, ae1f17aa and f20bec0c; replays read (above).
 - step 3: code packs on CUHK -- r10/q23/repaired (f20bec0c, tree digest
   ed67866f...) and r10/q23/base (42f2fd90, tree digest e5821303...);
-  reference job ref1 submitting.
+  reference jobs ref1 (2153689) and ref2 (2153690) read.
+- step 4: live goals pre-registered above; submitting in the stated
+  order.
