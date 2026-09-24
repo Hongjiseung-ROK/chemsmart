@@ -110,7 +110,38 @@ The reference fixes the live goals' physics bands, written here before
 any goal is submitted. A system whose external eigenvalue is not negative
 is dropped from the live set (its criterion would not fail).
 
-## Live goals G-tw, G-h2 -- PRE-REGISTRATION (bands follow the reference)
+### Reference job R1 -- READ (CUHK Slurm 2153624, code 8048c9de, digest 0ca781a4; prereg cef7ddb63259)
+
+Read through the host's own extract_result_quantities from each result
+and its sibling receipt (3/3 commands exit 0, receipts findings []):
+- S2 1.889 A: E -796.1097377983; internal +2.5e-6 (stable); external
+  -0.0584830627; real->complex -0.0288198792 Eh. Q19's 2153508 reproduced
+  within 1.3e-6 Eh on every number: calibration PASS.
+- ethylene 90 deg: E -78.3783953190; internal +0.4213 (stable); external
+  -0.1033077562 (unstable); real->complex -0.0013451513 Eh (unstable,
+  marginal). PySCF warns HOMO == LUMO (the degenerate pi pair).
+- H2 2.20 A: E -0.9797177412; internal +1.873 (stable); external
+  -0.1206681597 (unstable); real->complex +0.0718830061 Eh (stable).
+Both live systems keep: external negative, so a stability criterion
+fails on either.
+
+### Physics bands (fixed here, before either goal is submitted)
+
+- G-tw: E -78.3784 +/- 0.0005 Eh; external unstable, -0.1033 +/- 0.003;
+  internal stable; real->complex -0.0013 +/- 0.003 Eh (sign negative,
+  marginal). Answer: not a stable solution -- unstable to spin-symmetry
+  breaking, marginally unstable to real->complex, stable to real internal
+  rotations.
+- G-h2: E -0.97972 +/- 0.0005 Eh; external unstable, -0.1207 +/- 0.003;
+  internal stable; real->complex stable, +0.0719 +/- 0.003 Eh. Answer:
+  not a stable solution -- unstable to spin-symmetry breaking, stable to
+  internal and to real->complex rotations.
+
+## Live goals G-tw, G-h2 -- PRE-REGISTRATION (bands above)
+
+TASK.md sha256: gtw a4e4858e..., gh2 1cb3f5b4...; workspace geometries
+gtw ethylene-perp.xyz fed26690..., gh2 h2.xyz b77375da... (the only
+workspace files).
 
 Tasks: L-S2's task with the molecule changed (twisted ethylene; H2 at
 2.20 A): "is that restricted reference a stable solution ... yes-or-no
