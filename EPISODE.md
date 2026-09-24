@@ -236,6 +236,36 @@ route with a scientific reason, R2 holds on every handoff, and B1-B3 pass
   dH++(298 K) 30.99 kcal/mol; dH_R(298 K, restricted) 23.08 kcal/mol.
   B3LYP-D3(BJ)/def2-TZVP alone therefore lands inside B3's band; B3
   does not by itself distinguish a DFT route from a correlated one.
+- IRC (commands 4-5), both reading the saddle's Hessian ("Initial
+  displacement Hessian type .... Read"): forward converged (HURRAY) into
+  p-benzyne, C1-C6 1.481 A, E -230.953195 Eh (0.03 kcal/mol from the
+  restricted minimum); backward stopped at ORCA's 21-step default, 18.3
+  kcal/mol below the saddle at C1...C6 2.88 A, far from the enediyne
+  minimum (4.39 A). O-B PASS; the reactant side needs a relaxation of the
+  endpoint to show connectivity.
+- PySCF stability at the ORCA geometries (commands 6-8; host reader
+  `read_pyscf_h5`): enediyne stable in all three questions (lowest RKS ->
+  UKS +0.0585 Eh); saddle stable but barely (RKS -> UKS +0.0047 Eh);
+  p-benzyne RKS -> UKS UNSTABLE (-0.0643 Eh), internal and real ->
+  complex stable. O-C PASS.
+
+## G1 -- observations while it runs (host records, first session)
+
+- The session planned an all-ORCA first workflow: B3LYP/def2-TZVP opt+freq
+  of the enediyne, DLPNO-CCSD(T)/def2-TZVPP and /def2-QZVPP single points
+  (a two-point CBS route), and a relaxed scan of C1...C6.
+- It asked for a broken-symmetry UKS singlet for the saddle, the IRCs and
+  p-benzyne: first as `joboption: [BrokenSym 1,1]` (refused by the ORCA
+  loader: `joboption` is ORCA's NEB-only option), then as
+  `additional_route_parameters: [BrokenSym 1,1]`, which the loader accepts
+  and ORCA rejects ("UNRECOGNIZED OR DUPLICATED KEYWORD(S) IN SIMPLE INPUT
+  LINE ... BROKENSYM 1,1", caught free by the host's input-check probe).
+  It then probed `FlipSpin 1`, `NoUseSym`, `FlipSpin` through the same
+  probe. The hub has no typed broken-symmetry setting in any program
+  (no `BrokenSym`, `guess=mix` outside the unqualified Gaussian link job,
+  or UKS singlet in PySCF, whose reference follows multiplicity), so a
+  scientifically correct request has no expression except native
+  keywords -- the Fundamental-1 failure the charter names.
 
 ## Status
 
