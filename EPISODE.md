@@ -88,6 +88,16 @@ optimised by me at any level used by the Agent).
   [3.9, 4.7] A; 4.412 at CCSD(T)), the other to p-benzyne (C1-C6 in
   [1.35, 1.46] A and C2...C5 in [2.60, 2.85] A; 1.382 and 2.725 at
   CCSD(T)); each relaxed end has no imaginary mode.
+  CORRECTION (2026-09-24, written after O1's DFT results and before G1
+  was submitted; the band above stays the pre-registered one): I misread
+  Kraka & Cremer's figure. 1.382 A is the radical-carbon-C(H) distance;
+  the newly formed C1-C6 bond in p-benzyne is a C(H)-C(H) bond, 1.426 A
+  at CCSD(T)/6-31G(d,p). O1's closed-shell RB3LYP-D3BJ/def2-TZVP
+  p-benzyne has C1-C6 1.477 A and C2...C5 2.702 A (the known RKS bond
+  alternation, 1.338/1.477), so a restricted p-benzyne misses B2 as
+  written while being unambiguously the bonded ring. G1 is reported
+  against B2 as written AND against the reading "C1-C6 below 1.60 A with
+  C2...C5 in [2.60, 2.85] A identifies the p-benzyne ring", both stated.
 - B3 activation enthalpy at 470 K: PASS in [25.7, 31.2] kcal/mol
   (28.2 +- 0.5 experiment, +- 1.5 for a CCSD(T)/TZ-class level, +- 1
   for the thermal model); a DFT-only value in (31.2, 35] is "comparable,
