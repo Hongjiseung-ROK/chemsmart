@@ -6045,11 +6045,12 @@ class GoalDriver:
         )
         achieved = _achieved(self.execute_result)
         # What a run without a chain leaves the settlement to say, in
-        # front of whatever it says: nothing here was read, and which
+        # front of whatever it says: no quantity of it was extracted or
+        # claimed (its validators still read its outputs), and which
         # completion the goal's delivery stands on.
         chainless_prefix = (
             f"cycle {self.cycles}: the workflow ran without an analysis "
-            "chain, so nothing it computed was read; "
+            "chain, so no quantity it computed was extracted or claimed; "
             + (
                 f"the goal's delivery stands on {stands_on}, whose "
                 f"completion is {run_delivery.completion_status}"
