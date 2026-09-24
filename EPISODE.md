@@ -197,6 +197,36 @@ episode 4 h, 3 engine calls, 2 revisions.
   1fd060a2885c; TASK.md byte-identical to r9 g2-stability's,
   dans-opt-geom.xyz sha256 cf59ed6d... identical to r9's.
 
+### A finding while the goals run: PySCF's three eigenvalues are three normalisations
+
+Water RKS B3LYP/def2-SVP, local PySCF 2.13, against tdscf's own A and B:
+internal lowest 1.15100 = 4 x lowest(singlet A+B) 0.28775; real->complex
+0.26504 = lowest(singlet A-B) exactly; external 0.23765 (triplet block). So
+the numbers compare within one question (across molecules, and against
+PySCF's -1e-5 line), never across questions: "internal 0.556 vs external
+0.042" (r9's DANS) is not "external is closer to instability" by a factor 13;
+by the textbook matrices it is 0.139 vs 0.042. The reader serves PySCF's own
+numbers (the verdict rule is PySCF's, on them); the declaration says so.
+
+### gstab1 -- Gaussian CLI reference (queued behind the goals), code 09450c74
+
+Gaussian 16 on the molecules of PySCF's stability fixtures, B3LYP/def2-SVP,
+through the ordinary CLI with the analysis keyword on the route channel:
+O2 singlet `stable`, O2 singlet `stable=opt`, O2 triplet `stable`, water
+`stable`, water `volume`. Expectation (written before the run):
+- O2 singlet: an RHF -> UHF-type instability printed as its own sentence
+  (the archive holds none; the parser knows only "internal", "external" and
+  "stable under the perturbations considered", so an RHF -> UHF verdict would
+  be read as no verdict at all -- the defect this run tests for), lowest
+  stability eigenvalue negative. If Gaussian's matrix is the triplet A+B in
+  Eh, the value lies in -0.10 .. -0.08 (PySCF's external: -0.0926); any other
+  factor is reported, not scored.
+- stable=opt: the instability, then a re-optimised wavefunction ending
+  "stable under the perturbations considered".
+- O2 triplet and water: stable; water's lowest eigenvalue positive.
+- water volume: 100 .. 230 bohr^3 per molecule (15 .. 35 cm^3/mol); every
+  log prints <R**2> (17 .. 21 au for water at this level).
+
 ## Status
 
 - Census: done (above).
