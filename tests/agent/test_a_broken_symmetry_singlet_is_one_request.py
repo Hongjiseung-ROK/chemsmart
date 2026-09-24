@@ -279,3 +279,106 @@ def test_a_restricted_gaussian_mixing_guess_is_named_as_restricted():
         item.startswith("guess=mix on this singlet route runs restricted")
         for item in observations
     ), observations
+
+
+# ----------------------------------------------------------------------
+# a request that stayed spin-symmetric has standing; one that broke does
+# not need it -- driven through the step the executor calls on every
+# finished node, over the oracle O1 outputs (CUHK Slurm 2153479)
+# ----------------------------------------------------------------------
+
+SIGNAL = "spin.broken_symmetry_request_unbroken"
+_O1 = {
+    "gaussian": DATA / "GaussianTests" / "broken_symmetry",
+    "orca": DATA / "ORCATests" / "broken_symmetry",
+    "pyscf": DATA / "PySCFTests" / "outputs",
+}
+_SUFFIX = {"gaussian": ".log", "orca": ".out"}
+
+
+def _o1_artifacts(program: str, label: str):
+    from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
+    from chemsmart.agent.tool_runtime import _output_artifact_kind
+
+    if program == "pyscf":
+        paths = sorted((_O1["pyscf"] / label).glob(f"{label}_gas_phase*"))
+    else:
+        paths = [_O1[program] / f"{label}_gas_phase{_SUFFIX[program]}"]
+    found = []
+    for path in paths:
+        kind = (
+            "pyscf_hdf5"
+            if path.suffix == ".h5"
+            else _output_artifact_kind(program, path)
+        )
+        found.append(
+            TrustedArtifactRefV1(
+                artifact_id=f"result.{path.name}",
+                kind=kind,
+                sha256=file_sha256(path),
+                size_bytes=path.stat().st_size,
+                path=str(path),
+                cli_value=str(path),
+            )
+        )
+    return tuple(found)
+
+
+def _o1_evaluate(program: str, label: str):
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
+    return CommandCompiledToolHostV1._evaluate_execution_outputs(
+        program=program,
+        jobtype="sp",
+        charge=0,
+        multiplicity=1,
+        output_artifacts=_o1_artifacts(program, label),
+        exit_status=0,
+    )
+
+
+@pytest.mark.capability(f"signal:{SIGNAL}")
+@pytest.mark.parametrize("program", ["gaussian", "orca", "pyscf"])
+def test_a_request_that_stayed_spin_symmetric_has_standing(program):
+    """H2 at 0.74 A has no diradical character: every program's request
+    returns the restricted energy with <S**2> 0, which is the honest
+    answer, and the host now says so with its numbers -- never as a
+    finding, because declining to break is sometimes what the structure
+    should do."""
+
+    prefix = program[0]
+    evaluation = _o1_evaluate(program, f"{prefix}_h2_074_bs")
+    (anomaly,) = [
+        item for item in evaluation.anomalies if item["signal_id"] == SIGNAL
+    ]
+    assert anomaly["reference"] == "uks"
+    assert anomaly["spin_square"] == pytest.approx(0.0, abs=1e-6)
+    assert anomaly["threshold"] == 0.01
+    assert not any("spin" in finding for finding in evaluation.findings)
+    if program == "pyscf":
+        # PySCF's own answer about the restricted solution it started
+        # from is why nothing broke: stable toward RHF/RKS -> UHF/UKS.
+        followed = anomaly["followed_instability"]
+        assert followed["external_stable"] is True
+        assert followed["external_lowest_eigenvalue"] > 0
+
+
+@pytest.mark.capability(f"signal:{SIGNAL}")
+@pytest.mark.parametrize(
+    "program,label,spin_square",
+    [
+        ("gaussian", "g_pbenzyne_bs", 0.9703),
+        ("orca", "o_pbenzyne_bs", 0.970279),
+        ("pyscf", "p_h2_200_bs", 0.70526),
+    ],
+)
+def test_a_request_that_broke_reads_as_broken_and_raises_nothing_new(
+    program, label, spin_square
+):
+    evaluation = _o1_evaluate(program, label)
+    assert SIGNAL not in {item["signal_id"] for item in evaluation.anomalies}
+    record = evaluation.observations[program]["spin_symmetry"]
+    assert record["reference"] == "uks"
+    assert record["broken_symmetry_requested"] is True
+    assert record["spin_symmetry"] == "broken"
+    assert record["spin_square"] == pytest.approx(spin_square, abs=1e-4)

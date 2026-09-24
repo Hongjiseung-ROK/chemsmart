@@ -1803,6 +1803,46 @@ def _observed_spin_deviation(
         return None
 
 
+def _observed_broken_symmetry_unbroken(
+    observation: Mapping[str, Any], program: str
+) -> dict[str, Any] | None:
+    """The anomaly a broken-symmetry request that stayed symmetric raises.
+
+    ``broken_symmetry: true`` asks for the open-shell singlet and the
+    program's own record shows the request applied; a solution whose
+    <S**2> stayed within the threshold of 0 is the spin-symmetric one.
+    That is sometimes the right answer -- a structure with no diradical
+    character declines to break, as a closed-shell molecule must -- so it
+    is an observation with standing, never a verdict: every number above
+    it describes the closed-shell solution, and the settlement names it
+    where a number descends from it.  The session says what it means.
+    """
+
+    block = observation.get(program)
+    if not isinstance(block, Mapping):
+        return None
+    record = block.get("spin_symmetry")
+    if not isinstance(record, Mapping):
+        return None
+    if record.get("broken_symmetry_requested") is not True:
+        return None
+    if record.get("spin_symmetry") != "unbroken":
+        return None
+    values: dict[str, Any] = {
+        "signal_id": "spin.broken_symmetry_request_unbroken",
+        "reference": str(record.get("reference") or ""),
+        "spin_square": float(record["spin_square"]),
+        "spin_square_target": float(record["spin_square_target"]),
+        "threshold": float(record["threshold"]),
+    }
+    followed = record.get("followed_instability")
+    if isinstance(followed, Mapping):
+        # PySCF's own answer about the restricted solution it started from:
+        # a stable one explains why nothing broke.
+        values["followed_instability"] = canonical_data(dict(followed))
+    return values
+
+
 def _silence_can_refute(
     signal_id: str,
     source: Mapping[str, Any],
@@ -2109,6 +2149,15 @@ def _neutral_sensor_facts(
         diagnostics = None
     if diagnostics:
         block["reference_stability"] = canonical_data(diagnostics)
+    # Which determinant ran and whether its spin symmetry broke, through
+    # the reader's one function: the level's reference and request, and
+    # <S**2> through the selectors a session extracts (R10 Q18).
+    try:
+        symmetry = reader.spin_symmetry_for_output(output)
+    except Exception:  # noqa: BLE001 - a reader that cannot say says nothing
+        symmetry = None
+    if symmetry:
+        block["spin_symmetry"] = canonical_data(symmetry)
     raw_frequencies = getattr(output, "vibrational_frequencies", None)
     frequencies: tuple[float, ...] = ()
     if raw_frequencies is not None:
@@ -18082,6 +18131,9 @@ class CommandCompiledToolHostV1:
                     "bound_multiplicity": multiplicity,
                 }
             )
+        unbroken = _observed_broken_symmetry_unbroken(observation, program)
+        if unbroken is not None:
+            anomalies.append(unbroken)
         if order_finding:
             # The verdict says the run failed its promise; the observation
             # says what the structure is. Both are true, and the second
