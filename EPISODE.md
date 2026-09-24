@@ -364,3 +364,10 @@ N; a null here says the lever is not large, not that it is absent.
   queued), the later ones from a `git archive` export of 29adc265 so the
   worktree stays free; both code packs verified on CUHK; pre-registration
   committed; harness check hc1 running (2152986, 2152987).
+- Gates at 0501decc (r10-integration merged; chemsmart/ equal to
+  29adc265's): tests/agent 3065 passed, 0 failed (worktree); full suite
+  from a pristine `git archive` export: 23 failed, 4619 passed, 25
+  skipped, 3 xfailed -- the failing set is the round baseline
+  (test_structures x19, pyscf dispersion conformance x2, aggregation x1,
+  PyscfSettings x1); export deleted after the gate. ruff, black, isort
+  clean on the two touched files.
