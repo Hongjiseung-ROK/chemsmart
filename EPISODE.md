@@ -272,7 +272,89 @@ replayed planning path writes no ledger row, so the repaired tree's "0 of
 
 - Closed at about 05:43 HKT, while g2r (2153691) was in its first cycle
   (it keeps running under Slurm; its records are read when the gate
-  reopens).
+  reopens). Reopened 07:16 KST; g2r had COMPLETED at 06:19:55 HKT (50 min
+  29 s, exit 0:0).
+
+## Live goal g2r -- READ (CUHK 2153691, code ed187305, digest 2e4edf47; prereg e752cdc94d77)
+
+Read from host records: read_goal.py (slot job 2153701, the login node
+killed it at its 1 GB cap), the ledger, both session streams, the cycle-1
+run stream, the public transcripts. deepseek-v4-flash-0731, one run, one
+observation of that model. 2 cycles, 1 revision, 5 engine calls of 12.
+
+- Route. Cycle 1 (approved): opt-eq, ts-d0, ts-d90, ts-d180 (ORCA saddle
+  searches seeded at 0, 90 and 180 deg -- the session rejected modred
+  because modred results carry no frequency selectors), and scan-dih
+  (failed_native: GSTEP could not impose its constraints). The chain
+  claimed dg-torsion-0deg 7.953, dg-torsion-180deg 0.345 and
+  dg-torsion-90deg 7.952 kcal/mol; completion partial (the scan), the
+  host marked falsified_expectation for 180 deg (band 2-7) and 90 deg
+  (band 0.5-4.0); recovery opened. Cycle 2 (analysis-only revision): the
+  session read that ts-d90's energy equals ts-d0's, measured its
+  H-O-O-H at 0.047 deg (a diagnostic declared after the evidence), wrote
+  that the delivered 90-deg value was the cis barrier mislabelled,
+  claimed the number under a new id, rejected a constrained ts, scan
+  interpolation and a constrained opt with their mechanisms, and refused
+  dg-torsion-90deg -- first unverified (a selector route), then verified
+  through a blocked node of its analysis-only plan. Its completion
+  bccbb436 passed with limitation declared_observable:dg-torsion-90deg.
+- Settled achieved_with_observations: "the host completion gate
+  certified the delivery; ... falsified_expectation:dg-torsion-180deg",
+  "delivered in an earlier cycle: dg-torsion-90deg (delivered in cycle
+  1)", the four findings, the uncertainties; 4 `qualified` rows (orca
+  opt; orca ts x3).
+- Against the pre-registration: S1 met as written (the reader returned
+  []); S2 not exercised -- no engine cycle approved an empty toolchain
+  (Neutral, as pre-registered); R2 was exercised live instead: the
+  analysis-only walk over one blocked node reported "" (the base says
+  "completed"); S3 met (no "drifted apart"); F not triggered as written.
+- ERROR (found beyond the pre-registration): the word is false. It
+  certifies dg-torsion-90deg as delivered from the cycle-1 claim, over
+  the goal's own later, host-verified refusal, over the limitation on the
+  very certificate it cites, and it drops the cycle-1 anomaly on that
+  number. The number it certifies is the cis barrier (7.95 kcal/mol)
+  presented as the 90-degree free energy; physically, G at a held 90 deg
+  structure is not defined, as the session said. My pre-registered
+  reader passed it: it asked only whether the newest completion passed.
+  The base ec41a57c and the run commit sign the archived word byte for
+  byte (replayed; cycle 1's settle step also identical on both).
+- Physics (Q21's bands, fixed before either hooh goal): eq H-O-O-H
+  120.66 deg [108, 125] met; dE(trans) 0.560 [0.2, 2.5] met; dE(cis)
+  8.290 [5.5, 11] met; dE(90 held) not computed (no route held 90 deg);
+  dG(trans) 0.345 [-0.5, 2.5] met (a first-order saddle, -245.8 cm-1);
+  dG(cis) 7.953 [5.0, 11] met (-610.8 cm-1). G(eq) -151.419966 Eh and
+  G(cis saddle) -151.407292 Eh equal g1-hooh's to all printed digits
+  (two independent runs). dG(trans) differs from g1-hooh's -0.079: same
+  treatment (RRHO, alpha 4, unscaled), same dE; g1-hooh's trans structure
+  (an opt that stopped on the saddle) carries +0.000228 Eh ZPE and
+  +5.5e-6 Eh/K entropy against g2r's saddle search. Unresolved here.
+
+## Repairs found by the live goal (witness red before, green after)
+
+- bdd1333e driver: a goal settled on a verified refusal carries in its
+  word what the rest of its delivery found (10 of 17 archived
+  unreachable words omitted anomalies, falsified expectations or
+  findings their delivery held).
+- 41f607d4 driver (LOUD, for the owner): a declared observable's latest
+  typed word governs it -- a verified refusal supersedes the claim an
+  earlier cycle made; an id declared with a tolerance is excluded (a
+  refusal of a claimed requirement is a refused precision). A first draft
+  without that exclusion wrote a false "supersedes" clause on ax41
+  po3-r19; the census replay caught it before the commit.
+- g2r's final settle step on 41f607d4: unreachable_from_evidence,
+  "dg-torsion-90deg -- ... [analysis node 'dg90-producer-blocked' is
+  declared blocked_unsupported ...]; this refusal supersedes the claim
+  cycle 1 rendered under this id (7.952416658321963 kcal/mol)", then the
+  delivered part (falsified_expectation:dg-torsion-180deg, the four
+  findings, the uncertainties). The widened reader flags the archived
+  word and passes the repaired loop witness.
+- 287 archived settle steps on 41f607d4: no word moves; 16 refusal words
+  gain their delivered part's lines; 0 superseding clauses; the reader
+  finds 0 violations in 271 replayed ledgers.
+- Consequence for qualification (owner's call): the repaired word writes
+  no `qualified` rows; g2r's 4 rows (validated opt and ts nodes) were
+  written under the false achieved word and stand in its ledger and the
+  CUHK host store.
 
 ## Status
 
@@ -285,8 +367,6 @@ replayed planning path writes no ledger row, so the repaired tree's "0 of
   CUHK Slurm 2153691.
 - step 4: gates on fdf62230 done (tests/agent green; full suite = the
   round baseline); r10-integration has not moved since ec41a57c.
-- PAUSED: waiting on job 2153691 with the cluster gate closed. On resume:
-  `hpc --check`; `read_goal.py` on goals/g2r; scratch
-  q24/tools/live_replay.sh g2r <each cycle with a run> (the settle steps
-  on ec41a57c and on ed187305, walk mode); read S1-S3, F and the physics
-  bands against the pre-registration; then the report.
+- step 5: g2r read from host records and replayed (above); two repairs it
+  found committed (bdd1333e, 41f607d4). Next: gates on a pristine export
+  of the final commit; the report.
