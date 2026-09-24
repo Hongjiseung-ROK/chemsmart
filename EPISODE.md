@@ -429,3 +429,9 @@ G2 is a second, independent session (N runs are N observations).
   handoff receipt says (ORCA -> Gaussian enediyne edge); the thermochemistry
   and expression receipts; the claims and their stated uncertainty and
   level. Then B1-B5 and R1-R4, against O1.
+- 2026-09-25: g1 read (above). Repair 9cda6569 (`shared:`, the input-check
+  record). r10-integration a7bc02e0 merged (102e476f, no conflict). Gates
+  on a pristine export of 1d18208c: full suite 23 failed (the baseline
+  set), 4649 passed; tests/agent all green; ruff, black and isort clean on
+  the two touched files. G2 (Slurm 2153334) running: WAITING ON JOB
+  2153334. On resume: the same reading order as g1, plus H-G2a.
