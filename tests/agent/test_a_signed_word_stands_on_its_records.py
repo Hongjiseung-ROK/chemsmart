@@ -488,3 +488,71 @@ def test_a_node_the_walk_settles_failed_says_what_the_host_replied(tmp_path):
     assert record["analysis_status"] == "completed"
     reasons = " ".join(node["reason"] for node in record["executed_nodes"])
     assert "drifted apart" not in reasons
+
+
+def test_an_expression_is_replayed_from_what_its_event_recorded(tmp_path):
+    """A combined number is a signed word about its operands, and a word
+    whose inputs cannot be replayed cannot be checked. The receipt holds
+    the request's digest, not the request, and a provider-free walk's
+    arguments reach no transcript: R10 Q21 could not rebuild 8 CUHK and
+    43 ax41 archived expressions. Replayed here from the event alone, the
+    evaluation binds the same request the receipt names."""
+
+    from .test_a_combined_number_says_what_it_is import _host
+
+    host, event_path = _host(tmp_path)
+    receipts = {}
+    for artifact_id in ("water", "hydroxyl"):
+        reply = host.dispatch(
+            turn_id="t1",
+            tool_name="extract_result_quantities",
+            arguments={
+                "program": "orca",
+                "artifact_id": artifact_id,
+                "selectors": [{"quantity_id": "e", "selector": "energy"}],
+            },
+        )
+        receipts[artifact_id] = reply["result"]["receipt_sha256"]
+    reply = host.dispatch(
+        turn_id="t2",
+        tool_name="evaluate_quantity_expression",
+        arguments={
+            "expression_id": "oh-minus-water",
+            "inputs": [
+                {
+                    "input_id": f"e-{artifact_id}",
+                    "receipt_sha256": digest,
+                    "quantity_id": "e",
+                    "semantic_role": f"energy_of_{artifact_id}",
+                }
+                for artifact_id, digest in receipts.items()
+            ],
+            "nodes": [
+                {
+                    "node_id": "gap",
+                    "operation": "subtract",
+                    "input_ids": ["e-hydroxyl", "e-water"],
+                }
+            ],
+            "output_node_ids": ["gap"],
+        },
+    )
+    assert reply["status"] == "ok", reply
+    (event,) = [
+        row
+        for row in _rows(event_path)
+        if row["kind"] == "quantity_expression_evaluated"
+    ]
+    recorded = event["payload"]["record"]
+
+    bindings = event["payload"]["request_bindings"]
+    replayed = host.dispatch(
+        turn_id="t3",
+        tool_name="evaluate_quantity_expression",
+        arguments={"expression_id": recorded["expression_id"], **bindings},
+    )
+
+    assert replayed["result"]["request_sha256"] == recorded["request_sha256"]
+    assert [item["receipt_sha256"] for item in bindings["inputs"]] == list(
+        receipts.values()
+    )
