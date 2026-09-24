@@ -101,9 +101,50 @@ BrokenSym 1,1 from the triplet; the triplets.
   energy within 1e-6 Eh.
 - E6: ORCA BrokenSym 1,1 and GuessMix reach the same energy within 1e-5 Eh.
 
+## O0 read so far (Gaussian and ORCA complete; PySCF running)
+
+- E1 FALSIFIED as written (and the brief's "inert" prior narrowed):
+  restricted + guess=mix stays restricted everywhere (labels RHF/RB3LYP, no
+  U solution) and equals the plain restricted energy on H2 (both), planar
+  ethylene and p-benzyne (9e-9 Eh), but NOT at the 90-degree twist: there
+  Gaussian's plain R lands on a higher restricted solution (HF -77.770459)
+  or fails to converge (B3LYP, l502), and R + guess=mix breaks spatial
+  symmetry to the lower restricted solution ORCA's plain RHF/RKS finds
+  (-77.801915 / -78.374467). Not inert; still never unrestricted.
+- E2 held except Gaussian's twisted-ethylene convergence failures (U
+  B3LYP, l502).
+- E3 held for H2 at 2.00 and p-benzyne in Gaussian and ORCA; H2 at 0.74
+  and planar B3LYP ethylene collapse. Planar HF ethylene breaks weakly in
+  both programs (<S**2> 0.0335, -0.021 kcal/mol): UHF's known pi
+  instability, a measurement the host must report and not a collapse.
+- E4 held where one solution is reached: H2 2.00 B3LYP 4e-9 Eh, HF 1e-10,
+  p-benzyne 1.1e-7 Eh (<S**2> 0.9703 both). At the 90-degree twist
+  Gaussian's U + guess=mix reaches a DIFFERENT solution (B3LYP -78.379601,
+  26 kcal/mol above ORCA's -78.421139 and above its own triplet; HF 58
+  kcal/mol above): the particular solution is not portable (F2), and
+  <S**2> (1.001) alone does not reveal it.
+- E6 held: ORCA BrokenSym 1,1 = GuessMix = STABPerform to 1e-10 Eh.
+- E5 FALSIFIED (PySCF partial): PySCF's default init_guess_breaksym=1 does
+  not break H2 at 2.00 (HF) nor planar HF ethylene; the explicit alpha
+  HOMO/LUMO 45-degree mix does, to Gaussian's and ORCA's energies (1e-10
+  Eh). PySCF's own default is therefore not the translation.
+
+## Oracle O0b (pre-registered before submission)
+
+Gaussian with `nosymm`, with `guess=mix stable=opt`, and an 85-degree twist
+(degeneracy lifted) in all three programs.
+- H1: at 90 deg, Gaussian `U guess=mix nosymm` reaches ORCA's broken-symmetry
+  energy (-78.421139 B3LYP, -77.901440 HF) within 1e-6 Eh; if not, the
+  degeneracy and not Gaussian's symmetry is the cause.
+- H2: at 85 deg, Gaussian `U guess=mix` (symmetry on), ORCA GuessMix and the
+  PySCF mix reach one solution within 2e-4 Eh (B3LYP) / 1e-5 Eh (HF).
+- H3: `guess=mix stable=opt` reaches ORCA's solution at 90 deg.
+- H4: `nosymm` leaves H2 2.00 and p-benzyne unchanged within 1e-7 Eh.
+
 ## Jobs issued
 
-(none yet)
+- O0: CUHK Slurm 2153330 (r10-q18-a), 4 cores, native inputs, prereg
+  digest 835945193c43.
 
 ## Status
 
