@@ -310,6 +310,22 @@ above the 86 M estimate; wall time 8 h 14 min against the 6-7 h estimate.
   reported as leak-dependent. Recommendation to the master: graders are
   not told what the arms are.
 
+## Grades received; live goals selected before any grade was read
+
+- Grades locked by the master: grader 1 (primary) scores.csv sha256
+  8da4f147...04ea2, grader 2 (reliability) 8828c38e...9b2af; both recomputed
+  equal here, and the mapping's sha256 recomputed equal to 1da36c5b... .
+- Live-goal selection and physics bands were written before any grade file
+  was opened, into the git-excluded `sealed/q3-live/bands.md` (it names
+  sealed content), **sha256 af4569beb62e63bb746e86d0f8de06d4134df4b58039e396210f19cd5b9d7ad1**.
+  Outcome: q03 runs as a goal in arm B and in arm C; q02 runs in arm C as
+  the control. The file records how the pre-registered rule was applied
+  without the rubrics (only questions whose own task states a reference
+  value; "rubric-relevant" read as a difference in the level of the energy
+  entering the observable), the tie-break it needed (the seeded run order,
+  fixed there, not pre-registered), each band, each arm's expected
+  failure, and what counts as the effect surviving execution.
+
 ## Status
 
 Phase 2: packets ready, mapping digest committed above. Paused for
