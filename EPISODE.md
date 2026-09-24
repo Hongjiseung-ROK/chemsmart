@@ -377,3 +377,7 @@ through result_readers), not from the report.
   pristine export of fdeadcaf: 23 failed, 4679 passed (the 23 are the
   environmental set: InChI/CDX/identifier, dispersion probe, CBS contract,
   PySCF four-stage YAML); live goals G1 and G2 running.
+- 2026-09-25: G1 and G2 read, both success by their pre-registered words;
+  pyscf:broken_symmetry and orca:broken_symmetry recorded in release.json
+  (478a88bd, a2f89c22); r10-integration merged again (4b3122e3, no
+  conflict). Milestone A claimed; handing back.
