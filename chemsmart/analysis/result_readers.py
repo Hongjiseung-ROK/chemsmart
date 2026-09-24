@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -7844,6 +7844,90 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         requires_normal_termination=False,
     ),
 }
+
+
+#: What the structure a result's spectrum belongs to is, in the host's own
+#: word: minimum, first-order saddle, ... or not a stationary point.
+STATIONARY_POINT_KIND_SELECTOR = "stationary_point_kind"
+
+
+def _with_stationary_point_kind(reader: ResultReaderV1) -> ResultReaderV1:
+    """Serve the host's stationary-point word wherever the modes are served.
+
+    "Is it a minimum?" was the most asked categorical question in the
+    archive and had no word to be answered with: sessions counted modes by
+    expression or wrote a validation rule of their own and delivered its
+    0/1 verdict, each choosing a convention (R10 Q23). The word is the
+    judgement the host already makes (``terminal_states
+    .stationary_point_kind``: the stationary-point rule's -20 cm^-1
+    convention, and ``structure_stationarity`` -- the one function the
+    characterisation and a free energy ask whether a structure is
+    stationary), read from the same printed modes, beside
+    ``vibrational_frequencies`` on every job type that declares it and for
+    the structure those modes belong to.
+    """
+
+    frequencies = "vibrational_frequencies"
+    if frequencies not in reader.accessors:
+        return reader
+
+    def kind(output: Any) -> str | None:
+        from chemsmart.agent.terminal_states import stationary_point_kind
+        from chemsmart.analysis.result_quantities import (
+            structure_stationarity,
+        )
+
+        return stationary_point_kind(
+            tuple(getattr(output, "vibrational_frequencies", None) or ()),
+            structure_stationarity(reader.program, output).stationarity,
+        )
+
+    selector = STATIONARY_POINT_KIND_SELECTOR
+    state = reader.structural_state(frequencies)
+    provenance = reader.electronic_provenance(frequencies)
+    return replace(
+        reader,
+        accessors={**reader.accessors, selector: kind},
+        jobtype_selectors=tuple(
+            (
+                jobtype,
+                (
+                    tuple(sorted({*selectors, selector}))
+                    if frequencies in selectors
+                    else selectors
+                ),
+            )
+            for jobtype, selectors in reader.jobtype_selectors
+        ),
+        selector_structural_states=(
+            tuple(
+                sorted((*reader.selector_structural_states, (selector, state)))
+            )
+            if state != "stateless"
+            else reader.selector_structural_states
+        ),
+        selector_electronic_provenance=(
+            tuple(
+                sorted(
+                    (
+                        *reader.selector_electronic_provenance,
+                        (selector, provenance),
+                    )
+                )
+            )
+            if provenance != "stateless"
+            else reader.selector_electronic_provenance
+        ),
+        selector_declarations=(
+            *reader.selector_declarations,
+            (selector, "", "DIMENSIONLESS"),
+        ),
+    )
+
+
+for _program, _reader in tuple(RESULT_READERS.items()):
+    RESULT_READERS[_program] = _with_stationary_point_kind(_reader)
+del _program, _reader
 
 
 #: Physical dimension of each selector, in the shared quantity vocabulary.
