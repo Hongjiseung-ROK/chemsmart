@@ -29,7 +29,6 @@ Configuration Structure:
 import glob
 import logging
 import os
-from functools import cached_property
 
 from chemsmart.io.yaml import YAMLFile
 
@@ -44,38 +43,61 @@ class CHEMSMARTUserSettings:
     computational chemistry software. Provides access to configuration paths,
     environment variables, and user-defined project settings.
 
+    Every path and value is resolved when it is read, never when an instance
+    is made: six modules hold an instance made at import, and a directory
+    bound then was fixed before any caller -- a test's HOME fence included --
+    could say which home is meant (R10 Q25).
+
     Attributes:
         USER_YAML_FILE (str): Name of the main user settings YAML file.
-        USER_CONFIG_DIR (str): Path to the user configuration directory.
         yaml (str): Full path to the user settings YAML file.
         config_dir (str): User configuration directory path.
-        data (dict): Loaded YAML configuration data.
+        data (dict): The user settings YAML's contents, read at each access.
     """
 
     USER_YAML_FILE = "usersettings.yaml"
-    USER_CONFIG_DIR = os.path.expanduser("~/.chemsmart")
 
     @classmethod
     def resolve_config_dir(cls):
-        """Resolve user config directory with optional env override."""
-        configured_dir = os.environ.get(
-            "CHEMSMART_CONFIG_DIR", cls.USER_CONFIG_DIR
+        """The user configuration directory, resolved at this call:
+        ``CHEMSMART_CONFIG_DIR`` when it is set, else ``~/.chemsmart`` of
+        the home this process has now."""
+        return os.path.expanduser(
+            os.environ.get("CHEMSMART_CONFIG_DIR", "~/.chemsmart")
         )
-        return os.path.expanduser(configured_dir)
 
     def __init__(self):
-        """
-        Initialize user settings manager.
+        """A view of the user's settings; nothing is read until it is used."""
+        # Values assigned to ``data``, each held for the settings file it
+        # was assigned under.
+        self._assigned_data = {}
 
-        Loads user configuration from YAML file if it exists, otherwise
-        initializes with empty configuration.
-        """
-        self.config_dir = self.resolve_config_dir()
-        self.yaml = os.path.join(self.config_dir, self.USER_YAML_FILE)
+    @property
+    def config_dir(self):
+        """The user configuration directory, resolved at this access."""
+        return self.resolve_config_dir()
+
+    @property
+    def yaml(self):
+        """Path to the user settings YAML file, resolved at this access."""
+        return os.path.join(self.config_dir, self.USER_YAML_FILE)
+
+    @property
+    def data(self):
+        """The user settings YAML's contents ({} when there is no file)."""
+        yaml_path = self.yaml
+        if yaml_path in self._assigned_data:
+            return self._assigned_data[yaml_path]
         try:
-            self.data = YAMLFile(filename=self.yaml).yaml_contents_dict
+            return YAMLFile(filename=yaml_path).yaml_contents_dict
         except FileNotFoundError:
-            self.data = {}
+            return {}
+
+    @data.setter
+    def data(self, value):
+        # An assignment holds for the settings file it was made under, so a
+        # value supplied for one configuration never answers for another.
+        self._assigned_data[self.yaml] = value
 
     @property
     def user_server_dir(self):
@@ -185,7 +207,7 @@ class CHEMSMARTUserSettings:
 
         return os.path.join(self.config_dir, "xtb")
 
-    @cached_property
+    @property
     def server_yaml_files(self):
         """
         Get list of server YAML configuration files.
@@ -195,7 +217,7 @@ class CHEMSMARTUserSettings:
         """
         return glob.glob(os.path.join(self.user_server_dir, "*.yaml"))
 
-    @cached_property
+    @property
     def gaussian_project_yaml_files(self):
         """
         Get list of Gaussian project YAML configuration files.
@@ -207,7 +229,7 @@ class CHEMSMARTUserSettings:
             os.path.join(self.user_gaussian_settings_dir, "*.yaml")
         )
 
-    @cached_property
+    @property
     def orca_project_yaml_files(self):
         """
         Get list of ORCA project YAML configuration files.
@@ -217,7 +239,7 @@ class CHEMSMARTUserSettings:
         """
         return glob.glob(os.path.join(self.user_orca_settings_dir, "*.yaml"))
 
-    @cached_property
+    @property
     def pyscf_project_yaml_files(self):
         """
         Get list of PySCF project YAML configuration files.
@@ -227,13 +249,13 @@ class CHEMSMARTUserSettings:
         """
         return glob.glob(os.path.join(self.user_pyscf_settings_dir, "*.yaml"))
 
-    @cached_property
+    @property
     def xtb_project_yaml_files(self):
         """Return user xTB project YAML files."""
 
         return glob.glob(os.path.join(self.user_xtb_settings_dir, "*.yaml"))
 
-    @cached_property
+    @property
     def scratch(self):
         """
         Get scratch directory configuration.
@@ -243,7 +265,7 @@ class CHEMSMARTUserSettings:
         """
         return self.data.get("SCRATCH", None)
 
-    @cached_property
+    @property
     def email(self):
         """
         Get user email configuration.
@@ -253,7 +275,7 @@ class CHEMSMARTUserSettings:
         """
         return self.data.get("EMAIL", None)
 
-    @cached_property
+    @property
     def project(self):
         """
         Get default project configuration.
@@ -263,7 +285,7 @@ class CHEMSMARTUserSettings:
         """
         return self.data.get("PROJECT", None)
 
-    @cached_property
+    @property
     def all_available_servers(self):
         """
         Get list of all available server configurations.
@@ -277,7 +299,7 @@ class CHEMSMARTUserSettings:
             for s in self.server_yaml_files
         ]
 
-    @cached_property
+    @property
     def all_available_gaussian_projects(self):
         """
         Get list of all available Gaussian project configurations.
@@ -294,7 +316,7 @@ class CHEMSMARTUserSettings:
         ]
         return gaussian_project_settings
 
-    @cached_property
+    @property
     def all_available_orca_projects(self):
         """
         Get list of all available ORCA project configurations.
@@ -308,7 +330,7 @@ class CHEMSMARTUserSettings:
             for o in self.orca_project_yaml_files
         ]
 
-    @cached_property
+    @property
     def all_available_pyscf_projects(self):
         """
         Get list of all available PySCF project configurations.
@@ -322,7 +344,7 @@ class CHEMSMARTUserSettings:
             for p in self.pyscf_project_yaml_files
         ]
 
-    @cached_property
+    @property
     def all_available_xtb_projects(self):
         """Return user xTB project names without their YAML suffix."""
 

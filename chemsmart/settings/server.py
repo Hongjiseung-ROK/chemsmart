@@ -351,7 +351,6 @@ class Server(RegistryMixin):
         return cls.from_scheduler_type()
 
     @classmethod
-    @lru_cache(maxsize=12)
     def from_scheduler_type(cls):
         """
         Create a Server instance based on the detected scheduler type.
@@ -359,6 +358,12 @@ class Server(RegistryMixin):
         Automatically detects the scheduler type in the current environment
         and creates an appropriate server instance. Falls back to local
         server if no scheduler is detected.
+
+        The profile is read from the user's server directory at each call.
+        Memoised for the life of the process, the first answer's profile --
+        and so the first home the process looked in -- answered every later
+        call; the detected scheduler, which names no path, stays cached
+        (R10 Q25).
 
         Returns:
             Server: Server instance for the detected scheduler
