@@ -393,14 +393,38 @@ knowledge a session cannot load. Merge of r10-integration: 422e0607,
 clean; it exposed a false alarm in the witness (a correct rule naming the
 singlet_*/triplet_* selector blocks), repaired in cbd02f00.
 
+## Live goals, read from host records against the sealed bands (af4569be...)
+
+- **g1, q03 in arm C (2151849): achieved, band PASS.** The delivered D0
+  lies 19 cm-1 below the measured value, inside the sealed band. Route:
+  MP2/aug-cc-pVTZ optimisations with numerical frequencies, two engine
+  calls, after cycle 1's two ORCA nodes aborted in 1-2 s (analytic MP2
+  Hessian; the session repaired to numfreq under an admitted revision).
+  Knowledge entries were loaded. Its recorded uncertainties name the
+  uncorrected superposition error (with its direction) and the harmonic
+  zero-point treatment (without a direction), each put at ~0.2 kJ/mol,
+  and call the agreement robust -- both terms are an order of magnitude
+  larger for this system and opposite in sign, so the agreement is a
+  cancellation the delivery does not state.
+- **g2, q03 in arm B (2152066): returned_to_human, no delivery, band
+  FAIL.** Cycle 2's four ORCA DLPNO-CCSD(T) single points aborted: "Number
+  of processes (32) in parallel calculation exceeds number of pairs
+  (27)" -- the host sized %pal from the envelope for a molecule too small
+  for that many MDCI processes (a host defect, not a choice the session
+  can make). Cycle 3 ran the same energies in PySCF; the quantities were
+  computed and never rendered as claims before the budget ran out.
+- **g3, q02 in arm C, control (2152108): achieved, band PASS, no harm
+  flag.** Electronic barrier 11.05 kJ/mol at B3LYP-D3BJ/def2-TZVP,
+  staggered minimum, eclipsed first-order saddle (one imaginary mode,
+  -296.1 cm-1), two engine calls; the delivery distinguishes the
+  electronic barrier from the measured torsional parameter. Knowledge
+  entries were loaded.
+- **The sealed "effect survives execution" criterion** is met only by
+  its letter: B delivered nothing, for a host reason unrelated to the
+  knowledge. The pair is not evidence of a knowledge effect; the executed
+  C delivery shows the same overconfident uncertainty statement the
+  planning grades found.
+
 ## Status
 
-Phase 3: tests done; the merge (422e0607), the witness repair (cbd02f00)
-and the default change (1fd1d17e) are committed; gates at b26a6f7f:
-tests/agent green from a pristine export, full suite 23 failing with the
-set identical to the base's, ruff/black/isort clean on every touched
-file. Waiting on the three live goals: 2151849 (g1, q03 C, in cycle 2
-after a numfreq repair), 2152066 (g2, q03 B, planning), 2152108 (g3, q02
-C, queued). On resume: read each settlement and delivered value from
-host records against the sealed bands (af4569be...), then the final
-report.
+Phase 3 complete: tests, goals, merge, gates. Final report next.
