@@ -3359,6 +3359,44 @@ def _gaussian_energies(output: Any) -> list[float]:
     raise MissingQuantityError("this Gaussian result printed no energy")
 
 
+def _gaussian_electronic_spatial_extent(output: Any) -> float:
+    """<R**2> of the SCF density at the structure the run ended on, bohr^2.
+
+    Printed by every Gaussian population analysis and served by no reader
+    until now, although it is one of the few numbers that say how diffuse
+    a density is: an anion or a Rydberg-like state that the basis cannot
+    hold shows up here before it shows up anywhere else, and Q10's LG1
+    session (CUHK 2151662) could only be told that the log printed it.
+    The last print belongs to the final density.  The value depends on the
+    origin, so it is served only where Gaussian computed in its standard
+    orientation (origin at the centre of nuclear charge), and only for the
+    SCF density the population analysis names.
+    """
+
+    records = list(getattr(output, "electronic_spatial_extents", None) or ())
+    if not records:
+        raise MissingQuantityError(
+            "this Gaussian result printed no <R**2>: no population analysis "
+            "ran"
+        )
+    last = records[-1]
+    density = str(last.get("density") or "")
+    if not density.casefold().startswith("scf"):
+        raise MissingQuantityError(
+            "the last <R**2> this log prints belongs to the "
+            f"{density or 'unnamed'} density, not the SCF reference this "
+            "selector serves"
+        )
+    if not getattr(output, "standard_orientations", None):
+        raise MissingQuantityError(
+            "this Gaussian run computed in the input orientation "
+            "(reorientation suppressed), so its <R**2> is about the "
+            "coordinates' own origin; the spatial extent depends on the "
+            "origin and is served only about the centre of nuclear charge"
+        )
+    return float(last["value"])
+
+
 def _gaussian_scf_energy(output: Any) -> float:
     """The SCF reference total at the last geometry (``SCF Done``).
 
@@ -3383,6 +3421,7 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("dipole_moment", "reference"),
     ("dipole_moment_magnitude", "reference"),
     ("effective_multiplicity", "reference"),
+    ("electronic_spatial_extent", "reference"),
     ("energies", "computed_surface"),
     ("energy", "computed_surface"),
     ("excitation_energies", "excited_root"),
@@ -3561,6 +3600,7 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
             "dipole_moment_magnitude": lambda output: float(
                 output.all_dipole_moment_magnitudes[-1]
             ),
+            "electronic_spatial_extent": _gaussian_electronic_spatial_extent,
             "spin_square": lambda output: _last_spin_square(
                 output, "before_annihilation"
             ),
@@ -6377,6 +6417,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         selector_declarations=(
             _CONSTRAINED_COORDINATE_DECLARATIONS
             + _EXCITED_CHARACTER_DECLARATIONS
+            # <R**2> of the SCF density about the centre of nuclear
+            # charge, as Gaussian prints it (atomic units, bohr^2).
+            + (("electronic_spatial_extent", "bohr^2", "AREA"),)
         ),
         atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
         # Coverage is ``parser_supported_when_emitted``, as for ORCA: it
@@ -6451,6 +6494,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "functional",
@@ -6484,6 +6528,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "functional",
@@ -6569,6 +6614,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "functional",
@@ -6607,6 +6653,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "excitation_energies",
@@ -6657,6 +6704,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "functional",
@@ -6724,6 +6772,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("constrained_dihedral_angles", "as_reached"),
                     ("dipole_moment", "as_reached"),
                     ("dipole_moment_magnitude", "as_reached"),
+                    ("electronic_spatial_extent", "as_reached"),
                     ("energy", "as_reached"),
                     ("gap", "as_reached"),
                     ("gibbs_free_energy", "as_reached"),

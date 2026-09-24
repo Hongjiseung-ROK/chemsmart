@@ -2217,6 +2217,40 @@ class Gaussian16Output(GaussianFileMixin):
         return len(self.forces)
 
     @cached_property
+    def electronic_spatial_extents(self):
+        """Every ``<R**2>`` Gaussian printed, with the density it belongs to.
+
+        Each population analysis prints ``Electronic spatial extent (au):
+        <R**2>= X`` -- the expectation value of r^2 over the electron
+        density, in bohr^2 -- just after the header naming the density it
+        analyses (``Population analysis using the SCF Density.``).  The
+        value depends on the origin: Gaussian takes it about the origin of
+        the frame it computes in, the centre of nuclear charge of the
+        standard orientation, and about the user's own origin when the
+        route suppresses reorientation.  Returned as
+        ``[{"value": float, "density": str | None}, ...]`` in print order,
+        so a consumer can take the last and still say whose density it is.
+        """
+        records = []
+        density = None
+        for line in self.contents:
+            if "Population analysis using the" in line:
+                density = (
+                    line.split("Population analysis using the", 1)[1]
+                    .strip()
+                    .rstrip(".")
+                )
+            elif (
+                "Electronic spatial extent (au):" in line and "<R**2>=" in line
+            ):
+                try:
+                    value = float(line.split("<R**2>=", 1)[1].split()[0])
+                except (IndexError, ValueError):
+                    continue
+                records.append({"value": value, "density": density})
+        return records
+
+    @cached_property
     def has_dipole_moment(self):
         """Check if the output file contains dipole moment calculations."""
         for line in self.contents:
