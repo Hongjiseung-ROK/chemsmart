@@ -120,6 +120,65 @@ ORCA 6.1.1, PySCF 2.14.0).
 - 4ed32f97 shared: %pal nprocs <= MDCI's certain pairs; zero pairs refused
   at compile (routed), translation stated in the compile reply and review.
 
+## O2 -- the repaired writer on the inputs O1 saw abort (pre-registered)
+
+`cli/o2`, code `r1` (this branch, all Q14 repairs), the same projects and
+geometries as O1, the same -n that aborted there:
+- A2r H atom CCSD(T): refused by the CLI before any input (exit 1, no ORCA
+  output), the route text in the error.
+- B2r H2 at 2 -> writes 1; C2r water at 11 -> 10; D2r OH at 22 -> 21; E2r
+  Li at 4 -> 3; H2r water DLPNO at 11 -> 4; I3r dimer DLPNO at 28 -> 8. Each
+  terminates normally with the energy O1 printed for the same calculation
+  at a count that ran (B1 -1.168262381921, C1 -76.174711368878, D1
+  -75.490145618429, E1 -7.468048553819, H1 -76.326547325817, I1/I2
+  -152.692438608255 Eh) within 1e-8 Eh: the translation changes cores, not
+  the calculation.
+- J1r MP2 freq -> NumFreq: normal, the frequencies of O1 J2 (1654.07,
+  3895.19, 4010.90 cm-1) within 0.01 (the same input). J3r RI-MP2 and K1r
+  B2PLYP -> NumFreq: normal, three real modes; J3r within 2 cm-1 of J1r.
+Falsified if any translated input aborts or any energy moves by more.
+
+## G1 -- live Agent goal (pre-registered before issue)
+
+Model deepseek-v4-flash-0731 via alibaba-token-plan (the only credential);
+envelope ORCA only, 16 cores, 48 GB, node 1 h, episode 3 h, 10 engine
+calls, 2 revisions; delegated approval
+`claude-researcher-q14-owner-delegated`. Code: this branch at the commit
+packed as `r1` (all Q14 repairs). Task (`goals/g1/TASK.md`): the O-H bond
+dissociation enthalpy of water at 298.15 K, 1 atm, CCSD(T)/def2-TZVP
+electronic energies, DFT geometries and thermal corrections of the model's
+choice; only `water.xyz` is given (r 0.96 A, 104.5 deg). The text says
+nothing of processes, pairs or the H atom.
+
+Why this route hits the class: its natural nodes are CCSD(T) on water
+(frozen core, 10 pairs < 16 granted: base aborts, Q3 g2's monomer), on OH
+(21 pairs >= 16: unchanged) and on the H atom (0 pairs: base aborts at any
+count, Q9 G1 / Q12 g1-hi); an atom's thermal correction (base refuses a
+single point, Q9 G1).
+
+Success (all must hold):
+- S1: no engine call ends in MDCI's pair abort, and no correlated ORCA node
+  on the H atom is approved (the compile refusal, a routed failure report
+  with cost "no engine call", is what the model meets if it plans one).
+- S2: a water CCSD(T) node, if planned, shows the translation in its
+  compile reply and review observations (10 of 16 processes), its output
+  says "Program running with 10 parallel MPI-processes" and "Number of
+  pairs included ... 10", and it terminates normally.
+- S3: E(H) enters the answer as E(UHF/def2-TZVP) = -0.499810 Eh (O1 A3,
+  -0.499809832061) within 1e-6 Eh, or as a correlated energy from a route
+  that gives the same number; the model's own route, not mine.
+- S4: the goal settles achieved or achieved_with_observations with
+  dH298 in the physics band 112-120 kcal/mol. The band's anchor: De(HO-H)
+  at CCSD(T)/def2-TZVP about 122-124 (CBS about 126, recalled, not a
+  registered constant), dZPE about 7.9, d(H298 - H0) about +1.2 (4RT for
+  H2O, 3.5RT OH, 2.5RT H) -> about 116; experiment about 118.8 (recalled).
+Failure: an MDCI abort; an approved correlated H-atom node; a host
+refusal of an atom's thermochemistry; dH298 outside the band from host
+arithmetic. A model that never plans a correlated node on water or H
+(e.g. treats the task's level loosely) leaves S1/S2 untested: reported,
+not re-rolled. Control: the base tree's outcome on this class is the
+archived record (Q3 g2, Q9 G1, Q12 g1-hi), not a new run.
+
 ## Status
 
 - Census: done (above). O1: done (above).
