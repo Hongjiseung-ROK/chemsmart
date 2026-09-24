@@ -220,6 +220,25 @@ window lacks the bright root.
   checked that its top root lies above 7 eV, whether it ran TDA for <S^2>,
   whether it noticed a missing root (not asked).
 
+### O2 -- what a PySCF root is made of, on the engine (CLI oracle, job cli/oracle2)
+
+Tree 43862950 (the dominant-excitation record), unpacked beside the goals'
+code so the running goals keep theirs. PySCF only, PBE0/def2-SVP, the O1
+geometries: acrolein `singlet_triplet` nstates 3; allyl `unrestricted`
+TD-DFT nstates 6 and 10; formaldehyde (Q7's minimum) `singlet` TD-DFT
+nstates 6. Gaussian's and ORCA's labels are read from the archived O1 and
+Q7 outputs.
+- C1: every PySCF artifact validates with the new dataset (shape one row
+  per root) and the host evaluator agrees.
+- C2: acrolein st3 and allyl u10: PySCF's dominant excitation equals
+  Gaussian's and ORCA's at every index; weights within 0.06 of Gaussian's.
+- C3: where a window missed a root, character says so: allyl u6 PySCF root
+  6 is not `beta HOMO -> LUMO+1` (the G/O sixth); formaldehyde nstates 6
+  PySCF root 6 is `HOMO -> LUMO+2` (the f 0.47 root Q7's O4 found missing
+  in G and O, whose sixth is `HOMO -> LUMO+3`).
+- Falsifier: PySCF's labels disagree with G/O on a root all three windows
+  hold (the offsets would then not be one description).
+
 ## Results read so far (host records, through ChemSmart's readers)
 
 O1 (Slurm 2150194, code 4a01097a, tree digest 15fd46c4 recomputed on the
