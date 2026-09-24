@@ -314,6 +314,23 @@ and 3 s later.
   mechanism is not reproduced and stays inferred (reported as such; the
   repair stands on its witness and on "after" being clean, not on this).
 
+### O2 read (Slurm 2150471, chpc-cn071, 11:16-11:19 HKT; both digests verified in-job)
+
+| | before (55e4424a) | after (279b11cb, contains 9774ed01) | pre-registered |
+|---|---|---|---|
+| status | 30/30 passed, wall <= 0.54 s | 30/30 passed, wall <= 0.57 s | met |
+| probes with a process of mine inside the work dir at return | **10/30**, every one `mpirun -np 8 .../orca_startup_mpi` | 0/30 | met (before: mechanism reproduced) |
+| probes with entries in the root at return | 21/30 | 0/30 | met |
+| directories left at the end | 10 | 0 | met |
+
+The mechanism is no longer inferred: ORCA 6.1.1 launches `mpirun -np 8
+orca_startup_mpi` past its INPUT FILE banner inside the probe's 0.1 s poll;
+the old `_stop` returned with mpirun alive, and NFS kept the directory. No
+process was still inside 3 s later in either tree. **Corrected premise
+(mine, stated as fact in 0cb2bf09): the probe does start MPI ranks; it is
+safe inside an allocation because it now waits on its whole group on the
+allocation's cores** (424776df corrects the docstring).
+
 ## Status
 
-O1 read. G1 (2150438) running. O2 pre-registered.
+O1, O2 read. G1 (2150438) running.
