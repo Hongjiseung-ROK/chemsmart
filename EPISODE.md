@@ -204,8 +204,58 @@ Outcomes, read from host records:
 - Aggregations: 25 archived Boltzmann operations (ax41; none on CUHK) and 60
   coordinate-at-extremum operations, none combining treatments or kinds.
 
+## g1-hooh result (CUHK 2153623, 49 min, code d32eeeef digest verified)
+
+Read from host records (ledger, three session streams, cycle-1 run stream,
+engine outputs). Settled `returned_to_human` after 3 cycles (1 revision).
+- Cycle 1: eq (ORCA opt+freq), ts0 (OptTS from 0 deg), opt180 (opt from the
+  planar trans start: converged at the D2h-like saddle, one mode -245.88
+  cm-1, typed failed_wrong_stationary_point), mod90 (modred at 90 deg + Freq).
+- Cycle 2: extraction of G/frequencies from mod90 refused (modred declares
+  neither; the reply carried the route hint 8c2e8d0c rewrote, which the
+  session quoted); characterised ts0 and opt180 as order 1; derived G for
+  eq/ts0/opt180, each receipt stating "stationary point: the orca ... search
+  printed the program's own convergence marker"; derive_thermochemistry on
+  mod90 REFUSED under thermochemistry.free_energy_needs_a_stationary_point
+  (the host's word, in the session's own tool reply). The session's decision
+  weighed the route the refusal named ("relax to a stationary point" reaches
+  the gauche minimum or the 0/180 saddles, not a held-90 structure) and
+  claimed g-rel-0-deg = barrier-cis = 7.953, g-rel-180-deg = -0.079
+  kcal/mol, and e-rel-90-mod90 = 0.760 kcal/mol "not a Gibbs value".
+- Cycle 3: declared g-rel-90-deg and barrier-trans unreachable (blocked
+  nodes, decision). The settlement's refusal check read ORCA's printed
+  "Final Gibbs free energy ... -151.41849362 Eh" in the mod90 output and
+  called the refusal unverified, "a reader is the missing producer".
+- Bands (all met): eq dihedral 120.66 deg; dE(trans) 0.561; dE(cis) 8.290;
+  dE(90 held) 0.760; dG(trans) -0.079; dG(cis) 7.953 kcal/mol.
+  (Experiment for orientation: 111.8 deg, ~1.1 and ~7.0 kcal/mol.)
+- Outcomes: S-host met; S-agent met; F-host, F-agent not triggered. The
+  settlement word was wrong for a reason outside my pre-registration: a
+  second organ disagreed with the gate. Repaired in 54044178 (replay on the
+  packed code that ran reproduces the archived basis byte for byte; the
+  repaired tree verifies both refusals).
+- Kind statements: silent here by design (every combination was between
+  structures of one formula, H2O2).
+
+## Live goal g2-hooh (pre-registered before submission)
+
+The same task, geometry and envelope as g1-hooh, byte for byte, on the
+repaired tree; granted_by claude-researcher-q21-owner-delegated. One run, one
+observation of deepseek-v4-flash-0731; a different route is itself evidence.
+- S-settle: if the session again declares the 90-deg Gibbs observables
+  unreachable, the host verifies the refusal from its own stationarity
+  reading (basis names "not a stationary point") and the goal settles
+  unreachable_from_evidence.
+- F-settle: returned_to_human whose basis names a printed Gibbs line as a
+  missing producer.
+- S-host / S-agent / F-host / F-agent and the physics bands: as for g1-hooh.
+- Neutral: the session takes a route that never refuses the 90-deg
+  observable (then S-settle is not exercised; reported as the route).
+
 ## Status
 
-- Step 1 (census) done; repairs 1-3 committed; o2fix read.
-- g1-hooh submitted as CUHK Slurm 2153623 (slot r10-q21-a, pre-registration 32c87e6d5eab) on code d32eeeef (digest a4073db6...).
-- Next: read g1-hooh from host records; full suite on the final commit.
+- Step 1 (census) done; repairs 1-3 committed; o2fix and g1-hooh read.
+- Full suite on a pristine export of ca590e5a: 23 failed, all environmental
+  (InChI/CDX imports, PySCF dispersion probes, aggregation and PyscfSettings
+  YAML tests), none in tests/agent.
+- Next: submit g2-hooh on the repaired tree and read it.
