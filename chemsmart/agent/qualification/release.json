@@ -848,6 +848,31 @@
       "commit": "68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
       "date": "2026-09-24",
       "source": "G3: the allyl radical (doublet) at its UPBE0/def2-SVP minimum, full TD-DFT in ORCA and in PySCF covering every state up to 7 eV, the strongest absorption, spin contamination where the programs allow it, and a state-by-state comparison (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision); bound by a host extraction on the live result: the UKS reference's <S^2> 0.792085 beside the td roots (ORCA's 0.792076). The goal settled unreachable_from_evidence only because the per-root <S^2> it declared is refused for full TD-DFT on an open shell."
+    },
+    {
+      "kind": "setting",
+      "id": "pyscf:basis",
+      "status": "recorded",
+      "values": [
+        "def2-tzvp",
+        "6-31g*"
+      ],
+      "run": "CUHK Charles r10/q12 goals/g1-hi/runs/cycle-1 nodes sp-hi-pyscf, sp-i-atom-pyscf and sp-h-atom-pyscf (Slurm 2152052) + goals/g2-nh3/runs/cycle-1 nodes opt-p-nh3 and opt-p-nh4 (Slurm 2152096)",
+      "commit": "d31f1170 (code tree digest 29ed0893430f7b61c101d2b61707bd081ff3ff92cb487066a0d8f129fd26866b, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G1: the bond energy of HI at CCSD(T)/def2-TZVP asked of ORCA and PySCF; G2: the proton affinity of NH3 at B3LYP/6-31G(d) asked of Gaussian and PySCF (granted_by claude-researcher-q12-owner-delegated, a delegated approval, not a human decision). def2-tzvp on iodine ran with def2's 28-electron core potential, which the PySCF driver attaches since adc130b1 and records since 1b5ae687 (receipt: 26 electrons, ecp_core_electrons 28, validated; the base tree refused the run at run time); at matched numerics PySCF's CCSD(T) HI total equals ORCA's within 1e-8 Eh (oracle O2', Slurm 2152029). 6-31g* ran spherical, the form Gaussian is now told to build. G1 settled unreachable_from_evidence on its ORCA side; the record rests on the PySCF nodes named here, engine-complete and host-validated, not on that word."
+    },
+    {
+      "kind": "setting",
+      "id": "gaussian:basis",
+      "status": "recorded",
+      "values": [
+        "6-31g(d)"
+      ],
+      "run": "CUHK Charles r10/q12 goals/g2-nh3/runs/cycle-1 nodes opt-g-nh3 and opt-g-nh4 (Slurm 2152096)",
+      "commit": "d31f1170 (code tree digest 29ed0893430f7b61c101d2b61707bd081ff3ff92cb487066a0d8f129fd26866b, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G2: the proton affinity of NH3 at B3LYP/6-31G(d) asked of Gaussian and PySCF (granted_by claude-researcher-q12-owner-delegated, a delegated approval, not a human decision). Each route carried `6-31g(d) 5d 7f` (ab42ab5d, 8c4a7169) and each log printed `Standard basis: 6-31G(d) (5D, 7F)` with 20 (NH3) and 22 (NH4+) functions, the spherical set ORCA and PySCF build; the two programs' proton affinities, from independent optimisations, differ by 5.8e-5 kcal/mol (217.0969). Settled achieved."
     }
   ]
 }
