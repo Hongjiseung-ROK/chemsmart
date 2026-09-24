@@ -326,10 +326,58 @@ above the 86 M estimate; wall time 8 h 14 min against the 6-7 h estimate.
   fixed there, not pre-registered), each band, each arm's expected
   failure, and what counts as the effect surviving execution.
 
+## Unblinded result (grader 1 primary; the analysis as pre-registered)
+
+Mapping sha256 recomputed equal to 1da36c5b...; the 48 primary packets
+(duplicates excluded) unblinded. Controls, as both graders' rubrics name
+them: q02, q05, q09, q13.
+
+Grader 1, per question M/S (A | B | C): q01 2/2|2/2|2/2; q02 2/2|2/2|2/2;
+q03 2/1|1/1|2/1; q04 2/2|2/2|2/2; q05 2/2|2/1|2/2; q06 1/1|2/2|1/1;
+q07 2/1|1/2|0/0; q08 0/1|0/1|1/1; q09 2/2|2/2|2/1; q10 0/1|1/1|1/0;
+q11 2/2|2/2|2/1; q12 2/2|2/2|0/1; q13 2/2|2/2|2/2; q14 1/1|2/2|2/1;
+q15 1/1|0/0|0/0; q16 2/0|2/1|2/1. Means (M, S, Q): A 1.56, 1.44, 3.00;
+B 1.56, 1.56, 3.13; C 1.44, 1.13, 2.56.
+
+- **Primary, C - B on Q:** 3 up, 7 down, 6 tied; median 0, mean -0.56;
+  exact two-sided signed-rank W+ = 12 (n = 10), p = 0.145.
+- C - B on M: 2 up, 3 down, p = 0.75. C - B on S: 1 up, 7 down, p = 0.0625.
+- **A - B on Q** (the false sentence): 3 up, 4 down, mean -0.13, p = 0.77.
+- O flags: none in any arm, by either grader. F flags (false statements of
+  fact, all misremembered literature values): grader 1 A 3, B 2, C 3;
+  grader 2 A 1, B 0, C 1.
+- **Sensitivity** (the 9 questions whose C packet carries none of the five
+  arm-revealing phrases): C - B mean -0.56, 3 up, 4 down, p = 0.44 -- the
+  same direction; the primary result is not leak-dependent.
+- **Reliability**, grader 2 against grader 1 on the 48 primary packets: M
+  exact agreement 0.917, linear-weighted kappa 0.881 (quadratic 0.920); S
+  exact 0.875, kappa 0.823 (0.867); Q exact 0.812; O 1.000; F 0.875.
+  Grader 2's own C - B on Q: mean -0.38, p = 0.27, same direction. Both
+  graders scored all four duplicate pairs identically, which they report
+  recognising as byte-identical bodies: it cannot distinguish consistency
+  from recognition.
+
+**Falsifiers, applied as written.**
+- Success (C - B > 0, p < 0.05, no harm): not met.
+- Premise falsified (median <= 0 AND p >= 0.2 AND adequacy read before the
+  level act in >= 12 of 16): median 0 and 15 of 16 hold, p = 0.145 does
+  not, so it does not fire by its letter -- because the data lean past the
+  null toward harm, which that falsifier was not written for.
+- Delivery falsified (< 12 of 16): not fired (15 of 16).
+- **Harm: fired.** C's M is below B's on 3 questions (q06, q07, q12), the
+  registered threshold; O flags on controls 0 against 0.
+
+**Reading.** With the knowledge demonstrably read before the level was
+chosen in 15 of 16 sessions, reachable method-adequacy and convention
+knowledge did not improve the method choice or the adequacy statement of
+`deepseek-v4-flash-0731` on these open questions; the point estimate is
+negative, carried by the adequacy statement, and the registered harm
+threshold was met. The master's premise (that reachability would change
+choices and qualifications for the better) is not supported; the false
+sentence itself cost nothing measurable.
+
 ## Status
 
-Phase 2: packets ready, mapping digest committed above. Paused for
-grading, which is the master's (grader 1 for the primary test; grader 2
-for inter-rater agreement). On return: unblind with the mapping, run the
-pre-registered tests and the sensitivity analysis, then the live goals
-under the pre-registered selection rule.
+Phase 3: tests done (above). Next: the three pre-registered live goals
+(q03 in B and in C, q02 in C), bands sealed at af4569be... before any
+grade was read; then the r10-integration merge, the gates, the report.
