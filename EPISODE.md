@@ -368,5 +368,10 @@ observation of that model. 2 cycles, 1 revision, 5 engine calls of 12.
 - step 4: gates on fdf62230 done (tests/agent green; full suite = the
   round baseline); r10-integration has not moved since ec41a57c.
 - step 5: g2r read from host records and replayed (above); two repairs it
-  found committed (bdd1333e, 41f607d4). Next: gates on a pristine export
-  of the final commit; the report.
+  found committed (bdd1333e, 41f607d4).
+- step 6: r10-integration had moved to 05d556d7 (R10 Q23's merge);
+  merged at 23cbf03b with no conflict. On the merged tree: tests/agent
+  3203 passed, 0 failed; g2r's final settle step replays
+  unreachable_from_evidence with the superseded claim named; the 287
+  archived settle steps are identical to the pre-merge repaired replay;
+  0 reader violations; 0 achieved words with an uncertified reason.
