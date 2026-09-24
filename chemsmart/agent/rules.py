@@ -316,6 +316,14 @@ CODE_GATES: tuple[tuple[str, str], ...] = (
         "launched; the refusal quotes the program's own lines and the "
         "route out is to repair the field and compile again",
     ),
+    (
+        "thermochemistry.free_energy_needs_a_stationary_point",
+        "a free energy is a property of a stationary point: a structure "
+        "shown not to be one -- a measured gradient above the optimiser's "
+        "criterion, a held or driven coordinate, a search that printed its "
+        "own non-convergence -- has none, and every derived free energy "
+        "states what it stands on, unmeasured included",
+    ),
 )
 
 

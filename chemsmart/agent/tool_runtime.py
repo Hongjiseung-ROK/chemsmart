@@ -289,10 +289,12 @@ from chemsmart.analysis.literature_constants import (
     literature_constant,
 )
 from chemsmart.analysis.quantity_expressions import (
+    ExpressionOperandV1,
     QuantityExpressionError,
     QuantityExpressionRequestV1,
     canonical_unit_for_dimension,
     convert_normalized_value,
+    expression_kind_observations,
     expression_level_observations,
     expression_node_from_plan,
     expression_thermochemical_convention_observations,
@@ -943,6 +945,31 @@ def results_for_selector(
             else tuple(reader.accessors)
         )
         if declared is None or selector not in declared:
+            # A quantity that exists only at a stationary point is read,
+            # not left unread, where the host shows the structure is not
+            # one: the thermochemistry stage refuses it there by the same
+            # function, so a line the program printed for it (ORCA prints
+            # a "Final Gibbs free energy" after a constrained optimum) is
+            # no producer a reader is missing (R10 Q21 g1-hooh, CUHK
+            # 2153623: a verified refusal read as unverified over it).
+            from chemsmart.analysis.result_quantities import (
+                exists_only_at_a_stationary_point,
+                structure_stationarity,
+            )
+
+            if exists_only_at_a_stationary_point(selector):
+                try:
+                    reading = structure_stationarity(program, output)
+                except Exception:  # noqa: BLE001 - unread when unreadable
+                    reading = None
+                if reading is not None and (
+                    reading.stationarity == "not_stationary"
+                ):
+                    absent.append(
+                        f"{artifact_id}: {reading.sentence()}, so it has no "
+                        f"{selector} whatever its output prints"
+                    )
+                    continue
             unread.append((str(artifact_id), str(artifact.path)))
             continue
         try:
@@ -19158,6 +19185,19 @@ class CommandCompiledToolHostV1:
                 },
             )
         )
+        # What each output is, where its operands' kinds decide it: a
+        # curvature, an orbital energy beside a state energy, or the
+        # reaction its coefficients describe (R10 Q21). Its own field, as
+        # the geometry observations have theirs: a level observation says
+        # two operands differ in Hamiltonian, and one-level arithmetic
+        # stays silent there. An observation that cannot be computed says
+        # nothing; it never fails the evaluation.
+        try:
+            kind_observations = expression_kind_observations(
+                request, receipt, self._expression_operand
+            )
+        except Exception:  # noqa: BLE001 - an observation never fails a call
+            kind_observations = ()
         self._emit(
             turn_id,
             EventKind.QUANTITY_EXPRESSION_EVALUATED,
@@ -19176,12 +19216,98 @@ class CommandCompiledToolHostV1:
                 if level_observations
                 else {}
             ),
+            **(
+                {"kind_observations": kind_observations}
+                if kind_observations
+                else {}
+            ),
         )
-        if geometry_observations or level_observations:
+        if geometry_observations or level_observations or kind_observations:
             self._reply_observations = (
-                tuple(geometry_observations) + level_observations
+                tuple(geometry_observations)
+                + level_observations
+                + tuple(kind_observations)
             )
         return receipt
+
+    def _expression_operand(self, receipt_sha256: str, quantity_id: str):
+        """What the host knows about one number an expression read.
+
+        An earlier expression's output is handed back as that
+        expression's own request and receipt, so the kind reading can
+        follow it to the results it came from; an extraction's quantity
+        is named by the selector it was bound to, a thermochemistry
+        receipt's by its own id; the species is read from the result
+        through its reader, once per result.
+        """
+
+        expression = self.quantity_expression_receipts.get(receipt_sha256)
+        request = self.quantity_expression_requests.get(receipt_sha256)
+        if expression is not None and request is not None:
+            return ("expression", request, expression)
+        extraction = self.quantity_extractions.get(receipt_sha256)
+        receipt = extraction or self.thermochemistry_receipts.get(
+            receipt_sha256
+        )
+        if receipt is None:
+            return None
+        name = str(quantity_id)
+        if extraction is not None:
+            name = str(
+                dict(getattr(extraction, "selector_bindings", ()) or ()).get(
+                    quantity_id
+                )
+                or self.quantity_extraction_bindings.get(
+                    receipt_sha256, {}
+                ).get(quantity_id)
+                or quantity_id
+            )
+        from chemsmart.analysis.result_quantities import (
+            geometry_of_selector,
+            result_geometries,
+            result_species,
+            structure_stationarity,
+        )
+
+        cache = self.__dict__.setdefault("_result_species_cache", {})
+        key = (str(receipt.program), str(receipt.artifact_sha256))
+        if key not in cache:
+            species, not_stationary, geometries = None, "", {}
+            artifact = self.artifacts.get(str(receipt.artifact_id))
+            if artifact is not None:
+                from chemsmart.analysis.result_readers import reader_for
+
+                try:
+                    output = reader_for(str(receipt.program)).open_output(
+                        str(artifact.path)
+                    )
+                    species = result_species(str(receipt.program), output)
+                    reading = structure_stationarity(
+                        str(receipt.program), output
+                    )
+                    if reading.stationarity == "not_stationary":
+                        not_stationary = reading.sentence()
+                    geometries = result_geometries(
+                        str(receipt.program), output
+                    )
+                except Exception:  # noqa: BLE001 - unreadable says nothing
+                    pass
+            cache[key] = (species, not_stationary, geometries)
+        species, not_stationary, geometries = cache[key]
+        # The geometry a number belongs to is the structural state its own
+        # selector declares; a derived thermochemistry quantity belongs to
+        # the structure its modes were computed at.
+        return ExpressionOperandV1(
+            name=name,
+            species=species,
+            structure=str(receipt.artifact_sha256),
+            not_stationary=not_stationary,
+            distances=geometry_of_selector(
+                str(receipt.program),
+                geometries,
+                name if extraction is not None else "vibrational_frequencies",
+            ),
+        )
 
     def _geometry_operation_observations(
         self, values: Mapping[str, Any], nodes: Sequence[Any]
