@@ -71,9 +71,41 @@ every requestable selector's value and unit as `extract_result_quantities`
 returns it, read through the same function, floats to ten significant
 digits, a vector past 64 numbers by its ends and a matrix past 64 cells by
 its shape (each cut labelled). It mints no receipt. Off, the reply is the
-base tree's. Nothing else differs: the tool surface, the catalogue and the
-system prompt are byte-identical in both switch states (to be verified by
-digest before freezing).
+base tree's. Nothing else differs, measured (arm_digest.py, both switch
+states): catalogue ed4699bd... (62 entries, the digest the dev sessions
+recorded), tool definitions e4d128ee... (38), goal system prompt
+e6d02186... (10,516 chars), selector lists 378e8123....
+
+## Arms, pinned
+
+| arm | code (commit; pack digest) | switch | what it is |
+|---|---|---|---|
+| S | 29adc265; b471fba5530e2e5f... | `CHEMSMART_AGENT_INSPECTION_VALUES=0` | today's product: the inspection reply names selectors |
+| P | 29adc265; b471fba5530e2e5f... | `=1` | the lever: the reply also shows each selector's value |
+| U | e77a0b47 on side branch `q17-arm-unserved` (parent ac3079bb, whose chemsmart/ is 29adc265's); 5d5265900b3a843e... | `=0` | the quantities R10 Q13 began to serve are not served |
+
+U hides, per program, exactly the selectors merge 3a225067 added: PySCF
+`scf_stability_real_to_complex` and the three
+`scf_stability_*_lowest_eigenvalue`; Gaussian
+`wavefunction_stability_lowest_eigenvalue`,
+`wavefunction_stability_rotation_space`, `solvation_nonelectrostatic_energy`,
+`solvation_model`, `solvent`, `molecular_volume`,
+`electronic_spatial_extent`, `hirshfeld_atomic_spin_populations`; ORCA
+`t1_diagnostic`, `mayer_bond_orders`, `mayer_free_valence`,
+`hirshfeld_atomic_spin_populations` -- accessors, job-type declarations,
+states, provenance and selector declarations, so every organ agrees they do
+not exist. Parsing is untouched. Measured on U: catalogue 2e8875c4...,
+tools 8082518f..., the same system prompt e6d02186...; the selector lists
+shrink by exactly those names (Gaussian 72 -> 64, ORCA 87 -> 83, PySCF
+76 -> 72). `tests/agent` on U: 4 failed, 3049 passed -- the word-list
+witness (the new literal), my own inspection-values test, the capability
+marker ladder and Gaussian's SMD-term witness, each because a hidden
+selector is gone; no goal-loop or session test fails. U is never merged.
+
+Packs: `pack_commit.py` (reproduces pack_code.sh: equal digest b471fba5 on
+the clean checkout) -> CUHK /project/xlzhang/jiseung/r10/q17/code-29adc265
+and code-e77a0b47, each verified there with verify_code.py (equal digests,
+0 AppleDouble files).
 
 ## Development (local, my own tasks from archived real outputs; never sealed)
 
@@ -109,6 +141,38 @@ claude-researcher-q17-owner-delegated. Model deepseek-v4-flash-0731.
     at the C3v minimum; its reading added the zero dipole as corroboration.
     A deciding quantity inside the headline read is not unnamed in effect:
     such a task cannot separate S from P.
+  - dC-P-1: the same finding (the Hessian describes the inversion saddle;
+    the ZPVE excludes the imaginary mode), with an independent ZPVE path.
+
+## hc1 -- the harness on the cluster with the pinned arms (pre-registered before submission)
+
+Purpose: run the exact harness the sealed run will use -- both code packs,
+`run_sessions.py` (sha256 9c71634a...), the analysis envelope (b72e5e03...),
+the job scripts (a ccd4e843..., b a19b4bbe...), the CUHK environment -- on
+three of my own development tasks before any sealed material exists, so a
+harness defect costs development sessions, not sealed ones. Run set
+/project/xlzhang/jiseung/r10/q17/hc1: tasks dA (O2 PySCF), dB (Fe(III)
+aquo doublet/quartet/sextet ORCA), dE (water CCSD(T)/cc-pVDZ ORCA, a T1
+control); arms S, P, U, one goal each, 9 goals, plan sha256 1d431bd6...,
+dealt to slots a (5) and b (4), one goal at a time per slot, 4 cores and
+16 GB, 2 h each.
+
+Mechanics, each pass/fail:
+- both packs verify on the node (the job stops otherwise) and each arm
+  imports chemsmart from its own pack;
+- every goal ends with a `meta.json`, at least one provider turn, observed
+  model deepseek-v4-flash-0731 and a settlement word;
+- P's inspection replies carry `values`; S's and U's carry none;
+- U's inspection reply on dA's singlet lists no
+  `scf_stability_*_lowest_eigenvalue` and no `scf_stability_real_to_complex`,
+  and on dE's result no `t1_diagnostic`; S's and P's list them;
+- packets build from the run set with a mapping digest, and no packet
+  carries an artifact id, a run id or a 64-hex digest.
+
+Behaviour, reported and never scored (development): whether P's conclusion
+on dA cites the singlet's instability, on dB the doublet's <S^2> or the
+unconverged optimisations, and whether any arm raises an alarm over dE's
+T1 of 0.006.
 
 ## Status
 
