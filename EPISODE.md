@@ -267,12 +267,13 @@ conclusion packets carry no P-revealing phrase (sensitivity).
 ### Grading
 
 Two independent graders the master commissions, with GRADER.md (sha256
-4e894b9e...) and the writer's rubrics. Per packet: Y 0/1/2 (soundness of
+7437d76d...) and the writer's rubrics. Per packet: Y 0/1/2 (soundness of
 the conclusion with respect to the deciding quantity: 2 needs the rubric's
 consequence tied to the deciding quantity or accepted equivalent evidence;
 on controls 0 is a false alarm), F (false statements of fact about the
 results; a value absent from the packet's reads is not false for that
-reason), H (headline computed correctly), one sentence of justification.
+reason), X (alarms raised on quantities the rubric shows benign, on any
+task), H (headline computed correctly), one sentence of justification.
 Grader 1 is primary; grader 2 gives agreement (exact, linear- and
 quadratic-weighted kappa on Y) and its own direction. Task kind
 (phenomenon or control) and each task's deciding selectors are taken from
@@ -283,7 +284,7 @@ the writer's rubrics after grading.
 On phenomenon tasks, per task the mean Y of P's three conclusion packets
 minus the mean Y of S's three: exact two-sided Wilcoxon signed-rank over
 tasks (zero differences dropped, average ranks), alpha 0.05, reported with
-mean, median and sign counts (`analysis.py`, sha256 25260b1d...).
+mean, median and sign counts (`analysis.py`, sha256 80218f27...).
 
 ### Milestone C -- all three
 
@@ -297,8 +298,10 @@ Y = 2) gains more under P than the control false-alarm rate under P.
 (h1) the primary's mean is negative with two-sided p < 0.2; (h2) P has two
 or more false alarms more than S among the control conclusion packets;
 (h3) false statements of fact summed over conclusion packets exceed S's by
-3 or more. No "P below S on k tasks" rule: with three noisy replicates per
-arm a null lever puts P below S on about half the untied tasks.
+3 or more; (h4) alarms on benign quantities (X) summed over conclusion
+packets exceed S's by 3 or more. No "P below S on k tasks" rule: with three
+noisy replicates per arm a null lever puts P below S on about half the
+untied tasks.
 
 ### Secondary (reported; never a milestone on its own)
 
