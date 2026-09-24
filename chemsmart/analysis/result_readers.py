@@ -6153,16 +6153,18 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             + (
                 (
                     "mayer_bond_orders",
-                    (
-                        ("semantic_quantity", "bond_order"),
-                        ("population_scheme", "Mayer"),
-                        ("atom_order", "zero-based molecular atom order"),
-                        ("data_shape", "rows of [atom_i, atom_j, order]"),
-                        (
-                            "sparsity",
-                            "ORCA prints only orders above 0.1; an omitted "
-                            "pair has no printed value and is not zero",
-                        ),
+                    tuple(
+                        {
+                            "semantic_quantity": "bond_order",
+                            "population_scheme": "Mayer",
+                            "atom_order": "zero-based molecular atom order",
+                            "data_shape": "rows of [atom_i, atom_j, order]",
+                            "sparsity": (
+                                "ORCA prints only orders above 0.1; an "
+                                "omitted pair has no printed value and is "
+                                "not zero"
+                            ),
+                        }.items()
                     ),
                 ),
                 (

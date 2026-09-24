@@ -237,10 +237,13 @@ def test_no_agent_reachable_module_reads_a_distance_derived_bond_order():
                     stripped.startswith("#")
                     or "bond_order" not in stripped
                     # Electronic bond orders computed by quantum chemistry programs
-                    # (e.g. Wiberg bond orders from xTB density) are program-computed
-                    # quantities, not host distance-derived bond orders.
+                    # (e.g. Wiberg bond orders from xTB density, Mayer bond
+                    # orders from ORCA's population analysis) are
+                    # program-computed quantities, not host distance-derived
+                    # bond orders.
                     or "wiberg" in stripped
                     or "wbo" in stripped
+                    or "mayer" in stripped
                     or '"semantic_quantity": "bond_order"' in stripped
                 ):
                     continue
