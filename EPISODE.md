@@ -298,6 +298,20 @@ solvation_nonelectrostatic_energy + solvation_model + solvent for SMD
 mayer_free_valence (55f82b86; red on a lexical guard until b50b025f -- a
 masked pytest exit, reported).
 
+### hspin1 -- CLI reference (slot a), code 09450c74, pre-registered before submission
+
+The brief named "ORCA's Hirshfeld spin populations" as printed and never
+served; the census found no archived open-shell Hirshfeld output (every one
+is a closed shell printing 0.000 spin). Four doublets through the route
+channel's print directive, B3LYP/def2-SVP: ORCA `Hirshfeld` and Gaussian
+`pop=hirshfeld` on the planar methyl radical (C-H 1.079 A) and the hydroxyl
+radical (O-H 0.970 A). Expectation: each program prints a nonzero Hirshfeld
+spin column; the per-atom spins sum to 1.00 (2S of a doublet) within 0.01;
+the radical centre carries most of it (methyl C 0.8 .. 1.1, hydroxyl O
+0.9 .. 1.1); ORCA and Gaussian agree per atom within 0.05 (same functional
+form, same partition). Falsified if either program prints no spin column
+for a doublet, or the spins do not close on 1.
+
 ## Status
 
 - Census: done (above).
