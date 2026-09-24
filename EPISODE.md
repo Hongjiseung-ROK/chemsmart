@@ -119,9 +119,98 @@ Falsifiers of the repair on the engine: (2) prints "Compute
 numerically" or refuses the file; (4) computes an SCF Hessian before
 its first step.
 
+## O1 -- READ (CUHK Slurm 2151801, code 5823c7f3, digest 72bd4836 verified on the node)
+
+- A saddle: PASS. One imaginary mode, 1122.56i cm-1; E -93.275915023 Eh.
+- B IRC handed the saddle's Hessian: native input `inithess read` +
+  `Hess_Filename "o1a_saddle.hess"`; ORCA: "Initial displacement Hessian
+  type .... Read", "Hessian Filename .... o1a_saddle.hess", no numerical
+  Hessian: PASS. Path to the HNC side (N-H 1.005 A, C-N 1.176 A),
+  21 steps, 32.75 kcal/mol below the saddle at step 21: PASS.
+  Runtime band FAILED: 7 min 14 s against the control's 7 min 48 s
+  (ratio 0.93, band < 0.5). My premise that the numerical Hessian
+  dominates an IRC's wall time is wrong for a 3-atom molecule: the 21
+  path steps dominate.
+- C control: "Compute numerically", 21 steps, 33.67 kcal/mol at step 21:
+  PASS (the two paths differ by 0.9 kcal/mol at step 21 because their
+  initial displacements came from different Hessians).
+- D seeded saddle search: "InHess .... Read", the initial Hessian read
+  from the file, no SCF Hessian before the first step: PASS. Same saddle:
+  |d nu| 0.06 cm-1 PASS; |dE| 1.05e-5 Eh FAILED my 1e-6 band (my band was
+  tighter than ORCA's default TS convergence; 0.0066 kcal/mol).
+- E (the open question): with `Calc_Hess True` beside `InHess Read`
+  ORCA 6.1.1 READ the given Hessian -- no SCF Hessian in cycle 1, and its
+  optimisation energies equal D's to 1e-12 Eh. So the base writer's TS
+  form was redundant, not wrong; the base TS defect was the silent drop
+  of an `inhess_filename` given without `inhess: true`. Q4's unverified
+  premise is settled: Calc_Hess does NOT override InHess Read.
+- Aside (science, not host): ORCA's default IRC stops at 21 steps here,
+  before the HNC minimum (both B and C); "reached its end" is not given.
+
+## Live goals G1 and G2 -- PRE-REGISTRATION (written before submission)
+
+Code: this branch at the commit that records this section (C2 wave
+lines, C1 writer + review/synthesis/verification, C3 refused handoff,
+C4 Gaussian scan point + guide texts). Agent: deepseek-v4-flash-0731
+via alibaba-token-plan; delegated approval
+claude-researcher-q11-owner-delegated (never a human decision).
+
+G2 -- the archived r8 goal-ts task, byte-identical (TASK.md sha256
+d2714db5..., guess sha256 7079f821...), same envelope numbers (ORCA
+only, 8 cores, 32 GB, node 2400 s, episode 6600 s, reserve 600 s, 4
+engine calls, 2 revisions). The archived run (Slurm 2142426) is the
+control: its cycle-1 approval admitted ts-search -> irc-forward with
+the geometry AND the TS Hessian; the IRC never ran under it; cycle 2
+re-planned the IRC without the Hessian ("Compute numerically").
+Host observations (not behaviour claims):
+- C2: if the cycle-1 wave names the IRC with the saddle, both launch
+  under one frozen approval in cycle 1; FALSIFIED if a wave naming both
+  is not dispatchable, or if the IRC does not launch after the saddle
+  validated in that run.
+- C1: if the plan admits a Hessian edge into the IRC, its reviewed
+  command shows `--hess-filename <producer-hess_filename:sha256=...>`,
+  its launched argv carries --hess-filename, its native input `inithess
+  read`, and ORCA prints "Initial displacement Hessian type .... Read";
+  FALSIFIED by any of those missing, or by a launch refused as "differs
+  from human review".
+- If the Agent names the saddle alone (its choice), or binds no Hessian,
+  that is recorded as the Agent's choice and C2/C1 are "not exercised",
+  not passed.
+Physics (B3LYP/def2-SVP; ChemSmart writes ORCA B3LYP/G): one imaginary
+mode |nu| in [1000, 1250] cm-1; the branch descends to the HCN side
+(C-H about 1.07 A) or the HNC side (N-H about 1.00 A).
+
+G1 -- the hard cross-program route (milestone B candidate). HCN <-> HNC,
+B3LYP/def2-TZVP; ORCA saddle -> PySCF IRC both directions from the ORCA
+saddle -> PySCF relaxation and frequencies of each end. orca+pyscf, 16
+cores, 48 GB, node 7200 s, episode 6 h, reserve 30 min, 14 engine calls,
+3 revisions. Task text: goals/g1/TASK.md (names the programs and the
+observables, never the waves or the edges).
+Literature read in this session: Nguyen, Baraban, Ruscic, Stanton,
+J. Phys. Chem. A 2015, 119, 10929 (OSTI 1392005 abstract): recommended
+HCN -> HNC isomerisation energy at 0 K 5212 +- 30 cm-1 (14.90 kcal/mol),
+HEAT-456QP 5236 +- 50 cm-1. Pearson, Schaefer, Wahlgren, J. Chem. Phys.
+(IBM Research abstract): CI puts HNC 14.6 kcal/mol above HCN and the
+barrier 34.9 kcal/mol (from HNC); SCF 9.5 and 40.2.
+Bands (never tuned after a result):
+- B1 saddle: exactly one imaginary mode, |nu| in [1000, 1300] cm-1.
+- B2 connectivity: one PySCF branch relaxes to HCN (C-H 1.05-1.09 A,
+  linear), the other to HNC (N-H 0.98-1.02 A, linear); each relaxed end
+  has no imaginary mode (4 real modes for a linear triatomic).
+- B3 energies: HNC - HCN electronic in [12, 18] kcal/mol and with ZPE in
+  [12, 18] (against 14.90 at 0 K); barrier from HCN in [43, 52]; barrier
+  from HNC in [28, 37].
+- Milestone B needs, from host records: the ORCA saddle and all the
+  PySCF nodes ran under ONE approval (one frozen approval id on every
+  launch reservation) and validated, and the delivered numbers are the
+  host's. A route the Agent splits over cycles (its choice) is recorded
+  as such and is not B.
+
 ## Jobs issued
 
-(none yet)
+- 2026-09-24: O1, CUHK Slurm 2151801 (r10-q11-a), CLI oracle, 8 cores,
+  code 5823c7f3, pre-registration digest a6b905f10825. COMPLETED
+  (read above).
 
 ## Status
 
