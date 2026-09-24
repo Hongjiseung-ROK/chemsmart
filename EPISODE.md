@@ -26,10 +26,25 @@ streams, run streams and job logs (scratch q16/census/classification*.py):
 
 | era | n | HOST | INFRA | MODEL | DELIB. | CAPAB. | SCIENCE | OPER. | PROGRAM | unres. |
 |---|---|---|---|---|---|---|---|---|---|---|
-| CUHK R8-R10 | 26 | 9 | 1 | 3 | 2 | 5 | 2 | 1 | 3 | 0 |
+| CUHK R8-R10 | 26 | 9 | 1 | 3 | 2 | 7 | 2 | 1 | 1 | 0 |
 | CUHK pre-R8 | 31 | 6 | 11 | 2 | 5 | 2 | 2 | 3 | 0 | 0 |
-| ax41 | 77 | 27 | 11 | 12 | 6 | 5 | 7 | 1 | 1 | 7 |
-| all | 134 | 42 | 23 | 17 | 13 | 12 | 11 | 5 | 4 | 7 |
+| ax41 | 77 | 27 | 11 | 12 | 6 | 6 | 7 | 1 | 0 | 7 |
+| all | 134 | 42 | 23 | 17 | 13 | 15 | 11 | 5 | 1 | 7 |
+
+HOST = the host's own loop (termination, settlement, park, wake, budget,
+admission); CAPABILITY = a hub reader, writer or registry gap outside the
+loop (other episodes' radii).
+
+Corrected after Q14 merged (866e1833), on my own reading of the receipts with
+Q14's census as evidence: three goals I had as PROGRAM are CAPABILITY. r9/xtb
+g3 and ax41 goal-h2 are finished xTB runs a host result rule refused (their
+receipts carry only host findings, applied/requested charge and multiplicity
+mismatches; goal-h2's three have exit 0 and engine_complete true): I had read
+the host's word failed_native as the program's. r10/q12 g1-hi is an input the
+request determined ORCA must refuse (the MDCI pair rule, now refused at
+compile, 4ed32f97). The contributing "PROGRAM" on r10/q3 g2 and r10/q9 g1 is
+the same writer class. A program's own failure now first-causes 1 of 134
+(r8 h3, ORCA nodes dead at start-up in 12 s; not reconciled with Q14's E/R).
 
 HOST is the largest single first cause (42/134). 33 of the 42 are in classes
 repaired before this episode (cited per goal). Classes the base tree still
@@ -54,6 +69,14 @@ produces:
 - H4 (Q15's radius, reported) an analysis-only plan resets the execution-wave
   decision, so an approved calculation workflow parks for ever (smoke1b,
   losartan-micropka-r2).
+- H7 (found live in L1, then in the archive; left, see below) a failed
+  criterion the session answered still makes the toolchain completion
+  partial: `_claims_on_a_failed_criterion` never consults the decision that
+  cites the failed validation receipt, while the settlement counts exactly
+  that citation as the answer (driver unanswered_verdicts, since c3744879,
+  2026-09-02; the completion rule came 2026-09-11, f913f5d7) and the wake
+  tells the model "standing by the result" is an answer. Behind H1 in o2r
+  and ino3-r11 (both would still return once H1 is repaired); live in L1.
 
 Premise falsified as stated: the brief's instances are not the only host
 losses (H2, H5, H6 and H4 are further live classes), and the instances named
@@ -159,6 +182,76 @@ Not counted either way: a session with zero provider turns or one that dies
 on turn_deadline_exceeded (infrastructure). A weak run is reported, never
 re-rolled.
 
+## Live results (read from host records; written after both jobs ended)
+
+L1 (Slurm 2152989, 15 min, code 71de94b9). Cycle 1: 15 provider turns, one
+PySCF RKS node (12.3 s, validated); the executor's chain claimed the energy
+and two verdicts as numbers 0.0, its two stability criteria failed, and a
+recovery opened (stale e_ref/rks_e_ref_hartree, undelivered
+rks_stable_real/rks_stable_complex, verdicts). Cycle 2: 11 turns,
+analysis-only revision admitted; claims: E = -150.14180683 Eh (+/-1e-6),
+words stable_ext = "unstable", stable_complex = "unstable", stable_int =
+"stable"; findings answer both declared categories; the decision cites the
+latest failed validation receipt of each criterion. The completion went
+partial (claim_on_failed_criterion x3); the stream ended `planned` with the
+H1 reason ("the analysis completion is partial; the delivery stands with
+the limitations it names"). Settled returned_to_human: "the session ended
+'planned' (...); it recorded analysis but the host completion gate did not
+pass". 1 of 4 engine calls, 1 of 2 revisions spent.
+- Physics: E(RKS) -150.141807 (band -150.1418 +/- 0.0005); internal lowest
+  +2.0e-6 Eh, stable; RKS->UKS lowest -0.092617 Eh (band -0.0926 +/-
+  0.003); real->complex lowest -0.038300 Eh (band -0.0383 +/- 0.003). All
+  four in band.
+- Pre-registration: PASS. No host-error word; both planning streams
+  terminal (waiting_for_approval, planned); cycle 1's result and claims and
+  cycle 2's claim and three findings are in the workspace record under
+  their cycles. The word is the one pre-registered for a session that again
+  encodes "stable" as its own criterion. It is not the word the science
+  supports: that is H7 (above), which I leave (see Left).
+- Replays of L1's own records: cycle 2's transcript through GoalDriver.resume
+  on 71de94b9 reproduces the archived recovery_opened and goal_settled
+  payloads byte-for-byte (330 and 4247 bytes; 11/11 turns, no digest
+  translated); on base 2c1050c7 the same transcript ends returned_to_human
+  "cycle 2, planning session: planned termination requires the latest
+  workflow draft", evidence {} -- o2r's loss -- and the record gains cycle
+  1's result and claims re-labelled `goals/l1-o2r/runs/cycle-2`, a run that
+  never existed (H6's run half).
+
+L2 (Slurm 2152990, 22 min). Cycle 1: 17 turns, six ORCA nodes (opt+freq
+MeOH and MeO at B3LYP-D3(BJ)/def2-TZVP, H atom sp, PBE0 single points; 237 s
+engine wall, all validated); the executor's chain claimed bde-oh-methanol =
+413.61 kJ/mol with uncertainty 5.27 measured, uncertainty_reference
+bde-method-spread. Recovery opened naming only bde-pbe0 (exported, never
+claimed). Cycle 2: 13 turns, claimed bde-pbe0 = 408.34 and the headline with
+an RSS uncertainty (5.0); completion passed; ended complete. Settled
+achieved; 6 of 12 engine calls spent.
+- H2 PASS: the settle step of cycle 1 replayed on 71de94b9 reproduces the
+  archived recovery_opened byte-for-byte (unclaimed [bde-pbe0]); on base
+  2c1050c7 it names [bde-method-spread, bde-pbe0] -- the delivered claim's
+  own measured uncertainty as never rendered.
+- Physics band 420-450 kJ/mol: MISSED, 6.4 kJ/mol below its floor.
+  Recomputed from the raw ORCA outputs: H(MeO) + E(H) + 5/2RT - H(MeOH) =
+  0.157536 Eh = 413.61 kJ/mol (De 447.4, dZPE -39.2, thermal +5.4), so the
+  number is the level's own, not the host's arithmetic. The band's premise
+  ("any defensible DFT") was mine and wrong for B3LYP here. The session
+  recorded in its decision that the value sits ~24 kJ/mol below
+  experiment near 437 (Blanksby & Ellison 2003, as the session cites it)
+  and called the claim a computed gas-phase enthalpy; its +/-5 kJ/mol does
+  not cover that systematic offset, and 6 engine calls went unspent.
+
+## Left, with the owner's question
+
+- H7. The repair that honours citations per receipt in the completion
+  (the settlement's own rule) would recover ino3-r11's shape (every failed
+  receipt cited) and change no word's definition. It would not recover o2r
+  or L1: each evaluated its criterion twice and cited only the latest
+  receipt, so the settlement's per-receipt rule would still return them
+  ("a validation verdict failed and no recorded decision cites it"). To
+  reach achieved_with_observations those need a supersession rule (the
+  latest evaluation of a node answers for it) in both organs. Both changes
+  decide what "answered" means, which is settlement semantics (Q10/owner),
+  so I did not make them.
+
 ## Status
 
 - step 1 (census) and step 2 (repairs H1, H6, H2, H3) done; H5 (SDF) and
@@ -166,5 +259,6 @@ re-rolled.
 - Live goals submitted on code commit 71de94b9 (pre-registration digest
   6eb75d76cca0): L1 CUHK Slurm 2152989 (slot r10-q16-a,
   /project/xlzhang/jiseung/r10/q16/goals/l1-o2r), L2 CUHK Slurm 2152990
-  (slot r10-q16-b, goals/l2-q9g1). L1 cycle 1 ran one PySCF node and
-  opened a recovery on its own stability verdicts; L2 cycle 1 executing.
+  (slot r10-q16-b, goals/l2-q9g1). Both ended; results above.
+- Merged r10-integration at 2cfdb4ca (Q14's 866e1833 included; clean). Gates
+  on the final commit: see the hand-back.
