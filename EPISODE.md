@@ -129,6 +129,38 @@ LG1 -- a value the output holds but no reader serves (repair 4, live).
   workspace holds water.xyz only (ls -la checked on the cluster).
   (The gate was closed ~13:00-18:40 KST; reopened per the coordinator.)
 
+## LG1 read from host records (CUHK 2151662, COMPLETED 00:27:09)
+
+- Settlement: returned_to_human, "the recorded decision names declared
+  observables unreachable that the host could not verify:
+  spatial-extent-elec -- <session statement> [no program in the envelope
+  (gaussian) declares selector 'electronic_spatial_extent' for jobtype
+  'sp'; the registered results include ones no reader of this hub reads for
+  'electronic_spatial_extent' (gaussian-result-68799f1d4a6a6359), so the
+  host cannot say they lack it; they print lines naming it:
+  water_sp_gas_phase.log:204: Electronic spatial extent (au): <R**2>=
+  18.9424 ...; the refusal is not verified ...]".
+- PASS as pre-registered: not achieved, not unreachable_from_evidence while
+  the log prints <R**2>; the cycle-2 and cycle-3 refusals are verified=false
+  with a basis naming the Gaussian result and the printed line.
+- Mechanism seen live: cycle 1's refusal was written at planning, before the
+  run (verified=true, "no registered result of jobtype 'sp' exists it could
+  be read from" -- true then); at settlement the driver re-read it against
+  the run's log and opened a recovery naming the printed line (a5cb66b7).
+- Physics: E(RHF) = -76.0105294748 Eh (band -76.02..-76.00: in); <R**2> =
+  18.9424 au (band 15..25: in). The energy was claimed under
+  scf-energy-hf-631gd with exactly the log's SCF Done value.
+- Infrastructure: 41 provider turns, all observed_model
+  deepseek-v4-flash-0731, no provider errors; 1 engine call of 3; 2
+  analysis-only revisions (cycles 2, 3; cycle 3 was the re-wake).
+- Replay control (scratch replay_lg1.py over the records): cycle 1's settle
+  step on c79c39a1 settles unreachable_from_evidence, "the host verified
+  each: spatial-extent-elec -- ... [no program in the envelope (gaussian)
+  declares selector 'electronic_spatial_extent' ...]" over the printed
+  value; on 45917197 it reproduces the live recovery_opened row exactly.
+- Found: the printed line was quoted twice (selector words and observable
+  id words match one line); repaired after the run in dea84078.
+
 ## Status
 
 - census, repairs 1-10, replays done (final-tree replays in scratch
