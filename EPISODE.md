@@ -222,6 +222,30 @@ Not counted either way: no failed criterion at cycle 1 (recovery point not
 met: "not exercised"); zero provider turns or turn_deadline_exceeded
 (infrastructure). A weak run is reported, never re-rolled.
 
+## Defects found and left
+
+- tool_runtime.py ~6956-6975 (record_scientific_decision's
+  decision.receipt_is_one_the_host_minted): its route says "or one
+  inspect_run shows on a recorded run of this goal", and inspect_run shows
+  node outcomes and anomaly digests, never an analysis chain's receipts
+  (L-S2 c2: "The analysis run itself is recorded but not readable"). A
+  refusal naming a route that does not exist; the decision tool is outside
+  this radius. W1 makes the wake carry the digests instead.
+- execution.py:5954: the launch refusal "orca result is not a converged
+  OPT or TS" names neither the producer node nor the result (r9 orca g5).
+  Producer edges are Q20's.
+- P4: the planning path returns an unanswered verdict to the human while
+  the run path wakes a cycle for it. When a goal returns is settlement
+  semantics (owner); the returned reason now names the verdict's number and
+  receipt.
+- H4 (a later analysis-only plan resets the wave decision; losartan's
+  shape) still parks naming the replaced selection; wave selection is
+  Q20's. W7 settles only when no selection was ever made.
+- (Harness note, not a host defect: replay_recovery.py keeps the whole
+  workspace record, so a replayed recovery row can read later cycles'
+  deliveries -- L-S2 c1's undelivered ids replay as [] there; the wake
+  harness cuts the record and names them.)
+
 ## Status
 
 - step 0: brief read, base verified, CONDUCT/RSL/charter read, priors
