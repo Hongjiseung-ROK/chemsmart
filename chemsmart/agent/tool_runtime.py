@@ -452,7 +452,7 @@ _AFTER_MEMBERS_CLAUSE = {
     False: "",
     True: (
         " -- each member marked after runs once the member it takes its "
-        "input from validates, and not at all if that member does not"
+        "input from validates, and not at all if that member does not --"
     ),
 }
 
