@@ -248,6 +248,7 @@ equal on a270eca6).
 | job | slot | what | pre-registration | outcome |
 |---|---|---|---|---|
 | 2149579 | r10-q3-a | batch-dev1: D1 in C, B, A; D3 in C (dev, provider-only) | e7f1723f7b06 | COMPLETED; 4 sessions, exit 0, waiting_for_approval each |
+| (next) | slot | live goal g1 = q03 in arm C (64fc0ca1, knowledge on); g2 = q03 in arm B (64fc0ca1, CHEMSMART_AGENT_SKILLS=0); g3 = q02 in arm C (control). make_goal.py: gaussian, orca, pyscf, xtb on cpu; 32 cores, 120 GB (+8 controller), node 6 h, episode 10 h, 12 engine calls, 0 excursions, 2 revisions; granted by claude-researcher-q3-owner-delegated (a delegated approval, not a human decision); each goal's TASK.md and workspace are its sealed question's own files; bands sealed at af4569be... | -- | submitted g1 first, g2 staggered after g1's planning, g3 when a slot frees |
 | 2149677 | r10-q3-a | sealed1: the 48 sealed sessions (provider-only), plan 06ac7515 | 34a1e57ab05a | COMPLETED 0:0, 8:13:53 (04:02-12:15 HKT); the job verified both code digests (d3652db7 = 292b9bf3, cdfd90c9 = 64fc0ca1), all 52 sealed files and the plan digest before the first session; 48 of 48 sessions exit 0 |
 
 ## Sealed run: host records (read before any grading)
