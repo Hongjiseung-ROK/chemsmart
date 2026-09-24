@@ -174,6 +174,139 @@ on dA cites the singlet's instability, on dB the doublet's <S^2> or the
 unconverged optimisations, and whether any arm raises an alarm over dE's
 T1 of 0.006.
 
+## Pre-registration for the sealed tasks (written before any sealed task is seen)
+
+### What is compared
+
+Three arms (table above) and, inside every goal, the reading turn: every
+sealed goal runs with `--reading-turn`, so each goal yields two paired
+conditions -- the goal before its reading (everything recorded before
+`reading_opened`, and the word it held) and the goal with its reading
+(Q6's paired design). The reading turn's text and context are unchanged
+from the base tree. A sealed task whose deciding quantity is not in U's
+hidden list has U = S in what is served, and enters the S - U contrast as
+long-served.
+
+### Sessions and N
+
+For every released task: S x3, P x3, U x1 goals -- 7 per task, N = 7T
+goals for T released tasks (T = 12-16: 84-112 goals, fixed once T is known
+and before the first sealed session). Each goal:
+`chemsmart agent goal --reading-turn --max-revisions 0 --initial-decision
+approve --dispatch local`, envelope gaussian/orca/pyscf/xtb cpu with
+`max_engine_calls: 0` (analysis only; sha256 b72e5e03...), granted by
+`claude-researcher-q17-owner-delegated` (a delegated approval, never a
+human decision); the task's TASK.md verbatim, outside the workspace; the
+workspace is exactly the task's released files (every file but TASK.md and
+any rubric). Model deepseek-v4-flash-0731 via alibaba-token-plan (the
+cluster's agent.yaml), on CUHK compute nodes inside r10-q17 slot jobs (4
+cores, 16 GB), `CHEMSMART_CONFIG_DIR=/project/xlzhang/jiseung/r10/config`,
+server CUHK, runner `run_sessions.py`. Order: `make_plan.py` shuffles the
+7T rows with `random.Random(20260925)` over the sorted task folder names
+and deals them alternately to slot a and slot b; each slot runs one goal at
+a time (at most two of my sessions at once, a Slurm fact).
+
+Infrastructure, never behaviour: a goal with zero provider turns, a
+session whose last provider attempt ended on `turn_deadline_exceeded`, or a
+goal the runner stopped at its 3600 s cap. It is re-issued once (label
+`-retry`); a second failure leaves the cell missing and its task drops out
+of the paired test that needs it. A goal a killed job interrupted has no
+`meta.json`; it is kept as evidence and re-run. A goal that ran to its end
+with provider turns is never re-run, however weak.
+
+### Packets (blind), built before any grade exists
+
+`build_packets.py`: per goal a *conclusion* packet (the question; what the
+sessions before the reading read from the results, with values; what they
+computed, claimed and recorded; their public words in order; the held word
+and its reasons) and, for S and P goals where a reading ran, a *later
+reading* packet (the question, the answer already delivered, what the
+reading read, claimed, recorded and said). U's readings are not packaged.
+Never in a packet: the system prompt, the context, reasoning, any tool
+reply (inspection replies are what S and P differ by), searches, schema or
+reference loads, digests, artifact or run ids (results are "result A/B/..."
+in sorted id order), the arm. "reading turn" is redacted to "later
+session". Six conclusion packets drawn with `random.Random(20260925)`
+appear twice under new ids (self-agreement). Packet ids are random
+(SystemRandom); the mapping's sha256 is committed before any packet
+reaches a grader.
+
+Leakage is measured before grading (`leak.py`) and never used to change a
+packet: P-revealing phrases (values said to come from an inspection),
+U-revealing phrases (a hidden selector said to be unavailable), a hidden
+selector's name. The primary is repeated on the tasks whose P and S
+conclusion packets carry no P-revealing phrase (sensitivity).
+
+### Grading
+
+Two independent graders the master commissions, with GRADER.md (sha256
+4e894b9e...) and the writer's rubrics. Per packet: Y 0/1/2 (soundness of
+the conclusion with respect to the deciding quantity: 2 needs the rubric's
+consequence tied to the deciding quantity or accepted equivalent evidence;
+on controls 0 is a false alarm), F (false statements of fact about the
+results; a value absent from the packet's reads is not false for that
+reason), H (headline computed correctly), one sentence of justification.
+Grader 1 is primary; grader 2 gives agreement (exact, linear- and
+quadratic-weighted kappa on Y) and its own direction. Task kind
+(phenomenon or control) and each task's deciding selectors are taken from
+the writer's rubrics after grading.
+
+### Primary outcome and test
+
+On phenomenon tasks, per task the mean Y of P's three conclusion packets
+minus the mean Y of S's three: exact two-sided Wilcoxon signed-rank over
+tasks (zero differences dropped, average ranks), alpha 0.05, reported with
+mean, median and sign counts (`analysis.py`, sha256 25260b1d...).
+
+### Milestone C -- all three
+
+(a) the primary has p < 0.05 and a positive mean; (b) P has at most one
+more false alarm (Y = 0) than S among the control conclusion packets; (c)
+the phenomenon sound-and-bound rate (share of conclusion packets with
+Y = 2) gains more under P than the control false-alarm rate under P.
+
+### Harm -- any one fires, and the switch stays off
+
+(h1) the primary's mean is negative with two-sided p < 0.2; (h2) P has two
+or more false alarms more than S among the control conclusion packets;
+(h3) false statements of fact summed over conclusion packets exceed S's by
+3 or more. No "P below S on k tasks" rule: with three noisy replicates per
+arm a null lever puts P below S on about half the untied tasks.
+
+### Secondary (reported; never a milestone on its own)
+
+- Serving: S - U on the phenomenon tasks whose deciding quantity U hides
+  (S's mean of three against U's one), exact Wilcoxon, descriptive.
+- Reading: a combined Y per goal = max(conclusion, reading) on phenomenon
+  tasks and min(...) on controls (a false alarm in either counts); S+R vs
+  S and P+R vs P over tasks, exact Wilcoxon; the reading's cost.
+- Mechanism (`mechanism.py`, from typed events, never shown to graders),
+  per session: was the result carrying the deciding quantity inspected;
+  were values shown (P); was the deciding selector extracted.
+- Cost per arm: provider requests, input tokens, wall seconds.
+
+### Falsifiers, fixed now
+
+- F1 (serving alone changes nothing unnamed): S - U mean <= 0 or p >= 0.2
+  on the hidden-quantity phenomenon tasks, while the deciding selector was
+  requestable in S's inspection replies.
+- F2 (availability is not the bottleneck): the deciding selector extracted
+  in <= 10 % of S's phenomenon planning sessions.
+- Lever null: P - S mean <= 0 or p >= 0.2 while the deciding values were
+  shown to >= 80 % of P's phenomenon planning sessions -- presentation does
+  not move this model.
+- Delivery failure (the lever untested, not a null): the deciding values
+  shown to < 50 % of P's phenomenon planning sessions.
+
+### Power, computed before the material (power_sim.py)
+
+With 12 phenomenon tasks and a binary proxy of Y, the exact test reaches
+p < 0.05 with probability 0.77-0.93 at three replicates per arm when the
+lever moves a task's success rate from 0.2-0.3 to 0.7-0.8, 0.53-0.81 at two
+replicates and 0.19-0.38 at one (Q6's C failed at one replicate: McNemar
+p = 0.5). A moderate lever (0.3 -> 0.6) is not detectable at any of these
+N; a null here says the lever is not large, not that it is absent.
+
 ## Jobs issued
 
 | job | slot | what | pre-registration | outcome |
