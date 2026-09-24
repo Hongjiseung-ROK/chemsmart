@@ -328,6 +328,33 @@ Recorded, not scored (behaviour of this model): whether the session
 names the core potential or the frozen core, and what it says about any
 difference between the programs.
 
+## Goal g2-nh3 (pre-registered before issue; code d31f1170, packed as code-r2)
+
+Task (TASK.md, verbatim): "The attached structure is ammonia (NH3,
+neutral, singlet). I would like the proton affinity of ammonia at
+B3LYP/6-31G(d), as the electronic energy difference between NH3 and NH4+
+each at its own optimised geometry (no zero-point or thermal
+corrections). Please compute it with both Gaussian and PySCF, and report
+the value each program gives in kcal/mol and whether the two programs
+agree." Workspace: nh3.xyz (N-H 1.017 A, 106.3 deg, not optimised).
+Envelope: gaussian, pyscf on CPU; 8 cores, 24 GB; node 1800 s; episode
+5400 s; 10 engine calls; 2 revisions; same delegated approval and model.
+The task names no angular form. One goal is one observation.
+
+Counterfactual (not re-run): on 1dbc9984 Gaussian builds 6-31G(d) with
+Cartesian d and PySCF spherical; O1 P-D moved a charge-changing relative
+energy (the water IP) by 0.18 kcal/mol between the two forms.
+
+Success: every Gaussian node's route carries `5d 7f` and its level says
+`basis_functions: spherical`; the two programs' proton affinities agree
+within 0.05 kcal/mol (default numerics, independent optimisations); the
+value lies in 205-215 kcal/mol; any expression combining a Gaussian and a
+PySCF energy carries no `basis_functions` observation; settles achieved
+or achieved_with_observations; reported numbers reproduce from receipts.
+Failure: a Gaussian route without the angular statement for a 6-31G name,
+a level saying cartesian_d, a difference over 0.05 kcal/mol, or numbers
+that do not reproduce.
+
 ## Status
 
 - step 1: tree read; O1 pre-registered above; code unchanged.
