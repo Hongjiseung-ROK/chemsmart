@@ -244,9 +244,14 @@ class ORCAJobRunner(JobRunner):
         """
         from chemsmart.utils.repattern import xyz_filename_pattern
 
-        # Read from the scratch input file location
+        # The input as written into this run's scratch once it is there,
+        # otherwise the one the job was given. Each run's scratch starts
+        # empty, so nothing may be read from it that this run did not put
+        # there (JobRunner._fresh_scratch_directory).
         input_file_to_read = (
-            self.job_inputfile if self.scratch else job.inputfile
+            self.job_inputfile
+            if self.scratch and os.path.exists(self.job_inputfile)
+            else job.inputfile
         )
 
         with open(input_file_to_read, "r") as f:

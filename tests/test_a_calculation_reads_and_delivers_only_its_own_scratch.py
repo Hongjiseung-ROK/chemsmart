@@ -181,3 +181,59 @@ def test_a_failed_runs_numbered_temporaries_stay_in_scratch(tmp_path):
     # What the failed run wrote as its record still arrives.
     assert any(name.endswith(".gbw") for name in names), names
     assert any(name.endswith(".out") for name in names), names
+
+
+def test_a_supplied_input_is_staged_into_its_own_scratch(tmp_path):
+    """``orca inp`` runs a supplied input, and what it names comes along.
+
+    The inp job used to pre-stage its input into ``<scratch>/<label>`` so
+    the runner could read the geometry files it references from there;
+    with a fresh scratch directory per run nothing may be pre-staged, and
+    the runner reads the references from the input it was given.
+    """
+
+    profile = _profile(tmp_path)
+    engine = tmp_path / "orca" / "orca"
+    engine.write_text(
+        "#!/bin/bash\n"
+        '[ -f h2geom.xyz ] || { echo "geometry missing"; exit 1; }\n'
+        'echo "****ORCA TERMINATED NORMALLY****"\n'
+    )
+    folder = tmp_path / "supplied"
+    folder.mkdir()
+    (folder / "h2.inp").write_text(
+        "! B3LYP def2-SVP\n* xyzfile 0 1 h2geom.xyz\n\n"
+    )
+    (folder / "h2geom.xyz").write_text(
+        "2\nH2\nH 0.0 0.0 0.0\nH 0.0 0.0 0.74\n"
+    )
+    project = tmp_path / "supplied.yaml"
+    project.write_text("gas:\n  functional: b3lyp\n  basis: def2-svp\n")
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(Path(chemsmart.__file__).parents[1])
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "chemsmart",
+            "run",
+            "--no-fake",
+            "--scratch",
+            "--server",
+            str(profile),
+            "orca",
+            "--project",
+            str(project),
+            "-f",
+            "h2.inp",
+            "inp",
+        ],
+        cwd=folder,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+
+    assert completed.returncode == 0, completed.stderr[-2000:]
+    assert "TERMINATED NORMALLY" in (folder / "h2.out").read_text()
