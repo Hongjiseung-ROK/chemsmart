@@ -487,3 +487,66 @@ the workspace holding the item's `data/` directory exactly as released
   achieved (2150184), pair4-a achieved (2150195). pair3-b's node
   directories kept about 10 GB of ORCA PNO scratch (*.tmp.*); its
   records tar excludes them.
+
+### Sealed run complete (host facts only; nothing here is a judgement)
+
+All 19 goals settled, one goal per item, none re-run. Every session had
+provider turns; no attempt failed and no session hit
+turn_deadline_exceeded, so there was no infrastructure failure to
+repeat, and nothing under chemsmart/ changed during the run (last commit
+touching it: 0173e309). Every live goal printed code digest 124de73a
+imported from r10/q6/code; the archived goals imported the worktree's
+identical tree (above).
+
+Live Slurm jobs: pair1-a 2150182, pair1-b 2150183, pair2-a 2150184,
+pair2-b 2150297, pair3-a 2150178, pair3-b 2150179, pair4-a 2150195,
+pair4-b 2150181 (all COMPLETED, goal exit 0).
+
+| goal | cycles | word without reading | word with reading | reading invariants | unrequested findings: before / in reading |
+|---|---|---|---|---|---|
+| ar01 | 1 | achieved | achieved | hold ok | 1 / 1 |
+| ar02 | 1 | achieved | achieved | hold ok | 2 / 1 |
+| ar03 | 1 | returned_to_human | same | no reading | 1 / - |
+| ar04 | 1 | unreachable_from_evidence | same | no reading | 0 / - |
+| ar05 | 1 | achieved_with_observations | same | hold ok | 2 / 1 |
+| ar06 | 1 | achieved | achieved | hold ok | 0 / 0 |
+| ar07 | 1 | achieved | achieved | hold ok | 0 / 1 |
+| ar08 | 1 | achieved | achieved | hold ok | 0 / 1 |
+| ar09 | 1 | achieved | achieved | hold ok | 2 / 0 |
+| ar10 | 1 | unreachable_from_evidence | same | no reading | 0 / - |
+| ar11 | 1 | achieved | achieved | hold ok | 3 / 1 |
+| pair1-a | 2 | achieved | achieved | hold ok | 0 / 0 |
+| pair1-b | 3 | achieved | achieved | hold ok | 1 / 1 |
+| pair2-a | 2 | achieved | achieved | hold ok | 1 / 0 |
+| pair2-b | 2 | achieved | achieved | hold ok | 3 / 1 |
+| pair3-a | 2 | achieved_with_observations | same | hold ok | 0 / 1 |
+| pair3-b | 3 | exhausted | same | no reading | 0 / - |
+| pair4-a | 1 | achieved | achieved | hold ok | 0 / 1 |
+| pair4-b | 2 | achieved | achieved | hold ok | 1 / 1 |
+
+"hold ok" = after reading_opened the ledger holds no run, wave,
+revision, recovery or re-wake row; the settled word equals the held
+word; the settled reasons begin with the held reasons. It holds for all
+15 readings. Counts are findings recorded with standing `unrequested`,
+by session; whether any is a discovery, an echo, incidental or false is
+the verifier's to judge.
+
+Cost of the reading, from the streams: archived, 8 readings, 60
+requests, 2.17 M summed input tokens, 155 k output, median 190 s, 30 %
+of the provider input tokens and 40 % of the provider wall time of the
+goals that read; live, 7 readings, 55 requests, 2.98 M input, 184 k
+output, median 217 s, 17 % of input tokens and 26 % of provider wall.
+
+Verifier inputs, per goal: scratchpad/q6/verifier/<id>/ with INDEX.json
+naming every file's role -- TASK.md; inputs/ (the released files);
+computed/ (node outputs and host artifacts, live goals only); runs/
+(executor streams); sessions/<run_id>/ (events.jsonl with claims,
+findings, relation values, standing and host_signals, and the public
+transcript), labelled planning-or-wake or reading from the ledger;
+ledger.jsonl (reading_opened = the settlement without a reading,
+goal_settled = the settlement with it). host-facts.json beside them is
+the table above in machine form. Originals: archived at
+scratchpad/q6/sealed-archived/<id>/; live on CUHK at
+r10/q6/goals/<id>/ (slurm-<job>.out, workspace/, records.tar without
+engine *.tmp* scratch) and fetched to scratchpad/q6/sealed-live-fetched/<id>/.
+Labels are not read.
