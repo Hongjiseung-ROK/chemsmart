@@ -414,6 +414,38 @@ def _admitted_producer_pairs(
     return frozenset(pair for pair, admitted in verdicts.items() if admitted)
 
 
+def _future_auxiliary_role(parameter_name: str) -> str:
+    """The placeholder role of an auxiliary file a producer hands on."""
+
+    return "producer-" + str(parameter_name)
+
+
+def _future_auxiliary_placeholders(
+    producer_edges: Sequence[Any],
+    node_id: str,
+) -> dict[str, str]:
+    """The auxiliary inputs producers inside one approval hand ``node_id``.
+
+    Each is the job option its registered role names (``hess_filename``
+    for an IRC, ``inhess_filename`` for a TS search), displayed as the
+    digest-bound placeholder of the admitted edge that produces it. The
+    executor binds the file its handoff selected to the same placeholder,
+    so the reviewed and the launched command are one command.
+    """
+
+    placeholders: dict[str, str] = {}
+    for edge in producer_edges:
+        if getattr(edge, "consumer_node_id", "") != node_id:
+            continue
+        role = hessian_role_for_rule(getattr(edge, "selection_rule", ""))
+        if role is None:
+            continue
+        placeholders[role.consumer_input_id] = execution_path_placeholder(
+            _future_auxiliary_role(role.consumer_input_id), edge.edge_sha256
+        )
+    return placeholders
+
+
 #: What a wave reply adds when some member runs after its producer.
 _AFTER_MEMBERS_CLAUSE = {
     False: "",
@@ -11346,6 +11378,15 @@ class CommandCompiledToolHostV1:
         # the same coordinate-free argv and were correctly refused as
         # differing from the reviewed operation.
         coordinates = values.get("internal_coordinates") or None
+        # The executor rebuilds every approved node through this tool, and
+        # the files a producer inside the approval handed this node beside
+        # its structure -- a saddle's Hessian for its IRC -- are the host's
+        # to bind, never the caller's to name. They were never bound, so
+        # every IRC the approval admitted with its saddle's Hessian was
+        # launched without it.
+        job_artifact_options = self._approved_auxiliary_inputs(
+            values["node_id"]
+        )
         invocation = compile_command(
             proposal,
             capability=capability,
@@ -11354,6 +11395,7 @@ class CommandCompiledToolHostV1:
             project_validation=validation,
             input_artifact=input_artifact,
             scientific_identity=identity,
+            job_artifact_options=dict(job_artifact_options),
             job_option_values=native_coordinate_options(
                 values["program"],
                 coordinates,
@@ -11386,8 +11428,53 @@ class CommandCompiledToolHostV1:
                 proposal.node_id, input_artifact
             ),
             scientific_identity=identity,
+            job_artifact_options=job_artifact_options,
         )
         return self._record_compiled_command(turn_id, invocation, context)
+
+    def _approved_auxiliary_inputs(
+        self, node_id: str
+    ) -> tuple[tuple[str, TrustedArtifactRefV1], ...]:
+        """The auxiliary files an approved producer handed ``node_id``.
+
+        One entry per admitted Hessian edge into the node, bound to the
+        artifact its validated handoff selected; empty outside an approved
+        execution or for a node no such edge feeds. An admitted edge with
+        no handoff is refused by name: the consumer must not run without
+        the input the approval granted it.
+        """
+
+        approval = getattr(self, "workflow_execution_approval", None)
+        if approval is None:
+            return ()
+        options: dict[str, TrustedArtifactRefV1] = {}
+        for edge in getattr(approval, "producer_edges", ()) or ():
+            if edge.consumer_node_id != node_id:
+                continue
+            role = hessian_role_for_rule(edge.selection_rule)
+            if role is None:
+                continue
+            handoff = self.hessian_handoffs.get(node_id)
+            if (
+                handoff is None
+                or handoff.producer_edge_sha256 != edge.edge_sha256
+            ):
+                raise ContractError(
+                    f"node {node_id!r} was approved with the "
+                    f"{role.consumer_input_id} that {edge.producer_node_id!r} "
+                    "hands on, and no validated handoff of it exists"
+                )
+            artifact = self.artifacts.get(handoff.selected_artifact_id)
+            if (
+                artifact is None
+                or artifact.sha256 != handoff.selected_artifact_sha256
+            ):
+                raise ContractError(
+                    f"the {role.consumer_input_id} handed to {node_id!r} is "
+                    "not the artifact its handoff selected"
+                )
+            options[role.consumer_input_id] = artifact
+        return tuple(sorted(options.items()))
 
     def _preview_command(self, turn_id: str, values: dict) -> Any:
         invocation = self._get(
@@ -15176,6 +15263,15 @@ class CommandCompiledToolHostV1:
                     ),
                     live_schema=self.live_schema,
                     server=self.preview_server,
+                    # The Hessian a producer inside this approval hands on
+                    # is displayed where it will be passed, bound to the
+                    # edge that produces it; the reviewed command once
+                    # left it out, and so did every IRC that ran.
+                    future_job_artifact_options=(
+                        _future_auxiliary_placeholders(
+                            producer_edges, planned_node.node_id
+                        )
+                    ),
                 )
                 review_input_sha256 = edge.edge_sha256
                 input_binding = (
@@ -16293,12 +16389,48 @@ class CommandCompiledToolHostV1:
                 review.server_profile_sha256,
             )
         auxiliary_by_name = dict(context.job_artifact_options)
+        # A file a producer inside the approval handed on had no bytes when
+        # the command was reviewed: the review shows the edge that makes
+        # it, and the launch binds the file its handoff selected to that
+        # same edge -- nothing else may stand in its place.
+        future_edges = (
+            {
+                hessian_role_for_rule(edge.selection_rule).consumer_input_id: (
+                    edge
+                )
+                for edge in getattr(
+                    self.workflow_execution_approval, "producer_edges", ()
+                )
+                or ()
+                if edge.consumer_node_id == node_id
+                and hessian_role_for_rule(edge.selection_rule) is not None
+            }
+            if input_role == "producer-geometry"
+            else {}
+        )
         for binding in invocation.auxiliary_input_bindings:
             artifact = auxiliary_by_name.get(binding.parameter_name)
             if artifact is None or artifact.sha256 != binding.artifact_sha256:
                 raise ContractError(
                     "auxiliary input differs from human review"
                 )
+            future_edge = future_edges.get(binding.parameter_name)
+            if future_edge is not None:
+                handoff = self.hessian_handoffs.get(node_id)
+                if (
+                    handoff is None
+                    or handoff.producer_edge_sha256 != future_edge.edge_sha256
+                    or handoff.selected_artifact_sha256 != artifact.sha256
+                ):
+                    raise ContractError(
+                        f"{binding.parameter_name} is not the file the "
+                        "reviewed producer edge handed on"
+                    )
+                path_bindings[artifact.cli_value] = (
+                    _future_auxiliary_role(binding.parameter_name),
+                    future_edge.edge_sha256,
+                )
+                continue
             path_bindings[artifact.cli_value] = (
                 "auxiliary-" + binding.parameter_name,
                 binding.artifact_sha256,
