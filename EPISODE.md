@@ -277,6 +277,20 @@ B3LYP/def2-TZVP HI optimised and its Hessian in PySCF: r_e 1.60-1.63 A,
 one real mode 2250-2400 cm-1, both receipts validated.
 O2'-C. Gaussian CEP-31G water as written now prints `(5D, 7F)`.
 
+## O2' results (CUHK Slurm 2152029, prereg d4bf3f737d3a, code d31f1170)
+
+20 commands, 19 exit 0. O2'-A holds: all nine PySCF iodine runs
+`validated`, atomic numbers [1, 53] / [53] / [6, 53, 1, 1, 1], totals equal
+to O2's within 3.4e-13 Eh, HI HF wavenumber 2421.80 cm-1. O2'-B holds:
+CCSD(T)/def2-TZVP De(HI) 75.89057 kcal/mol from ORCA and from PySCF auto
+(difference < 1e-5); PySCF with the frozen core unset 76.13738 (+0.247).
+ORCA's CCSD(T) of the H atom failed (`orca_mdci`: "Number of processes
+(8) in parallel calculation exceeds number of pairs (0)"); its reference
+energy, exact for one electron, stands in (-0.499809832 Eh, equal to
+PySCF's). PySCF B3LYP/def2-TZVP HI optimised to r_e 1.6155 A, its Hessian
+one mode at 2299.88 cm-1 (max|g| 2.9e-6), both validated. O2'-C holds:
+CEP-31G `(5D, 7F)`.
+
 ## Goal g1-hi (pre-registered before issue; code d31f1170, packed as code-r2)
 
 Task (TASK.md, verbatim): "The attached structure is hydrogen iodide (HI,
