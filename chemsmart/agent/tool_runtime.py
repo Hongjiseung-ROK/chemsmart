@@ -12290,6 +12290,16 @@ class CommandCompiledToolHostV1:
         )
         from chemsmart.agent.preview import retained_preview_artifact
 
+        # A check speaks for the compile it read and for no later one. The
+        # record used to be written when a check ran and kept when a later
+        # compile of the same node ran none, so ORCA's refusal of an ORCA
+        # node's bytes stayed that node's word after the session re-planned
+        # it in Gaussian: the compile reply, the frozen review and the
+        # executor's launch check all carried it, and two approved Gaussian
+        # nodes were refused "on these exact bytes" (R10 Q15 g1, CUHK Slurm
+        # 2152875). Every preflight of a node retires the node's record
+        # first; only a check of this compile's input takes its place.
+        getattr(self, "_input_check_by_node", {}).pop(node_id, None)
         executable = getattr(self, "input_check_executable", None)
         if program != "orca" or executable is None:
             return None
