@@ -219,6 +219,45 @@ Predictions (never tuned after a result):
   basis, RI, frozen core), the state (0, 1), and the producer of every
   handed-on structure and Hessian.
 
+## Live goal G1 -- PRE-REGISTRATION (written before submission)
+
+- Task: goals/g1/TASK.md (sha256 in Jobs issued), posed as a scientist would:
+  the activation enthalpy of the ring closure at 412 K and the reaction
+  enthalpy at 298.15 K, gas phase, at a defensible level, with the TS's
+  connectivity shown and what each number rests on; ORCA, PySCF, Gaussian
+  and xTB named as available; no stage, program, conformer or reference
+  state named. Workspace: hexatriene.xyz only (sha256 f1d003fa93384b0f...,
+  the tZt MMFF structure, comment line naming only the molecule).
+- Agent: deepseek-v4-flash-0731 via alibaba-token-plan; knowledge documents
+  off (the default); approval `claude-researcher-q20-owner-delegated` (a
+  delegated approval, never a human decision).
+- Envelope (make_goal.py): orca, pyscf, gaussian, xtb on cpu; 32 cores, 100
+  GB, node 3 h, episode 11 h, reserve 30 min, 30 engine calls, 0 excursion
+  calls, 3 revisions; local dispatch.
+- Code: r2 = this branch merged with r10-integration de13de96 (c0896a07,
+  tree 5c72afb5); a g0 dry run (provider alibaba-dryrun, decision deny, no
+  provider or engine cost) first checks the import path and the workspace.
+
+Read from host records only (ledger, run streams, receipts, native output):
+- R1 route: which programs for which stage, and the recorded reason for
+  each crossing. A single-program route is recorded as the model's choice;
+  B is then not claimed.
+- R2 lineage per handoff: producer node, handoff receipt, atom order, state
+  (0, 1), and the level each program applied (functional as written,
+  dispersion, basis, RI, frozen core).
+- R3 the numbers against B1-B4 and against O1b at matched level where one
+  exists; which conformer the activation enthalpy is referenced to.
+- R4 the host's words: settlement, anomalies, and whether each word is true
+  of what it read.
+- H-G1a (the repair, live): a dispersion pair census D found unparameterised
+  is refused at project validation with its route and costs no engine call.
+  FALSIFIED by any engine call that dies on dispersion parameters ("R6DS",
+  "Non-parameterized functional", "No entry for"). "Not exercised" if the
+  session never asks for such a pair.
+Milestone B is claimed only if R1 shows an Agent-chosen cross-program route
+with a recorded scientific reason, R2 holds on every handoff, B1-B3 pass (B3
+referenced to the equilibrium reactant), and B4 is read as stated.
+
 ## Plan
 
 1. Census D (above). Then the repair in radius: each settings class refuses at
@@ -295,6 +334,11 @@ predictions stand as written.
 - 2026-09-25: O1 cancelled by me (see above). O1b, next submission, code
   a8dd1777 (tree b572f5bd, the oracle's writers unchanged by the repair for
   B3LYP-D3(BJ)), in cli/o1b with O1's tZt and cZc outputs copied in.
+- 2026-09-25: O1b, CUHK Slurm 2153573 (r10-q20-a), pre-registration
+  9e6aa6783a44.
+- G1 files (sha256): TASK.md 8843eee2b482a0fe..., envelope.yaml
+  aef67402..., goal.sh 38104bb0... (PYTHONPATH r2/code); g0 = the same
+  task, envelope and code with provider alibaba-dryrun, decision deny.
 - Merged r10-integration again (Q18, de13de96) as c0896a07; packed as r2
   (tree 5c72afb5); tests/agent 3147 passed on the merged tree; census D
   replayed through the merged writers unchanged (zero false refusals).
