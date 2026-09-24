@@ -26,7 +26,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping, Sequence
 
 import yaml
 
@@ -477,6 +477,263 @@ def session_read_run_outcome(
     return False
 
 
+def cited_receipts(evidence_refs: Iterable[Any]) -> frozenset[str]:
+    """The digests a recorded decision's evidence references name.
+
+    The text after the last ``:`` of each reference, so ``receipt:<d>``,
+    ``doubt:<d>`` and a bare digest all name ``<d>``: citing is how a
+    decision says it has looked at a receipt, without the host grading
+    the prose beside it.
+    """
+
+    return frozenset(
+        str(reference).split(":")[-1]
+        for reference in evidence_refs
+        if str(reference).strip()
+    )
+
+
+def results_read(
+    source_receipt_sha256: str,
+    quantity_id: str,
+    *,
+    result_artifacts: Mapping[str, str],
+    expression_sources: Mapping[tuple[str, str], Sequence[str]],
+    _depth: int = 0,
+) -> frozenset[str]:
+    """The result bytes one quantity rests on, as its receipts record them.
+
+    A receipt that read a result names the result's artifact digest; an
+    expression output is followed back through the receipts its own
+    receipt lists for it, and an expression receipt named as a source
+    stands for every output it exported. Whatever the records cannot
+    resolve stands as itself, prefixed ``receipt:``, so an unresolvable
+    source is never mistaken for a result it did not read.
+    """
+
+    source = str(source_receipt_sha256 or "")
+    artifact = result_artifacts.get(source)
+    if artifact:
+        return frozenset({str(artifact)})
+    sources = expression_sources.get((source, str(quantity_id or "")))
+    if sources is None or _depth > 8:
+        return frozenset({f"receipt:{source}"})
+    found: set[str] = set()
+    for item in sources:
+        item = str(item or "")
+        if not item:
+            continue
+        if result_artifacts.get(item):
+            found.add(str(result_artifacts[item]))
+            continue
+        outputs = [key for key in expression_sources if key[0] == item]
+        if not outputs:
+            found.add(f"receipt:{item}")
+            continue
+        for receipt, output_id in outputs:
+            found |= results_read(
+                receipt,
+                output_id,
+                result_artifacts=result_artifacts,
+                expression_sources=expression_sources,
+                _depth=_depth + 1,
+            )
+    return frozenset(found) or frozenset({f"receipt:{source}"})
+
+
+@dataclass(frozen=True)
+class FailedCriterionV1:
+    """One rule of a plan's own acceptance criterion that did not hold.
+
+    A ``scientific_validation`` node is the session's pre-registered
+    expectation about a result -- this structure is a minimum, this
+    reference is stable, this spread is inside the tolerance -- and a
+    failed rule is the physics leaving it. That is a finding, never a
+    defect. Whether the goal can deliver it depends on one fact the
+    records hold: whether a recorded decision cites a receipt carrying
+    this verdict. Answered, the verdict stands in the delivery beside
+    the reading; unanswered, nothing the verdict rejected is delivered.
+    """
+
+    node_id: str
+    rule_id: str
+    #: The number the rule judged, exactly as the receipt carries it.
+    observed: Any
+    #: Every (predicate, threshold, unit) a receipt stated it under.
+    stated_as: tuple[tuple[str, Any, str], ...]
+    #: The result bytes the rule read (see ``results_read``).
+    results: tuple[str, ...]
+    #: Every validation receipt that carries this verdict, in order.
+    receipt_sha256s: tuple[str, ...]
+    #: (source receipt, quantity id) of every input the rule read.
+    bindings: tuple[tuple[str, str], ...]
+    #: The receipts among ``receipt_sha256s`` a recorded decision cites.
+    answered_by: tuple[str, ...]
+
+    @property
+    def label(self) -> str:
+        return f"{self.node_id}/{self.rule_id}"
+
+    @property
+    def answered(self) -> bool:
+        return bool(self.answered_by)
+
+    @property
+    def observation_id(self) -> str:
+        """How a completion and a settlement word name this verdict."""
+
+        if self.answered:
+            return (
+                f"failed_criterion:{self.label}:answered:"
+                f"{self.answered_by[-1][:8]}"
+            )
+        return (
+            f"failed_criterion:{self.label}:unanswered:"
+            f"{self.receipt_sha256s[-1][:8]}"
+        )
+
+    def statement(self) -> str:
+        """The verdict in words a reader can check against its receipt."""
+
+        stated = "; ".join(
+            " ".join(
+                part
+                for part in (
+                    predicate,
+                    json.dumps(threshold) if threshold is not None else "",
+                    unit,
+                )
+                if part
+            )
+            for predicate, threshold, unit in self.stated_as
+            if predicate
+        )
+        return (
+            f"{self.label} read {json.dumps(self.observed)} against "
+            f"{stated or 'its stated rule'}"
+        )
+
+
+def failed_criteria(
+    validations: Iterable[Mapping[str, Any]],
+    *,
+    cited: Iterable[str] = (),
+    result_artifacts: Mapping[str, str] | None = None,
+    expression_sources: Mapping[tuple[str, str], Sequence[str]] | None = None,
+) -> tuple[FailedCriterionV1, ...]:
+    """Every failed acceptance-criterion verdict, and who answered it.
+
+    ``validations`` are scientific-validation receipts as the records
+    carry them -- an event payload (fields under ``record``) or the
+    receipt's own canonical data. ``cited`` are the digests recorded
+    decisions cite (``cited_receipts``).
+
+    A verdict is what a failed rule states: this criterion's rule read
+    this number from these results and did not hold. Two receipts that
+    state it are one verdict, and a decision that cites either has
+    answered it. A session that evaluates its criterion twice over the
+    same result and cites the second receipt has read the finding; the
+    first receipt is not a second, unread one (o2r, R10 Q13, and its
+    replay L1, R10 Q16: every re-evaluation read the identical number
+    and only the latest receipt was cited). The rule's threshold is the
+    session's own statement of what it expected and is not part of the
+    verdict's identity, so re-stating the threshold over the same
+    number is still the same finding. What never answers a verdict is
+    a later *passing* evaluation: a criterion rewritten without the
+    rules that failed passes over the very result they rejected, and
+    only a citation says the failure was read (h1b, ax41 general round,
+    2026-09-02: the imaginary-mode participation rules failed for both
+    Diels-Alder saddles, the next cycle's criterion dropped them and
+    passed over the same two results, and the goal settled achieved).
+    """
+
+    cited_set = {str(item) for item in cited}
+    artifacts = dict(result_artifacts or {})
+    expressions = dict(expression_sources or {})
+    grouped: dict[tuple, dict[str, Any]] = {}
+    for item in validations:
+        record = item.get("record") if isinstance(item, Mapping) else None
+        record = record if isinstance(record, Mapping) else item
+        if bool(
+            record.get("all_rules_passed", item.get("all_rules_passed", True))
+        ):
+            continue
+        digest = str(item.get("receipt_sha256") or "")
+        node_id = str(item.get("node_id") or record.get("node_id") or "")
+        bindings = {
+            str(binding.get("input_id") or ""): (
+                str(binding.get("source_receipt_sha256") or ""),
+                str(binding.get("quantity_id") or ""),
+            )
+            for binding in record.get("input_bindings") or ()
+        }
+        for rule in record.get("rule_results") or ():
+            if bool(rule.get("passed", True)):
+                continue
+            read = tuple(
+                bindings[str(input_id)]
+                for input_id in rule.get("input_ids") or ()
+                if str(input_id) in bindings
+            )
+            results: set[str] = set()
+            for source, quantity_id in read:
+                results |= results_read(
+                    source,
+                    quantity_id,
+                    result_artifacts=artifacts,
+                    expression_sources=expressions,
+                )
+            observed = rule.get("observed_value")
+            key = (
+                node_id,
+                str(rule.get("rule_id") or ""),
+                json.dumps(observed, sort_keys=True, default=str),
+                tuple(sorted(results)),
+            )
+            entry = grouped.setdefault(
+                key,
+                {
+                    "observed": observed,
+                    "stated_as": [],
+                    "receipts": [],
+                    "bindings": [],
+                },
+            )
+            stated = (
+                str(rule.get("predicate") or ""),
+                (
+                    rule.get("threshold")
+                    if rule.get("threshold") is not None
+                    else rule.get("expected_count")
+                ),
+                str(rule.get("unit") or ""),
+            )
+            if stated not in entry["stated_as"]:
+                entry["stated_as"].append(stated)
+            if digest and digest not in entry["receipts"]:
+                entry["receipts"].append(digest)
+            for pair in read:
+                if pair not in entry["bindings"]:
+                    entry["bindings"].append(pair)
+    return tuple(
+        FailedCriterionV1(
+            node_id=key[0],
+            rule_id=key[1],
+            observed=entry["observed"],
+            stated_as=tuple(entry["stated_as"]),
+            results=key[3],
+            receipt_sha256s=tuple(entry["receipts"]),
+            bindings=tuple(entry["bindings"]),
+            answered_by=tuple(
+                receipt
+                for receipt in entry["receipts"]
+                if receipt in cited_set
+            ),
+        )
+        for key, entry in grouped.items()
+    )
+
+
 @dataclass(frozen=True)
 class RevisionAdmissionV1:
     """One deterministic admission verdict, with every check named."""
@@ -700,12 +957,16 @@ __all__ = [
     "goal_scope_is_unbound",
     "GOAL_SCHEMA_VERSION",
     "GOAL_SETTLEMENTS",
+    "FailedCriterionV1",
     "GoalBudgetsV1",
     "GoalLedger",
     "GoalRecordV1",
     "RevisionAdmissionV1",
     "admit_revision",
+    "cited_receipts",
     "conditions_from_review",
     "extract_plan_conditions",
+    "failed_criteria",
+    "results_read",
     "session_read_run_outcome",
 ]

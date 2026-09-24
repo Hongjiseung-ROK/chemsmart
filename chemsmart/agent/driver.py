@@ -49,8 +49,11 @@ from chemsmart.agent.goal import (
     GoalLedger,
     GoalRecordV1,
     admit_revision,
+    cited_receipts,
     conditions_from_review,
+    failed_criteria,
     goal_scope_is_unbound,
+    results_read,
 )
 from chemsmart.agent.rules import rules_by_id
 from chemsmart.agent.terminal_states import (
@@ -778,6 +781,23 @@ def _delivery_settlement(
         # has not settled (two live goals, 2026-09-02).
         settled = "returned_to_human"
         reasons = delivery.stopped_by
+    elif (delivery.claims or delivery.decisions) and (
+        delivery.unanswered_verdicts
+    ):
+        # The gate did not certify because the plan's own criterion failed
+        # and nobody answered it. Say which finding the goal is waiting
+        # on: "the gate did not pass" named nothing a human could act on
+        # (L1, R10 Q16).
+        settled = "returned_to_human"
+        reasons = (
+            f"the session ended {terminal!r} ({delivery.ending}); the "
+            "completion is not certified",
+        )
+        if delivery.unanswered_verdicts:
+            reasons = reasons + (
+                "a validation verdict failed and no recorded decision "
+                "cites it: " + ", ".join(delivery.unanswered_verdicts),
+            )
     elif delivery.claims or delivery.decisions:
         # Something was recorded, but the host never certified
         # completion -- a human reads it, whatever the session's
@@ -2690,29 +2710,22 @@ def _stale_quantity_ids(
         str(item) for item in inherited_rejected_artifacts if item
     }
 
-    def _resolve(receipt: str, quantity_id: str, depth: int = 0) -> None:
-        """Name the results a rejected binding ultimately rests on."""
-
-        if depth > 8:
-            return
-        artifact = artifact_by_receipt.get(receipt)
-        if artifact:
-            rejected_artifacts.add(artifact)
-            return
-        for source in sources_by_output.get((receipt, quantity_id), ()):
-            if not source:
-                continue
-            producer = artifact_by_receipt.get(source)
-            if producer:
-                rejected_artifacts.add(producer)
-                continue
-            for other, output_id in sources_by_output:
-                if other == source:
-                    _resolve(other, output_id, depth + 1)
-
     for receipt, quantity_id in rejected_bindings:
         if receipt:
-            _resolve(receipt, quantity_id)
+            # The results a rejected binding ultimately rests on, read by
+            # the same resolver that gives a failed criterion its
+            # identity; a source the records cannot resolve rejects
+            # nothing.
+            rejected_artifacts.update(
+                result
+                for result in results_read(
+                    receipt,
+                    quantity_id,
+                    result_artifacts=artifact_by_receipt,
+                    expression_sources=sources_by_output,
+                )
+                if not result.startswith("receipt:")
+            )
 
     # Every read of a rejected result, not only the one the rule saw.
     tainted_receipts = {
@@ -2772,6 +2785,74 @@ def _printed_no_modes(record: Mapping[str, Any]) -> bool:
     return False
 
 
+@dataclass(frozen=True)
+class _VerdictRecords:
+    """What a stream holds that judges a failed acceptance criterion.
+
+    The validation receipts, the digests recorded decisions cite, and the
+    two maps that resolve a rule's inputs to the results it read. The
+    settlement and the tool host build these from one representation --
+    the receipt, carried whole in the stream's event -- and hand them to
+    one function (``goal.failed_criteria``).
+    """
+
+    validations: tuple[Mapping[str, Any], ...] = ()
+    cited: frozenset[str] = frozenset()
+    result_artifacts: Mapping[str, str] = field(default_factory=dict)
+    expression_sources: Mapping[tuple[str, str], tuple[str, ...]] = field(
+        default_factory=dict
+    )
+
+
+def _verdict_records(lines: Sequence[str]) -> _VerdictRecords:
+    validations: list[Mapping[str, Any]] = []
+    cited: set[str] = set()
+    result_artifacts: dict[str, str] = {}
+    expression_sources: dict[tuple[str, str], tuple[str, ...]] = {}
+    for line in lines:
+        text = line.strip()
+        if not text:
+            continue
+        try:
+            event = json.loads(text)
+        except json.JSONDecodeError:
+            continue
+        kind = str(event.get("kind") or "")
+        payload = event.get("payload") or {}
+        digest = str(payload.get("receipt_sha256") or "")
+        record = payload.get("record") or {}
+        if kind == "scientific_validation_evaluated":
+            validations.append(payload)
+        elif kind == "scientific_decision_recorded":
+            # A decision that cites the validation receipt has looked at
+            # the failed verdict and stood by its delivery. That is the
+            # scientist's call to make, and citing the receipt is how it
+            # is made without the host grading prose.
+            cited |= cited_receipts(record.get("evidence_refs") or ())
+        elif kind == "result_quantities_extracted" and digest:
+            artifact = str(
+                payload.get("artifact_sha256")
+                or record.get("artifact_sha256")
+                or ""
+            )
+            if artifact:
+                result_artifacts[digest] = artifact
+        elif kind == "quantity_expression_evaluated" and digest:
+            for dependency in record.get("output_dependencies") or ():
+                expression_sources[
+                    (digest, str(dependency.get("output_id") or ""))
+                ] = tuple(
+                    str(item)
+                    for item in dependency.get("source_receipt_sha256s") or ()
+                )
+    return _VerdictRecords(
+        validations=tuple(validations),
+        cited=frozenset(cited),
+        result_artifacts=result_artifacts,
+        expression_sources=expression_sources,
+    )
+
+
 def _analysis_delivery(
     events_path: Path,
     *,
@@ -2800,8 +2881,6 @@ def _analysis_delivery(
 
     declared_misses: tuple[str, ...] = ()
     limitations: tuple[str, ...] = ()
-    failed_verdicts: list[tuple[str, str, str]] = []
-    decision_refs: set[str] = set()
     claims = 0
     decisions = 0
     decision_uncertainties: list[str] = []
@@ -2974,11 +3053,6 @@ def _analysis_delivery(
                 text_ref = str(reference)
                 if text_ref.startswith("doubt:"):
                     doubt_refs.add(text_ref[len("doubt:") :])
-                # A decision that cites the validation receipt has looked
-                # at the failed verdict and stood by its delivery. That is
-                # the scientist's call to make, and citing the receipt is
-                # how it is made without the host grading prose.
-                decision_refs.add(text_ref.split(":")[-1])
         elif kind == "analysis_claims_recorded":
             claims += 1
             if digest:
@@ -3139,33 +3213,6 @@ def _analysis_delivery(
         elif kind == "scientific_validation_evaluated":
             if digest:
                 receipts.append(digest)
-            if not bool(payload.get("all_rules_passed", True)):
-                node_id = str(payload.get("node_id") or "")
-                record = payload.get("record") or {}
-                bindings = {
-                    str(binding.get("input_id") or ""): (
-                        str(binding.get("source_receipt_sha256") or ""),
-                        str(binding.get("quantity_id") or ""),
-                    )
-                    for binding in record.get("input_bindings") or ()
-                }
-                for rule in record.get("rule_results") or ():
-                    if not bool(rule.get("passed", True)):
-                        failed_verdicts.append(
-                            (
-                                node_id,
-                                str(rule.get("rule_id") or ""),
-                                digest,
-                            )
-                        )
-                        # The rule read these receipts and rejected what
-                        # it found in them; everything else computed from
-                        # the same receipts describes the same rejected
-                        # structure.
-                        for input_id in rule.get("input_ids") or ():
-                            binding = bindings.get(str(input_id))
-                            if binding and binding[0]:
-                                rejected_bindings.append(binding)
         elif kind in {
             "result_quantities_extracted",
             "quantity_expression_evaluated",
@@ -3201,10 +3248,39 @@ def _analysis_delivery(
                             ),
                         )
                     )
+    # The plan's own acceptance criteria, judged by the one function the
+    # session's completion and the executor's completion also call. A
+    # verdict is answered when a recorded decision cites a receipt that
+    # states it.
+    here = _verdict_records(lines)
+    goal = here
+    verdicts = failed_criteria(
+        goal.validations,
+        cited=goal.cited,
+        result_artifacts=goal.result_artifacts,
+        expression_sources=goal.expression_sources,
+    )
+    here_receipts = {
+        str(item.get("receipt_sha256") or "") for item in here.validations
+    }
     unanswered = tuple(
-        f"{node_id}/{rule_id}"
-        for node_id, rule_id, digest in failed_verdicts
-        if digest not in decision_refs
+        verdict.label
+        for verdict in verdicts
+        if not verdict.answered
+        and here_receipts.intersection(verdict.receipt_sha256s)
+    )
+    # The rule read these receipts and rejected what it found in them;
+    # everything else computed from the same receipts describes the same
+    # rejected structure -- unless a recorded decision answered the
+    # verdict, in which case the session has read the finding and stands
+    # by what it computed, and the numbers are its delivery, carrying it.
+    rejected_bindings.extend(
+        binding
+        for verdict in verdicts
+        if not verdict.answered
+        and here_receipts.intersection(verdict.receipt_sha256s)
+        for binding in verdict.bindings
+        if binding[0]
     )
     # Quantities standing on a node that did not meet the promise it was
     # launched under, split by whether the session had the host check what
