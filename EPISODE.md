@@ -250,7 +250,7 @@ equal on a270eca6).
 | 2149579 | r10-q3-a | batch-dev1: D1 in C, B, A; D3 in C (dev, provider-only) | e7f1723f7b06 | COMPLETED; 4 sessions, exit 0, waiting_for_approval each |
 | 2151849 | r10-q3-a | live goal g1 = q03 in arm C (64fc0ca1 packed as the campaign code, CHEMSMART_AGENT_SKILLS=1); make_goal.py: gaussian, orca, pyscf, xtb on cpu; 32 cores, 120 GB (+8 controller), node 6 h, episode 10 h, 12 engine calls, 0 excursions, 2 revisions; granted by claude-researcher-q3-owner-delegated (a delegated approval, not a human decision); TASK.md and workspace are the sealed question's own files; bands sealed at af4569be... | 9a82ee130e42 | running; code digest cdfd90c9 verified in the job; cycle 1's two ORCA opt nodes exited in 1-2 s (ORCA 6.1.1: "MP2 analytic Hessian calculations are not implemented - please use NumFreq" -- the session asked for `freq: true` on an MP2 project, and the pinned code does not run the input-check probe inside an allocation); cycle 2 admitted |
 | 2152066 | r10-q3-b | live goal g2 = q03 in arm B (same code, CHEMSMART_AGENT_SKILLS=0), same envelope, submitted after g1's planning session ended | 9a82ee130e42 | running |
-| (queued) | -- | live goal g3 = q02 in arm C (control), same envelope | -- | submitted when a slot frees |
+| 2152108 | r10-q3-a | live goal g3 = q02 in arm C (control), same envelope and code | 1a3a6ba851cc | queued behind g1 on slot a (singleton) |
 | 2149677 | r10-q3-a | sealed1: the 48 sealed sessions (provider-only), plan 06ac7515 | 34a1e57ab05a | COMPLETED 0:0, 8:13:53 (04:02-12:15 HKT); the job verified both code digests (d3652db7 = 292b9bf3, cdfd90c9 = 64fc0ca1), all 52 sealed files and the plan digest before the first session; 48 of 48 sessions exit 0 |
 
 ## Sealed run: host records (read before any grading)
@@ -395,6 +395,12 @@ singlet_*/triplet_* selector blocks), repaired in cbd02f00.
 
 ## Status
 
-Phase 3: tests done (above). Next: the three pre-registered live goals
-(q03 in B and in C, q02 in C), bands sealed at af4569be... before any
-grade was read; then the r10-integration merge, the gates, the report.
+Phase 3: tests done; the merge (422e0607), the witness repair (cbd02f00)
+and the default change (1fd1d17e) are committed; gates at b26a6f7f:
+tests/agent green from a pristine export, full suite 23 failing with the
+set identical to the base's, ruff/black/isort clean on every touched
+file. Waiting on the three live goals: 2151849 (g1, q03 C, in cycle 2
+after a numfreq repair), 2152066 (g2, q03 B, planning), 2152108 (g3, q02
+C, queued). On resume: read each settlement and delivered value from
+host records against the sealed bands (af4569be...), then the final
+report.
