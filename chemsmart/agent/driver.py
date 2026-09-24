@@ -4786,7 +4786,9 @@ class GoalDriver:
                 },
             )
 
-    def _settle_delivery(self, terminal: str) -> GoalLoopResultV1 | None:
+    def _settle_delivery(
+        self, terminal: str, extra_reasons: tuple[str, ...] = ()
+    ) -> GoalLoopResultV1 | None:
         if self.events_path is None:
             # Nothing durable to read a delivery from: the goal still ends
             # in a typed state, and the reason says why a human reads it.
@@ -4821,6 +4823,7 @@ class GoalDriver:
             terminal=terminal,
             workspace=self.workspace,
         )
+        reasons = tuple(reasons) + tuple(extra_reasons)
         try:
             stream = str(
                 self.events_path.parent.relative_to(
@@ -5508,6 +5511,34 @@ class GoalDriver:
 
             decision = build_execution_wave_decision()
         if decision is not None and decision.state != "selected":
+            if (
+                str(getattr(decision, "workflow_id", "") or "")
+                and not tuple(getattr(decision, "ready_node_ids", ()) or ())
+                and self.events_path is not None
+                and not _session_wave_selections(self.events_path)
+            ):
+                # A park waits for a decision, and none can be made here:
+                # the workflow the session planned last holds nothing to
+                # select, the session selected no wave on any workflow,
+                # and a resumed pending decision stays pending. R10 Q15 g2
+                # (CUHK 2153334) parked this way for good -- a diagnostic
+                # probe had been reviewed, the session then planned an
+                # analysis-only refusal and recorded a refusal the host
+                # verified, and nothing ever read it. The goal settles on
+                # what the session's stream holds, and says which reviewed
+                # workflow did not run and why. A session that did select
+                # a wave a later plan replaced still parks naming it: that
+                # is the wave's boundary, not a missing decision.
+                self._settle_delivery(
+                    str(getattr(self.session, "terminal_state", "") or ""),
+                    extra_reasons=(
+                        "the reviewed workflow was not run: the session "
+                        "selected no wave, and the workflow it planned last "
+                        f"({decision.workflow_id or '(unnamed)'}) holds no "
+                        "calculation a wave could select",
+                    ),
+                )
+                return
             self._park_for_execution_wave_decision(
                 decision,
                 reason=(

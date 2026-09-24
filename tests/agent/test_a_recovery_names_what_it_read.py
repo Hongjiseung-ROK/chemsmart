@@ -679,3 +679,37 @@ def test_a_returned_delivery_says_what_its_completion_receipt_holds(
     (reason,) = result.reasons
     assert said in reason
     assert unsaid not in reason
+
+
+def test_a_park_no_decision_can_resolve_settles_on_what_the_session_left(
+    tmp_path,
+):
+    """R10 Q15 g2 (CUHK 2153334): the woken session compiled a diagnostic
+    probe (a review was built for it), then planned an analysis-only
+    refusal workflow and recorded a refusal the host verified. The wave
+    decision followed the last plan, which holds no calculation, so the
+    goal parked on "no wave can be selected on it" -- a decision nobody
+    could make, and a resumed pending decision stays pending: the goal
+    never settled, and the refusal it held was never read."""
+
+    from chemsmart.agent.cohort import build_execution_wave_decision
+    from chemsmart.agent.goal import GOAL_SETTLEMENTS
+
+    def probe_then_refusal(workspace, kwargs):
+        step = _planning_session("live-1", review=_review_payload())
+        session = step(workspace, kwargs)
+        session.selected_execution_wave = ()
+        session.execution_wave_decision = build_execution_wave_decision(
+            state="undecided",
+            workflow_id="bergman-refusal-v6",
+            ready_node_ids=(),
+            node_ids=(),
+        )
+        return session
+
+    result = _loop(tmp_path, sessions=[probe_then_refusal], executes=[])
+    assert result.settlement in GOAL_SETTLEMENTS
+    assert any(
+        "bergman-refusal-v6" in reason and "not run" in reason
+        for reason in result.reasons
+    )
