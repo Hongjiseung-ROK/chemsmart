@@ -45,7 +45,13 @@ from chemsmart.agent.tool_runtime import (
     _future_auxiliary_placeholders,
     _future_auxiliary_role,
 )
-from tests.agent.gaussian_fake_preview import artifact, capability, validate
+from tests.agent.gaussian_fake_preview import (
+    artifact,
+)
+from tests.agent.gaussian_fake_preview import capability as capability_receipt
+from tests.agent.gaussian_fake_preview import (
+    validate,
+)
 
 pytestmark = pytest.mark.capability("program_jobtype:orca:cpu:irc")
 
@@ -89,7 +95,7 @@ def _compile(tmp_path, **options):
         },
         "irc",
     )
-    receipt = capability("orca", "irc")
+    receipt = capability_receipt("orca", "irc")
     environment = query_environment(
         receipt,
         targets=(EnvironmentTargetV1("orca", "cpu", "executable", "orca"),),
