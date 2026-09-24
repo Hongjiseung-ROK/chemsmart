@@ -231,3 +231,27 @@ Bands (never tuned after a result):
   (test_structures 19, test_pyscf_dispersion_conformance 2,
   test_PyscfSettings 1, test_aggregation 1), 4480 passed.
 - Waiting on G2 (2151911) and G1 (2151912).
+
+## G2 -- READ (CUHK Slurm 2151911; code 20dd195d, digest 35a90313 verified on the node)
+
+Settled `achieved_with_observations` after 2 cycles, 0 revisions
+(host ledger). Against the pre-registration:
+- C2 PASS: the cycle-1 session named `orca-ts` and `orca-irc` in one wave
+  (verdict: orca-irc `after`); both launched under the one frozen
+  approval goal-g2-cycle-1; the IRC reservation came 1 s after the
+  saddle validated and both edges (geometry, Hessian) were bound. The
+  archived control (2142426) never ran its approved IRC.
+- C1 PASS: reviewed command `... irc --hess-filename
+  <producer-hess_filename:sha256=53da0f92...>`; launched argv carries
+  `--hess-filename .../artifacts/orca-ts--orca-irc.hess` with
+  auxiliary_input_bindings = [hess_filename -> hessian.orca-ts-to-orca-irc];
+  native input `inithess read` + `Hess_Filename "orca-ts--orca-irc.hess"`;
+  ORCA: "Initial displacement Hessian type .... Read". No launch refusal.
+- Physics PASS: one imaginary mode, 1122.56i cm-1 (band [1000, 1250]);
+  the branch reached the HNC side (N-H 1.005 A, C-H 2.142 A, C-N 1.176 A),
+  descending 32.75 kcal/mol in 21 frames and stopping at ORCA's step
+  limit -- the session reported that it did not reach its end.
+- The host recorded one observation nobody asked for: the session's own
+  expectation band for the imaginary frequency (-1500 to -2600 cm-1)
+  was falsified by the delivered -1122.56; the session wrote that down.
+- Recorded: setting orca:inithess ("read") in release.json (1af6fa66).
