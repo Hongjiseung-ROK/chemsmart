@@ -237,3 +237,5 @@ def test_a_supplied_input_is_staged_into_its_own_scratch(tmp_path):
 
     assert completed.returncode == 0, completed.stderr[-2000:]
     assert "TERMINATED NORMALLY" in (folder / "h2.out").read_text()
+    # Nothing is staged at the location every run of the label once shared.
+    assert not (tmp_path / "scratch" / "h2").exists()

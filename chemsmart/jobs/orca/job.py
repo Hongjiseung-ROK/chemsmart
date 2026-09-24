@@ -7,8 +7,6 @@ calculations using the ORCA program package.
 
 import logging
 import os
-import shutil
-from contextlib import suppress
 from typing import Type
 
 from chemsmart.io.molecules.structure import Molecule
@@ -551,22 +549,13 @@ class ORCAInpJob(ORCAJob):
             and self.jobrunner.scratch_dir is not None
             and os.path.exists(self.jobrunner.scratch_dir)
         ):
-            # Running job in scratch directory
-            job_scratch_dir = os.path.join(
-                self.jobrunner.scratch_dir, self.label
+            # The runner stages this input into the scratch directory it
+            # creates for this run alone; pre-staging it at
+            # <scratch>/<label> would recreate the location every run of the
+            # label used to share (JobRunner._fresh_scratch_directory).
+            logger.info(
+                f"Running job in scratch under {self.jobrunner.scratch_dir}"
             )
-
-            # Create scratch directory if needed
-            with suppress(FileExistsError):
-                os.mkdir(job_scratch_dir)
-                logger.info(f"Folder in scratch {job_scratch_dir} is made.")
-            shutil.copy(self.inputfile, job_scratch_dir)
-            scratch_inputfile = os.path.join(
-                job_scratch_dir, f"{self.label}.inp"
-            )
-            assert os.path.exists(
-                scratch_inputfile
-            ), f"inputfile {scratch_inputfile} is not found"
         elif self.jobrunner.scratch and self.jobrunner.scratch_dir is not None:
             # Scratch directory specified but doesn't exist
             logger.warning(
