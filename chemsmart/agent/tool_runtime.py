@@ -730,6 +730,304 @@ def _pyscf_environment_evidence(
     return observation, tuple(sorted(set(findings)))
 
 
+def _brief_reading(value: Any, unit: str) -> str:
+    """One reading, short enough to stand in a refusal's basis."""
+
+    if isinstance(value, str):
+        return repr(value)
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, float)):
+        return f"{value:g} {unit}".strip()
+    if isinstance(value, (list, tuple)):
+        return f"{len(value)} values ({unit})".replace(" ()", "")
+    return type(value).__name__
+
+
+def _printed_lines_naming(
+    selector: str, path: Path, *, limit: int = 3
+) -> tuple[str, ...]:
+    """Lines a program printed that name every word of a selector.
+
+    A pointer, never a reading: the host has no reader for the quantity,
+    so it can only show a human where the output names it -- a Gaussian
+    log's "Molar volume = ..." for ``molar_volume``. A PySCF result is
+    read beside its HDF5 file, from its log, past the driver script the
+    log echoes first.
+    """
+
+    words = [
+        word
+        for word in re.split(r"[^a-z0-9]+", selector.lower())
+        if len(word) >= 3
+    ]
+    if not words:
+        return ()
+    candidates = (
+        (path.with_suffix(".out"), path.with_suffix(".log"))
+        if path.suffix == ".h5"
+        else (path,)
+    )
+    found: list[str] = []
+    for candidate in candidates:
+        try:
+            if candidate.stat().st_size > 64 * 1024 * 1024:
+                continue
+            handle = candidate.open(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        with handle:
+            in_script = False
+            for number, line in enumerate(handle, 1):
+                if "#INFO: **** input file is" in line:
+                    in_script = True
+                    continue
+                if in_script:
+                    in_script = "input file end" not in line
+                    continue
+                lowered = line.lower()
+                if all(word in lowered for word in words) and re.search(
+                    r"\d", line
+                ):
+                    found.append(
+                        f"{candidate.name}:{number}: {line.strip()[:120]}"
+                    )
+                    if len(found) >= limit:
+                        return tuple(found)
+    return tuple(found)
+
+
+def selector_declared_by(
+    programs: Sequence[str], selector: str, jobtype: str = ""
+) -> tuple[str, ...]:
+    """Which ``program/jobtype`` pairs of these programs declare a selector.
+
+    A table fact about the hub's readers, never about what an output
+    holds.
+    """
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    declaring: list[str] = []
+    for program in programs:
+        reader = reader_for(program)
+        if reader is None:
+            continue
+        jobtypes = (
+            (jobtype,)
+            if jobtype
+            else tuple(item[0] for item in reader.jobtype_selectors)
+        )
+        for candidate in jobtypes:
+            declared_here = reader.selectors_for_jobtype(candidate)
+            if declared_here is not None and selector in declared_here:
+                declaring.append(f"{program}/{candidate}")
+    return tuple(sorted(declaring))
+
+
+def results_for_selector(
+    artifacts: Mapping[str, Any],
+    selector: str,
+    jobtype: str,
+    programs: Sequence[str],
+) -> tuple[tuple[str, ...], tuple[str, ...], tuple[tuple[str, str], ...]]:
+    """What the registered results say about one selector.
+
+    Returns what was served (``artifact: value``), what was read and found
+    absent (``artifact: reason``), and the results of the named job type
+    whose reader does not serve the selector at all (``(artifact_id,
+    path)``). Only results of the named job type count when one is named:
+    an optimisation's energy is not a transition state's.
+    """
+
+    from chemsmart.analysis.result_readers import (
+        MissingQuantityError,
+        reader_for,
+    )
+
+    readers: dict[str, tuple[str, Any]] = {}
+    for program in programs:
+        reader = reader_for(program)
+        if reader is not None:
+            readers[str(reader.artifact_kind)] = (program, reader)
+    served: list[str] = []
+    absent: list[str] = []
+    unread: list[tuple[str, str]] = []
+    for artifact_id, artifact in sorted(artifacts.items()):
+        match = readers.get(str(getattr(artifact, "kind", "")))
+        if match is None:
+            continue
+        program, reader = match
+        try:
+            output = reader.open_output(Path(artifact.path))
+        except Exception:  # noqa: BLE001 - an unopenable file is unread
+            continue
+        result_jobtype = str(getattr(output, "jobtype", "") or "").casefold()
+        if jobtype and result_jobtype != jobtype:
+            continue
+        declared = (
+            reader.selectors_for_jobtype(result_jobtype)
+            if reader.jobtype_selectors
+            else tuple(reader.accessors)
+        )
+        if declared is None or selector not in declared:
+            unread.append((str(artifact_id), str(artifact.path)))
+            continue
+        try:
+            value, unit = reader.read(output, selector)
+        except MissingQuantityError as exc:
+            absent.append(f"{artifact_id}: {exc}")
+            continue
+        except Exception as exc:  # noqa: BLE001 - reported, not served
+            absent.append(f"{artifact_id}: {type(exc).__name__}: {exc}")
+            continue
+        served.append(
+            f"{artifact_id} ({program} {result_jobtype}): "
+            + _brief_reading(value, unit)
+        )
+    return tuple(served), tuple(absent), tuple(unread)
+
+
+def refusal_read_against_results(
+    *,
+    artifacts: Mapping[str, Any],
+    observable_id: str,
+    selector: str,
+    jobtype: str,
+    programs: Sequence[str],
+    selector_declared: bool,
+    is_verified: bool,
+    basis: str,
+) -> tuple[bool, str]:
+    """Read the registered results for what a refusal names.
+
+    Both table checks -- which selectors the readers declare, which nodes
+    the session's plan retained as blocked -- let a settlement say the
+    evidence lacked what it held. r9/pyscf g2-stability (CUHK,
+    2026-09-22) settled unreachable_from_evidence, verified by its own
+    blocked node, for the lowest stability-Hessian eigenvalues its PySCF
+    log prints; the host had read the stability words from the same
+    result. r8/orca goal-ts settled it for an IRC direction the host had
+    read as 'forward'. Two sealed goals of R10 did so for a molar volume
+    their Gaussian logs print, verified because no reader serves one.
+
+    So the results are read. A value served for the named selector means
+    the evidence holds it: never verified. A selector no reader serves,
+    over results of the named job type, means the host cannot read them
+    for it: not verified, with any printed line naming it. What stays
+    verified says what the host read: the selector absent from each
+    result, or no result it could come from. The session calls this when
+    the refusal is written and the goal driver again when the goal
+    settles, because a run in between can write the evidence.
+    """
+
+    served: tuple[str, ...] = ()
+    absent: tuple[str, ...] = ()
+    unread: tuple[tuple[str, str], ...] = ()
+    if selector:
+        served, absent, unread = results_for_selector(
+            artifacts, selector, jobtype, programs
+        )
+    if served:
+        return False, (
+            basis
+            + f"; the host read {selector!r} from the registered results -- "
+            + "; ".join(served)
+            + " -- so the evidence holds a reading of the selector the "
+            "refusal names and the refusal is not verified (a result at "
+            "another level or of another structure is the session's to "
+            "name)"
+        )
+    if selector and not selector_declared and unread:
+        # One line can name both the selector and the observable; it is
+        # quoted once (LG1, CUHK 2151662, quoted it twice).
+        printed = tuple(
+            dict.fromkeys(
+                line
+                for _artifact_id, path in unread
+                for name in (selector, observable_id)
+                for line in _printed_lines_naming(name, Path(path))
+            )
+        )[:3]
+        return False, (
+            basis
+            + "; the registered results include ones no reader of this hub "
+            f"reads for {selector!r} ("
+            + ", ".join(artifact_id for artifact_id, _path in unread)
+            + "), so the host cannot say they lack it"
+            + (
+                "; they print lines naming it: " + " | ".join(printed)
+                if printed
+                else ""
+            )
+            + "; the refusal is not verified, and a reader is the missing "
+            "producer if they hold it"
+        )
+    if is_verified:
+        # A refusal verified by the session's own blocked node -- or by a
+        # selector the results do not serve -- still stands on results
+        # the host can print-search: a line of their native output that
+        # names the refused observable is a place the evidence may hold
+        # it, and the host cannot say it does not.
+        printed = tuple(
+            line
+            for _artifact_id, path in registered_result_paths(
+                artifacts, jobtype, programs
+            )
+            for line in _printed_lines_naming(observable_id, Path(path))
+        )[:3]
+        if printed:
+            return False, (
+                basis + "; the registered results print lines naming "
+                f"{observable_id!r}: "
+                + " | ".join(printed)
+                + ", so the host cannot say they lack it and the refusal "
+                "is not verified"
+            )
+    if selector and is_verified and absent:
+        return True, (
+            basis
+            + f"; the host read {selector!r} on the registered results and "
+            "found it absent -- " + "; ".join(absent)
+        )
+    if selector and is_verified and not selector_declared:
+        return True, (
+            basis
+            + "; no registered result"
+            + (f" of jobtype {jobtype!r}" if jobtype else "")
+            + " exists it could be read from"
+        )
+    return is_verified, basis
+
+
+def registered_result_paths(
+    artifacts: Mapping[str, Any], jobtype: str, programs: Sequence[str]
+) -> tuple[tuple[str, str], ...]:
+    """Registered results a reader opens, of the named job type if any."""
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    readers: dict[str, Any] = {}
+    for program in programs:
+        reader = reader_for(program)
+        if reader is not None:
+            readers[str(reader.artifact_kind)] = reader
+    found: list[tuple[str, str]] = []
+    for artifact_id, artifact in sorted(artifacts.items()):
+        reader = readers.get(str(getattr(artifact, "kind", "")))
+        if reader is None:
+            continue
+        if jobtype:
+            try:
+                output = reader.open_output(Path(artifact.path))
+            except Exception:  # noqa: BLE001 - an unopenable file is skipped
+                continue
+            if str(getattr(output, "jobtype", "") or "").casefold() != jobtype:
+                continue
+        found.append((str(artifact_id), str(artifact.path)))
+    return tuple(found)
+
+
 def _digest_valid_json_receipt(path: str | Path) -> Mapping[str, Any] | None:
     """Load a JSON receipt only when its embedded digest is exact."""
 
@@ -4381,10 +4679,11 @@ class CommandCompiledToolHostV1:
                     continue
                 misses.append(
                     f"declared question {observable_id!r} (category) has "
-                    "no word the host read answering it; claim the word the "
-                    "program printed and record a finding with "
+                    "no word or integer the host read answering it; claim "
+                    "the word the program printed or a count the host "
+                    "rendered, and record a finding with "
                     f"answers_observable_id {observable_id!r} resting on "
-                    "'<that claim> == <the word>'"
+                    "'<that claim> == <the value>'"
                 )
                 limitations.append(f"declared_observable:{observable_id}")
                 continue
@@ -6738,7 +7037,6 @@ class CommandCompiledToolHostV1:
         """
 
         from chemsmart.analysis.result_readers import (
-            reader_for,
             registered_reader_programs,
         )
 
@@ -6821,26 +7119,9 @@ class CommandCompiledToolHostV1:
             blocked_node_id = str(entry.get("blocked_node_id") or "").strip()
             basis = ""
             is_verified = False
+            declaring: tuple[str, ...] = ()
             if selector:
-                declaring = []
-                for program in programs:
-                    reader = reader_for(program)
-                    if reader is None:
-                        continue
-                    jobtypes = (
-                        (jobtype,)
-                        if jobtype
-                        else tuple(
-                            item[0] for item in reader.jobtype_selectors
-                        )
-                    )
-                    for candidate in jobtypes:
-                        declared_here = reader.selectors_for_jobtype(candidate)
-                        if (
-                            declared_here is not None
-                            and selector in declared_here
-                        ):
-                            declaring.append(f"{program}/{candidate}")
+                declaring = selector_declared_by(programs, selector, jobtype)
                 if declaring:
                     basis = (
                         f"selector {selector!r} is declared by "
@@ -6874,7 +7155,9 @@ class CommandCompiledToolHostV1:
                     basis = selector_basis + (
                         f"analysis node {blocked_node_id!r} is declared "
                         "blocked_unsupported in this session's plan and "
-                        f"names {observable_id!r} as its output"
+                        f"names {observable_id!r} as its output; the reason "
+                        "it gives is the session's, which the host does "
+                        "not check"
                     )
                 else:
                     basis = selector_basis + (
@@ -6928,6 +7211,21 @@ class CommandCompiledToolHostV1:
                         "selector and jobtype, or blocked_node_id); the "
                         "refusal is stated, not verified"
                     )
+            # A refusal of a precision stands on the delivered number and
+            # an open requirement; what an output prints does not bear on
+            # it, so only a refusal of presence is read against results.
+            if selector or (is_verified and blocked_node_id):
+                # Every registered result is read, whichever program wrote
+                # it: the envelope says what may run, not what may be read.
+                is_verified, basis = self._refusal_read_against_evidence(
+                    observable_id=observable_id,
+                    selector=selector,
+                    jobtype=jobtype,
+                    programs=registered_reader_programs(),
+                    selector_declared=bool(declaring),
+                    is_verified=is_verified,
+                    basis=basis,
+                )
             verified.append(
                 {
                     "observable_id": observable_id,
@@ -6941,6 +7239,30 @@ class CommandCompiledToolHostV1:
                 }
             )
         return tuple(verified)
+
+    def _refusal_read_against_evidence(
+        self,
+        *,
+        observable_id: str,
+        selector: str,
+        jobtype: str,
+        programs: Sequence[str],
+        selector_declared: bool,
+        is_verified: bool,
+        basis: str,
+    ) -> tuple[bool, str]:
+        """Read the registered results for what a refusal names."""
+
+        return refusal_read_against_results(
+            artifacts=self.artifacts,
+            observable_id=observable_id,
+            selector=selector,
+            jobtype=jobtype,
+            programs=programs,
+            selector_declared=selector_declared,
+            is_verified=is_verified,
+            basis=basis,
+        )
 
     def _verify_menu_route_dispositions(
         self, entries: Sequence[Mapping[str, Any]]
@@ -7210,8 +7532,15 @@ class CommandCompiledToolHostV1:
             # restates or qualifies what was asked. The first
             # development session typed its requested distance as a
             # finding, and the word said it had observed something.
-            operands = [row["left"]] + [
-                row["right"] for row in relations if "claim_id" in row["right"]
+            # Every relation's both sides: this read the left side of the
+            # last relation alone, through a name the loop above left
+            # bound, and r10/q7 g2-scan-modred's finding resting on an
+            # undeclared lowest-coord settled "on the requested answer".
+            operands = [
+                side
+                for relation_row in relations
+                for side in (relation_row["left"], relation_row["right"])
+                if "claim_id" in side
             ]
             undeclared = [
                 operand
@@ -7260,12 +7589,22 @@ class CommandCompiledToolHostV1:
         question answered by a finding resting only on a bond distance,
         and a finding saying "UNSTABLE" over a relation that read
         'stable': the completion's word was false both times.
+
+        A count or a verdict the host rendered as an integer answers too:
+        the master's smoke goal (R10, 2026-09-24) rested a yes/no question
+        on minimum-verdict == 1, the relation held, and the refusal said
+        nothing the host read answered it. An integer is compared exactly,
+        as a word is; a real number is not, so a distance still answers
+        nothing.
         """
 
         answer: list[dict[str, Any]] = []
         for row in relations:
             left = row.get("left") or {}
-            if row.get("relation") != "==" or left.get("data_kind") != "text":
+            if row.get("relation") != "==" or left.get("data_kind") not in (
+                "text",
+                "integer",
+            ):
                 continue
             source = str(left.get("source_receipt_sha256") or "")
             quantity_id = str(left.get("quantity_id") or "")
@@ -7274,13 +7613,23 @@ class CommandCompiledToolHostV1:
             bindings = bindings or dict(
                 self.quantity_extraction_bindings.get(source) or {}
             )
+            value = left.get("value")
             answer.append(
                 {
                     "claim_id": str(left.get("claim_id") or ""),
-                    "word": left.get("value"),
+                    "word": (
+                        value
+                        if left.get("data_kind") == "text"
+                        else str(int(value))
+                    ),
                     "selector": str(bindings.get(quantity_id) or ""),
                     "source_receipt_sha256": source,
                     "quantity_id": quantity_id,
+                    **(
+                        {"data_kind": "integer"}
+                        if left.get("data_kind") == "integer"
+                        else {}
+                    ),
                 }
             )
         if not answer:
@@ -7293,26 +7642,28 @@ class CommandCompiledToolHostV1:
             raise RoutedContractError(
                 gate="finding.answers_through_a_word_the_host_read",
                 invariant=(
-                    "a declared category is answered by a word the host "
-                    "read, bound to it through an == relation that holds "
-                    "over the claim of that word; the finding's sentence is "
-                    "the session's interpretation, shown beside the word."
+                    "a declared category is answered by a word or an "
+                    "integer the host read, bound to it through an == "
+                    "relation that holds over its claim; the finding's "
+                    "sentence is the session's interpretation, shown beside "
+                    "it."
                 ),
                 diagnosis=(
                     f"finding {finding_id!r} answers {observable_id!r} and "
-                    f"rests on {read}: none is an == over a word the "
-                    "program printed, so nothing the host read answers the "
-                    "question."
+                    f"rests on {read}: none is an == over a word or an "
+                    "integer claim, and a real number equals a value only to "
+                    "a precision nobody stated."
                 ),
                 route=(
-                    "claim the word the program printed with "
-                    "record_analysis_claims (its extraction's selector, "
-                    "e.g. scf_stability_external or irc_direction) and "
-                    "rest the answer on '<that claim> == <the word>'; keep "
-                    "the other relations as support, or record the finding "
-                    "without answers_observable_id -- a relation between "
-                    "numbers stands as a finding, and the number it rests "
-                    "on is delivered by its own claim"
+                    "claim the word the program printed (its extraction's "
+                    "selector, e.g. scf_stability_external or irc_direction) "
+                    "or a count the host rendered, with "
+                    "record_analysis_claims, and rest the answer on '<that "
+                    "claim> == <the value>'; keep the other relations as "
+                    "support, or record the finding without "
+                    "answers_observable_id -- a relation between numbers "
+                    "stands as a finding, and the number it rests on is "
+                    "delivered by its own claim"
                 ),
             )
         return tuple(answer)
