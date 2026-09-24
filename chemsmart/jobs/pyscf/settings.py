@@ -18,6 +18,8 @@ from numbers import Integral, Real
 
 from chemsmart.jobs.settings import (
     MolecularJobSettings,
+    broken_symmetry_refusal,
+    broken_symmetry_request,
     canonical_functional_literal,
     functional_resolution_record,
 )
@@ -288,6 +290,28 @@ def pyscf_stages(jobtype, *, ab_initio=None, excited_state_root=None):
     return [stage for stage in PYSCF_STAGE_ORDER if stage in running]
 
 
+def describe_broken_symmetry(settings, *, multiplicity=None):
+    """What PySCF is told for ``broken_symmetry``, in one sentence, or "".
+
+    Read by the compile reply and the review, so the translation the
+    driver makes is stated where the request is approved.
+    """
+
+    from chemsmart.jobs.settings import BROKEN_SYMMETRY_EVIDENCE_SENTENCE
+
+    values = settings if isinstance(settings, dict) else dict(settings)
+    if values.get("broken_symmetry") is not True:
+        return ""
+    return (
+        "broken_symmetry: PySCF converges the restricted solution, follows "
+        "its own RHF/RKS -> UHF/UKS instability (PySCF's stability analysis) "
+        "into the unrestricted reference and then internal instabilities "
+        "until stable; a restricted solution PySCF finds stable stays "
+        "spin-symmetric, and the scf stage records the eigenvalues it "
+        "followed. " + BROKEN_SYMMETRY_EVIDENCE_SENTENCE
+    )
+
+
 def describe_functional_resolution(functional=None, *, ab_initio=None):
     """What PySCF is told for a project functional, as a host record.
 
@@ -463,6 +487,7 @@ class PySCFJobSettings(MolecularJobSettings):
         hessian_derivative=None,
         fd_step_angstrom=None,
         scf_stability=False,
+        broken_symmetry=None,
         irc_direction=None,
         charge=None,
         multiplicity=None,
@@ -516,6 +541,7 @@ class PySCFJobSettings(MolecularJobSettings):
         self.hessian_derivative = hessian_derivative
         self.fd_step_angstrom = fd_step_angstrom
         self.scf_stability = scf_stability
+        self.broken_symmetry = broken_symmetry_request(broken_symmetry)
         self.irc_direction = irc_direction
         self.density_fit = density_fit
         self.opt_solver = opt_solver
@@ -575,9 +601,11 @@ class PySCFJobSettings(MolecularJobSettings):
         """Return whether an R (True) or U (False) reference is implied.
 
         Derived from multiplicity rather than exposed as a flag, so the
-        reference cannot disagree with the requested electronic state.
+        reference cannot disagree with the requested electronic state; the
+        one singlet that is unrestricted is the broken-symmetry request,
+        which asks for exactly that.
         """
-        return self.multiplicity in (None, 1)
+        return self.multiplicity in (None, 1) and not self.broken_symmetry
 
     @property
     def method_name(self):
@@ -753,6 +781,7 @@ class PySCFJobSettings(MolecularJobSettings):
         self._validate_hessian_derivative()
         self._validate_irc()
         self._validate_ts()
+        self._validate_broken_symmetry()
         if self.scf_tol is not None and (
             isinstance(self.scf_tol, bool)
             or not isinstance(self.scf_tol, Real)
@@ -905,6 +934,35 @@ class PySCFJobSettings(MolecularJobSettings):
             raise ValueError(
                 "cc_max_cycle applies only to ccsd or ccsd(t); MP2 has no "
                 "amplitude iteration."
+            )
+
+    def _validate_broken_symmetry(self):
+        """Where ``broken_symmetry`` is written for PySCF, and where not.
+
+        PySCF's translation follows the restricted solution's own
+        RHF/RKS -> UHF/UKS instability with PySCF's stability analysis, the
+        one mechanism measured to reach the solution Gaussian and ORCA reach
+        (R10 Q18 O0, CUHK Slurm 2153330); its response stages and its GPU
+        engine are not what this driver follows it on.
+        """
+
+        if not self.broken_symmetry:
+            return
+        refusal = broken_symmetry_refusal(True, self.multiplicity)
+        if refusal:
+            raise ValueError(refusal)
+        if self.response_requested:
+            raise ValueError(
+                "A td stage's manifolds are defined on a spin-adapted "
+                "closed-shell or an open-shell reference; the roots of a "
+                "broken-symmetry singlet are neither, so broken_symmetry is "
+                "not written into a td stage or an excited-root optimisation."
+            )
+        if self.engine != "cpu":
+            raise ValueError(
+                "broken_symmetry follows PySCF's own stability analysis, "
+                "which this driver runs on the CPU engine; request engine: "
+                "cpu."
             )
 
     def _validate_response(self):
