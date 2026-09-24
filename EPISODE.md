@@ -266,6 +266,35 @@ new selectors in typed receipts and recorded decision o2-rks-stability-verdict.
   criterion (7 critical findings). Neither is about the served quantities;
   both are reported, neither is repaired here (outside the radius).
 
+## dans read from host records (CUHK 2152080, COMPLETED 20:05)
+
+Code 09450c74 (digest 0dd950b2 verified on the node). Cycle 1 planned two
+PySCF single points with stability at the supplied geometry -- CAM-B3LYP
+(the task's level) and, on the session's own initiative, PBE0 as a
+functional check -- both validated (1915 s engine wall at 16 cores).
+Cycle 2, an admitted analysis-only revision, extracted all three stability
+words and all three eigenvalues from both results (receipts 1f1cfd93,
+6d8b0bd2), composed the declared observable rks-stability-lowest-eig as the
+minimum over the three (a typed expression) = +0.042085 Eh, and the goal
+settled **achieved**: "the host completion gate certified the delivery".
+- Physics, in band: E -878.08487506 Eh (r9's own -878.084875059); internal
+  +0.5559, real->complex +0.1135, RKS->UKS +0.0421 Eh; PBE0 RKS->UKS
+  +0.0472 (not pre-registered; reported).
+- PASS (capability): the numeric stability observable the r9 control
+  (2145043) settled unreachable_from_evidence over is delivered from
+  extraction receipts of the new selectors; real->complex is answered
+  (stable) and used.
+- The Agent's side, read, not scored: its findings compare the three
+  eigenvalues directly ("minimum over the internal, external and
+  real-to-complex directions") -- harmless here, since PySCF's internal
+  root is 4x the textbook one and the minimum is the external root either
+  way -- and it converts an eigenvalue spread to kcal/mol (0.0052 Eh "~3.2
+  kcal/mol"), reading a curvature as an energy difference. Its
+  "relaxed-spin-square" observable is defined as the <S^2> of "the solution
+  the stability analysis reaches" but is bound to the RKS reference's
+  spin_square (0 by construction): the analysis follows no instability.
+  All three are the model's reading, reported as such.
+
 ## gstab1 read (CUHK 2152098, COMPLETED; Gaussian 16 C.02 via the CLI)
 
 Every pre-registered outcome held:
