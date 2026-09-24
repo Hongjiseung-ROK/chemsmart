@@ -246,6 +246,10 @@ _ORCA_PROJECT_PARAMETERS = tuple(
         {
             *_CURRENT_HARNESS_PROJECT_PARAMETERS,
             "additional_solvent_options",
+            # The broken-symmetry open-shell singlet, one typed request in
+            # every program's words (HFTyp UHF + GuessMix here), instead of
+            # FlipSpin on the simple-input line (R10 Q15 g1, ax41 ino2).
+            "broken_symmetry",
             "dipole",
             "direction",
             "forces",
@@ -309,6 +313,10 @@ _GAUSSIAN_PROJECT_PARAMETERS = tuple(
         + (
             "additional_opt_options_in_route",
             "additional_solvent_options",
+            # The broken-symmetry open-shell singlet: the unrestricted
+            # method and its guess=mix written together, where a native
+            # guess=mix on a restricted route ran restricted (R10 Q15 g1).
+            "broken_symmetry",
             # What a reaction path is: which way it walks, how far, how
             # often the curvature is recomputed and how big a step is.
             # The CLI has taken all of these since the job existed and
@@ -360,6 +368,10 @@ _PYSCF_PROJECT_PARAMETERS = (
     "ab_initio",
     "aux_basis",
     "basis",
+    # A boolean like ``scf_stability``: the broken-symmetry open-shell
+    # singlet, reached by following the restricted solution's own
+    # RHF/RKS -> UHF/UKS instability (R10 Q18).
+    "broken_symmetry",
     "cc_max_cycle",
     "defgrid",
     "density_fit",

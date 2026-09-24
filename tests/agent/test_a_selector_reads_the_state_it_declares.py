@@ -421,6 +421,7 @@ def test_the_inspection_reply_names_the_level_beside_each_selectors_axes(
         "excited_state_root": 1,
         "basis_functions": "spherical",
         "ecp_core_electrons": {"C": 0, "O": 0, "H": 0},
+        "reference": "rks",
     }
     assert "excited_state_followed_root" in excited["requestable_selectors"]
     assert excited["structural_states"]["reached_positions"] == "as_reached"
@@ -437,6 +438,7 @@ def test_the_inspection_reply_names_the_level_beside_each_selectors_axes(
         "basis_functions": "spherical",
         "ecp_core_electrons": {"O": 0, "H": 0},
         "frozen_core_conventions": ("chemical_core", "pyscf_auto"),
+        "reference": "rhf",
     }
     assert correlated["electronic_provenance"]["energy"] == "correlated"
     assert correlated["electronic_provenance"]["scf_energy"] == "reference"

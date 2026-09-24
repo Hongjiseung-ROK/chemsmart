@@ -317,6 +317,23 @@ refused the run at execution time. Every receipt `validated`.
 | `hi_mp2_def2svp_ecp_auto` | MP2 with `frozen_core: auto` | 4 frozen orbitals (4s4p: the chemical core less the potential's 14), ORCA's and Gaussian's default count; total within 2e-9 Eh of ORCA's |
 | `hi_mp2_def2svp_ecp_all_electron` | MP2 with `frozen_core` unset | every explicit electron correlated: 14.87 mEh below the frozen one, the HI bond energy 0.27 kcal/mol higher -- one project literal, a different core treatment from ORCA's default |
 
+## The broken-symmetry request (2026-09-25, R10 Q18)
+
+Produced through the ordinary CLI on CUHK (**Slurm 2153479**, oracle O1, code
+`5da66f9c`, PySCF 2.14.0), project `sp: {functional: b3lyp, basis:
+def2-svp, defgrid: defgrid3, scf_tol: 1e-10, broken_symmetry: true,
+scf_stability: true}`, on H2 (`inputs/h2_074.xyz`, `inputs/h2_200.xyz`).
+Result contract v11: the reference family is `uks` at spin 0, and
+`status/stages/scf/broken_symmetry` records what the scf stage followed --
+the restricted energy, PySCF's own RHF/RKS -> UHF/UKS answer about it with
+its lowest eigenvalue, and the internal instabilities followed after.
+Both receipts `validated`.
+
+| directory | what it followed | result |
+|---|---|---|
+| `p_h2_074_bs` | RKS externally stable (+0.3184 Eh): nothing to follow | UKS -1.1734967954 Eh = the RKS energy, `<S**2>` 7e-16: the request declines to break, and says why |
+| `p_h2_200_bs` | RKS externally unstable (-0.0971 Eh), followed; UKS internally stable | -1.0184866496 Eh, `<S**2>` 0.7053, spin populations +-0.856; Gaussian's U + guess=mix and ORCA's GuessMix reach it within 2e-8 Eh (O0, CUHK 2153330) |
+
 ## A stationary O2 Hessian (2026-09-25, R10 q21)
 
 Produced through the ordinary CLI on CUHK (**Slurm 2153611**, code

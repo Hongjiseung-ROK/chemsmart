@@ -1533,6 +1533,75 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "at TDA, and full-TD-DFT <S^2> of D1 read 0.713 (Gaussian) vs "
         "0.801 (ORCA)",
     ),
+    _r(
+        "reference.crossprogram.a_broken_symmetry_singlet_is_one_request",
+        "reference:about_cross_program_work",
+        "T1",
+        "An open-shell (broken-symmetry) singlet is one project request in "
+        "every program: broken_symmetry: true on a multiplicity-1 sp, opt, "
+        "ts, irc or Hessian stage (never td). The host writes each "
+        "program's own mechanism -- Gaussian's unrestricted method with "
+        "guess=mix, ORCA's HFTyp UHF with GuessMix, PySCF following its "
+        "restricted solution's own RHF/RKS -> UHF/UKS instability -- and "
+        "the compile reply names it, so no FlipSpin, BrokenSym or guess=mix "
+        "is yours to write; a guess=mix on a restricted Gaussian route "
+        "stays restricted. Whether the symmetry broke is read from "
+        "the result: its level states the reference that ran and "
+        "broken_symmetry, spin_square gives <S^2> (near 1 for a two-centre "
+        "diradical, 0 when the solution stayed spin-symmetric), and a "
+        "request that stayed symmetric raises "
+        "spin.broken_symmetry_request_unbroken. A structure with no "
+        "diradical character declines to break, which is an answer. The "
+        "particular solution a program reaches is not portable: compare "
+        "energies and <S^2>, never the request. Spin projection of a "
+        "broken-symmetry energy needs the high-spin partner's energy and "
+        "<S^2> as well.",
+        "R10 Q18 census: Q15 g1 wrote FlipSpin three native ways and a "
+        "restricted Gaussian guess=mix; an R8 twisted-ethylene session "
+        "delivered the restricted 97.3 kcal/mol barrier because no "
+        "broken-symmetry state was selectable; ax41 ino2 substituted an M=3 "
+        "determinant for the Ms=0 state. Oracles O0/O0b (CUHK 2153330, "
+        "2153375): one solution in three programs for H2 at 2.00 A and "
+        "p-benzyne, and Gaussian's mix 26 kcal/mol higher at a degenerate "
+        "90-degree twist",
+        boundaries=(
+            _b(
+                "gaussian",
+                "opt",
+                "admitted",
+                functional="b3lyp",
+                basis="def2-svp",
+                broken_symmetry=True,
+            ),
+            _b(
+                "orca",
+                "sp",
+                "admitted",
+                functional="b3lyp",
+                basis="def2-svp",
+                broken_symmetry=True,
+            ),
+            _b(
+                "pyscf",
+                "sp",
+                "admitted",
+                functional="b3lyp",
+                basis="def2-svp",
+                broken_symmetry=True,
+            ),
+            _b(
+                "pyscf",
+                "td",
+                "refused",
+                functional="b3lyp",
+                basis="def2-svp",
+                response_method="tda",
+                state_manifold="singlet",
+                nstates=3,
+                broken_symmetry=True,
+            ),
+        ),
+    ),
     # R10 Q2 one name, one physics: end
     # R10 Q3 knowledge: append rules below this line
     _r(

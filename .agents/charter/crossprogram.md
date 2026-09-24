@@ -67,3 +67,22 @@ pair of an unrestricted result is the extremum over both spin channels on
 ORCA and on PySCF alike; Gaussian refuses an open-shell frontier value
 rather than report one channel, and xTB serves the gap it prints from its
 single orbital ladder.
+
+An open-shell singlet is one typed request (`broken_symmetry: true`,
+R10 Q18). Each program writes it as the mechanism measured to reach the
+broken-symmetry solution: Gaussian U + guess=mix; ORCA UHF with GuessMix
+45; PySCF following its own RKS -> UKS instability, because PySCF's
+documented `init_guess_breaksym` and an explicit HOMO/LUMO mix left H2 at
+2.00 A and p-benzyne restricted (oracle O0, CUHK Slurm 2153330). The
+request and its verification carry across programs; the particular SCF
+solution does not. Each result's level states the reference that ran
+(rks/uks) and whether symmetry broke (<S**2> against its target, with a
+threshold), and a request that did not break raises
+`spin.broken_symmetry_request_unbroken`. At the exactly degenerate
+90-degree ethylene twist, Gaussian's U guess=mix reached a solution 26
+kcal/mol above ORCA's with the same <S**2> ~ 1.00, while Gaussian's
+stable=opt reached the lowest (O0b, 2153375). Equal <S**2> is therefore
+not equal solutions, and no sensor yet compares them. A spin-coupled
+multi-site state (site-specific flips) is not represented: "broken"
+says the symmetry broke, not that an intended multi-site state was
+reached.
