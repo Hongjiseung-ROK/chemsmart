@@ -113,8 +113,60 @@ within 5e-6 when the counts agree.
 
 ## Jobs issued
 
-(none yet)
+- 2151772 (slot r10-q12-a, prereg 851ba5b1ab25) cli/o1a: block P, 72
+  commands, all exit 0. Code a03615af (== base chemsmart/), digest
+  fbd2b58a... verified on the node.
+- 2151773 (slot r10-q12-b, prereg 851ba5b1ab25) cli/o1b: blocks H, E, A,
+  40 commands; 38 exit 0, commands 37 (PySCF HI) and 39 (PySCF def2/J)
+  exit 1 as pre-registered (refusals).
+
+## O1 results (read from raw outputs, not through a CHEMSMART reader)
+
+P-A holds. Gaussian as written prints `Standard basis: 6-31G(d) (6D, 7F)`
+and the Cartesian counts (19, 19, 34, 32, 32, 40, 21, 19); with `5d 7f`
+it prints `(5D, 7F)` and the spherical counts, which ORCA (`Basis
+Dimension`) and PySCF (`NR cGTOs`) print for every species.
+P-B holds. G5, ORCA and PySCF agree within 2.0e-7 (HF), 8.5e-7 (B3LYP),
+4.0e-8 (MP2, frozen 1 and 2 orbitals in all three).
+P-C holds (premise): G6 lies below G5 on every species, by 0.25-1.97 mEh
+at HF and 0.78-4.12 mEh at B3LYP. The magnitude I expected (0.2-3 mEh per
+heavy atom) is exceeded once: Cl at B3LYP, 3.45 mEh. MP2 totals move
+2.9 (water) and 4.2 (CH2O) mEh, 1.5 and 3.5 of it in the correlation.
+P-D material: G6 - G5 in kcal/mol, HF / B3LYP: HCN -> HNC -0.130 /
++0.044, CH3Cl -> CH3 + Cl +0.167 / -0.069, water vertical IP -0.178 /
++0.184. ORCA, PySCF and G5 agree to 0.0004 kcal/mol in all six.
+P-E holds. PySCF max|g| 9.45e-5 Eh/Bohr at the CH2O minimum Gaussian
+reached as written, 8.6e-7 at the one it reached with `5d 7f`: 110x.
+E-A holds. ORCA prints `Type I ECP Def2-ECP (replacing 28 core
+electrons)`; electron counts 26 / 34 / 25 in ORCA and Gaussian; Gaussian's
+nuclear repulsion (8.2221443586 Eh for HI) is the one of Z_eff(I) = 25.
+E-B holds. ORCA - Gaussian: HF <= 1.2e-8, B3LYP <= 1.7e-6 on all five.
+E-C: both PySCF refusals as predicted, but only at run time
+(`ecp_unmaterialized` naming I; `aux_basis_unavailable` for def2/J). The
+DF band FAILED: def2-universal-jfit minus no-DF is 1.92e-4 Eh, not <=
+1e-4 -- PySCF's `density_fit()` fits exchange with the same auxiliary set,
+so a Coulomb-only set (ORCA's def2/J, paired there with COSX) is the
+wrong set for PySCF. A translation `def2/J -> def2-universal-jfit` would
+make PySCF's approximation worse than ORCA's, not the same.
+E-D holds. Frozen orbitals ORCA / Gaussian: HI 4/4, CH3I 5/5, I 4/4 (=
+PySCF auto 4, 5, 4 on local PySCF); MP2 totals within 2.1e-8; HI MP2 bond
+energy 71.43922 kcal/mol in both; CCSD(T) HI within 1.5e-8.
+
+Replay through the host's own extraction and expression handlers (base
+tree, provider-free) on these outputs:
+- ORCA MP2 HI -> H + I and Gaussian MP2 CH3I -> CH3 + I, each one level of
+  theory, are both reported `operands_at_different_levels` on
+  `frozen_core` (counts 4/None/4 and 5/1/4): the level compares a
+  per-molecule orbital count, so every correlated reaction energy between
+  different species carries a false "different levels" word.
+- Gaussian 6-31G(d) as written minus ORCA 6-31G(d) (1.92 mEh apart, two
+  basis sets) and PySCF minus Gaussian as written: no observation; both
+  levels say `basis: 6-31g(d)` and nothing else about the basis.
 
 ## Status
 
 - step 1: tree read; O1 pre-registered above; code unchanged.
+- step 2: O1 read (above). Premise holds for the angular form; ORCA and
+  Gaussian are one def2 basis on iodine (ECP and frozen core); PySCF
+  refuses it at run time; the level record is silent on the angular form
+  and ECP and false on frozen core across species.
