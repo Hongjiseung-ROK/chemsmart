@@ -211,6 +211,10 @@ Bands (never tuned after a result):
 - 2026-09-24: O1, CUHK Slurm 2151801 (r10-q11-a), CLI oracle, 8 cores,
   code 5823c7f3, pre-registration digest a6b905f10825. COMPLETED
   (read above).
+- 2026-09-24: G2, CUHK Slurm 2151911 (r10-q11-a), code 20dd195d
+  (tree digest 35a90313), pre-registration digest c935847193f7.
+- 2026-09-24: G1, CUHK Slurm 2151912 (r10-q11-b), code 20dd195d
+  (tree digest 35a90313), pre-registration digest c935847193f7.
 
 ## Status
 
