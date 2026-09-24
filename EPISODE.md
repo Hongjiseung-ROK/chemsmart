@@ -407,6 +407,66 @@ G2 is a second, independent session (N runs are N observations).
   `E(U...)` label, any `S**2` line, and what the host's `functional`,
   `spin_square` and surface `reference` selectors answered for it.
 
+## G2 -- READ (CUHK Slurm 2153334, COMPLETED 00:14:44 HKT after 51 min; code digest b572f5bd verified on the node)
+
+- Outcome (driver): the goal PARKED at `execution_wave_decision_pending`
+  after 2 cycles, 1 revision and 4 engine calls. That is not one of
+  GOAL_SETTLEMENTS. The last workflow ("bergman-refusal-v6") holds no
+  calculation, so no wave could ever be selected on it.
+- H-G2a EXERCISED AND PASS (the repair, live). ORCA's input check aborted
+  `modred-pbz` (15:43:42) and `modred-ts` (15:43:44). The session then
+  re-planned both in Gaussian. Every later compile reply for them (15:51,
+  15:54, 15:57) carries no probe line. The frozen review
+  (`reviews/cycle-1.json`) carries none on those nodes. All four Gaussian
+  nodes were launched. Under the same sequence on the base tree (g1) the
+  compile reply, the review and the launch all carried ORCA's abort and
+  the launch was refused.
+- Route (R1): cycle 1 was ORCA broken-symmetry first (BrokenSym and
+  FlipSpin in several spellings, six probe aborts), then an ALL-GAUSSIAN
+  11-node plan: wB97X-D3(BJ)/def2-TZVP opt, modred, scan, ts, irc and sp.
+  That is a single-program route (not B even had it run).
+- PROGRAM REFUSAL: all four Gaussian nodes died in link 301 after 0.4 s:
+  "R6DS8: Unable to choose the S8 parameter, IExCor= 4538 IXCFnc= 57
+  ScaHFX= 1.000000 IDFTD=4". Gaussian 16 has no D3(BJ) parameters for
+  wB97X. The hub compiled `functional: wb97x` + `dispersion: d3bj` into
+  `empiricaldispersion=gd3bj` and previewed it green, and Gaussian has no
+  input-check probe. The refusal is predictable from the pair; that is
+  the settings-validation layer's to state (not in my radius).
+- HOST WORD, FALSE: `ene-opt` (an opt job that died in l301 before any
+  SCF) was typed `failed_nonconverged_geometry`; the modred and scan
+  nodes were typed `failed_native`. Mechanism:
+  chemsmart/agent/terminal_states.py:737-752. Gaussian's native class
+  here is `native_runtime`, an "undiagnosed" class, so the derivation
+  falls through to the opt's `optimization_not_converged` finding. The
+  file's own comment ("A crash is not a convergence statement") states
+  the invariant this breaks. The Agent saw through it: its repair-menu
+  disposition rejected the restart route because "No geometry walk exists
+  to restart from".
+- MODEL (host records, the Agent's decision
+  `bergman-host-capability-refusal-g2`): it repaired the dispersion
+  correctly (wB97X-D) and then refused both observables. Its reasons:
+  "the transition state carries substantial diradical character" and no
+  loader in the hub can configure a broken-symmetry singlet. It rejected
+  closed-shell DFT and RHF-reference CCSD(T), the latter as "poor
+  reference for the open-shell singlet". The broken-symmetry gap is real
+  (Q18's). The premise about the saddle is false: O1 finds the restricted
+  B3LYP saddle RKS -> UKS stable (+0.0047 Eh), Kraka and Cremer find no
+  significant biradical character at the TS, and the closed-shell route
+  gives dH++(470 K) 28.19 against 28.2 +- 0.5. So refusing dH++ is the
+  model's scientific error. Refusing dH_R rests on a real limit (single-
+  reference CCSD(T) overshoots by about 4 kcal/mol here) that the
+  literature handles with a stated bias rather than a refusal.
+- For Q18: no Gaussian node reached an SCF in either goal (g1: never
+  launched; g2: all died in l301). There is no `SCF Done` label and no
+  <S^2> value from the Agent's runs. g2's routes carried `wb97x ...
+  Guess=(Mix,Always)` without a U prefix (the modred and scan nodes). The
+  session's own recorded reading is that the Gaussian loader "dispatches
+  a neutral singlet as RKS" and has "no spin/guess axis".
+- B: not earned by g2. Its failure is the model's (a false premise about
+  the saddle, and over-strict standards), enabled by a real hub gap (no
+  typed broken symmetry, Q18) and a program refusal the hub could have
+  predicted (Gaussian wB97X-D3(BJ)).
+
 ## Status
 
 - 2026-09-24: base verified; chemistry and references chosen and read;
