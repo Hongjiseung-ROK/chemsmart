@@ -227,3 +227,29 @@ def test_each_program_states_the_core_potential_it_applied(tmp_path):
         "H": 0,
         "I": 28,
     }
+
+
+def test_a_core_potential_on_a_light_element_is_named_with_its_basis(
+    tmp_path,
+):
+    """CEP-31G replaces oxygen's 1s; Gaussian printed no table saying so.
+
+    The level read the basis as none (the name was not in the reader's
+    vocabulary) and knew nothing of the potential; Gaussian's electron
+    count and nuclear repulsion energy (6.9795078914 Eh: an oxygen charge
+    of 6) say it, and its own angular statement says the f form it built.
+    """
+
+    receipts, _ = _combine(
+        tmp_path,
+        {
+            "cep": ("gaussian", GAUSSIAN / "water_b3lyp_cep31g_5d_only.log"),
+            "orca": ("orca", ORCA / "water_b3lyp_631gd.out"),
+        },
+        _difference("cep", "orca"),
+    )
+    level = receipts["cep"].level
+
+    assert level["basis"] == "cep-31g"
+    assert level["ecp_core_electrons"] == {"H": 0, "O": 2}
+    assert level["basis_functions"] == "cartesian_f"

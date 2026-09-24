@@ -13,6 +13,12 @@ int=ultrafine`.
 | `ch3_mp2_def2svp.log` | `def2-SVP` | 9 electrons, NFC=1 | EUMP2 -39.659303150974 |
 | `i_mp2_def2svp.log` | `def2-SVP` | 25 electrons, NFC=4 | EUMP2 -296.74695884306 |
 
+`water_b3lyp_cep31g_5d_only.log` is R10 q12 oracle O2 (CUHK Slurm
+2151890, code `a930b54b`), when the writer told Gaussian `5d` and not
+`7f`: `CEP-31G` printed `(5D, 10F)`, 12 functions, 8 electrons (the CEP
+potential replaces oxygen's 1s), SCF -17.1505917992 Eh; its nuclear
+repulsion energy (6.9795078914 Eh) is the one of an oxygen charge of 6.
+
 ORCA's B3LYP/G on the same water at 6-31G(d) (`NoRI DefGrid3
 VeryTightSCF`, `../../ORCATests/basis_forms/water_b3lyp_631gd.out`) is
 -76.406807644, 8.5e-7 Eh from the second file and 1.92 mEh above the
