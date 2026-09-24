@@ -265,6 +265,9 @@ different tree, not a controlled A/B.
   digest 6ca6f084cb46.
 - O1: CUHK Slurm 2153479, 8 cores, the ordinary CLI on code 5da66f9c (tree
   digest 33bf5023dd70...), prereg digest a27e0cacb045, ~16 min.
+- G1: CUHK Slurm 2153505 (r10-q18-a), goal g1, code 33906d52 (tree digest
+  535fbe0e00a4...), prereg digest b91d7adc57e9.
+- G2: CUHK Slurm 2153506 (r10-q18-b), goal g2, same code and digest.
 
 ## Status
 
