@@ -467,3 +467,11 @@ the workspace holding the item's `data/` directory exactly as released
   its goal settled on the held word. After the set, verify_code.py over
   the worktree again gives 124de73a and the last commit touching
   chemsmart/ is still 0173e309.
+- Scheduling, not a re-run: slot b held pair3-b (running) and three
+  pending goals while slot a would idle after pair2-a, so the never
+  started pair4-a job 2150180 was cancelled while PENDING (sacct: Start
+  None) and the same goal.sh resubmitted as 2150195 in slot a. Its
+  workspace held only start.xyz. The resubmission's pre-registration
+  digest is 177af513c796 (this file at that time); the expectations it
+  runs under are the ones committed in 6f902802 and recorded with the
+  original submission (f9f9465411aa).
