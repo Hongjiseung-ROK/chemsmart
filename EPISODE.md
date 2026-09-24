@@ -336,6 +336,35 @@ settled `achieved_with_observations` at cycle 2, 4 engine calls):
 - Qualified by the host in the ledger: orca:cpu:td, pyscf:cpu:td,
   orca:cpu:opt, pyscf:cpu:opt.
 
+G2 (Slurm 2150296, code fcb115eb, settled `unreachable_from_evidence` at
+cycle 2, 1 engine call):
+- FAILURE by its own pre-registration (no ORCA unrestricted td executed),
+  and the cause is the host: the bootstrap probe's ORCA fixture asked td
+  for `singlet` on the doublet, ORCA's td bound no engine
+  (`binding.program.capability_red`, `execution_ready false`), and the
+  session recorded it, rejected an ORCA sp carrying a td section as
+  unreadable and a Gaussian substitution as outside the envelope, and ran
+  PySCF alone. Repaired in 22e22752; G3 re-issues the task.
+- What the session did with PySCF is good science, recorded not scored: it
+  asked 25 roots with "a post-hoc >= 7 eV coverage validation" and
+  delivered six states up to 7 eV (4.00, 6.00, 6.31, 6.44, 6.64, 6.90 eV;
+  strongest root 3, f 0.388) with "root 7 at about 7.08 eV brackets the
+  window from above" -- the 6.90 eV root O1's six-root PySCF window missed
+  is here because the window was large. Spin: it reported the reference
+  <S^2> 0.792 and that PySCF serves no per-root <S^2>. Every number is
+  within 0.001 eV of O1's ten-root PySCF window.
+- The settlement names the three ORCA observables unreachable with the
+  typed receipts behind each: an honest refusal, not a claim.
+
+O2 (Slurm 2150298, code 5d2dfc54, digest a120c3c8 on the node, 4 PySCF runs,
+all receipts `validated`): C1 PASS (dataset shape valid, host evaluator
+agrees); C2 PASS (acrolein st3 and allyl ten roots: PySCF, Gaussian and ORCA
+name the same excitation at every index; PySCF's 2|X|^2 = Gaussian's 2c^2 to
+0.001); C3 PASS (allyl six roots: PySCF's sixth is alpha HOMO -> LUMO+2 at
+7.080 where G/O's is beta HOMO -> LUMO+1 at 6.901; formaldehyde six roots:
+PySCF's sixth is HOMO -> LUMO+2 at 11.233, f 0.47, G/O's HOMO -> LUMO+3 at
+11.254). Falsifier not met.
+
 ## Jobs issued
 
 | Slurm | slot | what | code | pre-registration |
