@@ -51,6 +51,7 @@ _ENDING_WORDS = {
     "validated": "validated",
     "engine_complete_unvalidated": "engine complete, unvalidated",
     "failed_native": "failed in the engine",
+    "failed_result_validation": "finished; result refused by the host",
     "failed_nonconverged_scf": "SCF did not converge",
     "failed_nonconverged_geometry": "optimization did not converge",
     "failed_nonconverged_scan_step": "scan step did not converge",
