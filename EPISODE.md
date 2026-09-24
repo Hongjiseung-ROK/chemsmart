@@ -138,6 +138,19 @@ geometries as O1, the same -n that aborted there:
   B2PLYP -> NumFreq: normal, three real modes; J3r within 2 cm-1 of J1r.
 Falsified if any translated input aborts or any energy moves by more.
 
+### O2 results (Slurm 2152810, prereg 5bf25eb91343, code r1 5b95c12f)
+
+Every prediction held. A2r: the CLI refused before writing an input
+(`ValueError: ORCA's ccsd(t) has no electron pair ...`), no ORCA run.
+B2r ran on 1 process, C2r 10, D2r 21, E2r 3, H2r 4, I3r 8 ("Program
+running with N parallel MPI-processes"; pairs included 1, 10, 21, 3, 10,
+27), all ORCA TERMINATED NORMALLY, energies equal to O1's to every printed
+digit: -1.168262381921, -76.174711368878, -75.490145618429,
+-7.468048553819, -76.326547325817, -152.692438608255 Eh. J1r `Opt NumFreq
+mp2`: 1654.07, 3895.19, 4010.90 cm-1 (= O1 J2). J3r RI-MP2 NumFreq:
+1654.13, 3895.23, 4010.86 (within 0.06 of J1r). K1r B2PLYP NumFreq:
+1651.64, 3841.66, 3944.25 cm-1, 43 s.
+
 ## G1 -- live Agent goal (pre-registered before issue)
 
 Model deepseek-v4-flash-0731 via alibaba-token-plan (the only credential);
