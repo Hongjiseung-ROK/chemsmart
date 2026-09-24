@@ -661,15 +661,51 @@ def dispersion_detail(method, literal):
             str(parsed_method).strip().lower()
             == str(canonical_method).strip().lower()
         )
+        # check_disp accepts any version word PySCF knows; the parameters for
+        # the method are looked up only when the correction is computed, and
+        # 197 pairs this probe had called supported died there (R10 census
+        # D, CUHK Slurm 2153546: "No entry for 'wb97x' present", "Functional
+        # 'b3lypg' not known"). Load them the way get_dispersion does, on a
+        # two-atom molecule, so supported means the method has them.
+        parameters_error = None
+        if supported:
+            try:
+                from pyscf import gto
+
+                probe_mol = gto.M(
+                    atom="H 0 0 0; H 0 0 0.74", basis="sto-3g", verbose=0
+                )
+                version = str(parsed_version).lower()
+                if version.startswith("d3"):
+                    from pyscf.dispersion import dftd3
+
+                    dftd3.DFTD3Dispersion(
+                        probe_mol,
+                        xc=parsed_method,
+                        version=parsed_version,
+                        atm=with_3body,
+                    ).get_dispersion()
+                elif version.startswith("d4"):
+                    from pyscf.dispersion import dftd4
+
+                    dftd4.DFTD4Dispersion(
+                        probe_mol, xc=parsed_method, atm=with_3body
+                    ).get_dispersion()
+            except Exception as exc:
+                parameters_error = f"{type(exc).__name__}: {exc}"[:300]
+        parameterised = supported and parameters_error is None
         base.update(
             {
                 "parsed_method": parsed_method,
                 "dispersion_version": parsed_version,
                 "with_3body": bool(with_3body),
-                "supported": supported,
+                "supported": parameterised,
+                "parameters_error": parameters_error,
                 "method_compatible": compatible,
                 "status": (
-                    "supported" if supported and compatible else "incompatible"
+                    "invalid"
+                    if not parameterised
+                    else ("supported" if compatible else "incompatible")
                 ),
             }
         )
