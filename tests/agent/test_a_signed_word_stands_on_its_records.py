@@ -385,3 +385,106 @@ def test_the_executors_word_is_what_its_walk_wrote(tmp_path, shape):
     _nodes, word, _receipts, _report = executor._run_analysis_phase(toolchain)
 
     assert executor_word_violations(word, tmp_path / "events.jsonl") == []
+
+
+def test_a_node_the_walk_settles_failed_says_what_the_host_replied(tmp_path):
+    """The analysis-only walk runs on the session's own host, whose tools
+    load on first call: the host answers a first call with the schema and
+    runs nothing ("issue the call again; the arguments you sent were not
+    run"). The walk read that reply as a receipt with a field missing and
+    settled the node failed, "the executor and the tool contract have
+    drifted apart" -- five archived sessions (r8/orca goal-ts; r10/q13
+    dans, q22 gtw, q21 g2-hooh, q3 g3), each losing the node's dependents.
+    The walk's arguments are the host's own, computed from the approved
+    plan, so it issues the call the host asked for; and a node that does
+    fail says what the host replied."""
+
+    from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
+    from chemsmart.agent.executor import execute_analysis_only_toolchain
+    from chemsmart.agent.exposure import build_exposure
+    from chemsmart.agent.scientific_toolchain import (
+        AnalysisInputIntentV1,
+        AnalysisSelectorIntentV1,
+        RegisteredResultInputIntentV1,
+    )
+
+    from .test_the_executor_walks_the_approved_analysis_chain import _RESULT
+
+    result = _RESULT.resolve()
+    registered = "orca-result-8ae1cdc683f8eb7d"
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "session" / "events.jsonl", session_id="live-1"
+        ),
+        exposure=build_exposure("host_search"),
+        task_spec_sha256s=(_TASK,),
+        approved_workspace=tmp_path / "ws",
+    )
+    host.artifacts[registered] = TrustedArtifactRefV1(
+        artifact_id=registered,
+        kind="orca_output",
+        sha256=file_sha256(result),
+        size_bytes=result.stat().st_size,
+        path=str(result),
+        cli_value=str(result),
+    )
+    assert not host.exposure.is_available("extract_result_quantities")
+    extraction = _analysis_node(
+        "extract",
+        "result_extraction",
+        inputs=(
+            RegisteredResultInputIntentV1(
+                input_id="raw", artifact_id=registered
+            ),
+        ),
+        selectors=(
+            AnalysisSelectorIntentV1(quantity_id="e", selector="energy"),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="e", quantity_kind="energy", unit="hartree"
+            ),
+        ),
+    )
+    claims = _analysis_node(
+        "claims",
+        "claim_rendering",
+        dependencies=("extract",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="energy",
+                source_kind="analysis_output",
+                producer_node_id="extract",
+                producer_output_id="e",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="energy", quantity_kind="energy", unit="hartree"
+            ),
+        ),
+    )
+    toolchain = build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(),
+        calculation_observables={},
+        analysis_nodes=(extraction, claims),
+        required_output_ids=("energy",),
+    )
+
+    record = execute_analysis_only_toolchain(
+        host=host,
+        toolchain=toolchain,
+        run_directory=tmp_path / "run",
+        task_spec_sha256=_TASK,
+        workspace=tmp_path / "ws",
+    )
+
+    states = {node["node_id"]: node for node in record["executed_nodes"]}
+    assert states["extract"]["state"] == "executed", states["extract"]
+    assert states["claims"]["state"] == "executed", states["claims"]
+    assert record["analysis_status"] == "completed"
+    reasons = " ".join(node["reason"] for node in record["executed_nodes"])
+    assert "drifted apart" not in reasons
