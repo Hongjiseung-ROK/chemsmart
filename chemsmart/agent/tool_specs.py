@@ -349,12 +349,13 @@ def _legacy_tool_definitions(
                 "point it came from, at what coordinate and energy. Using "
                 "the returned geometry is a changed molecular input, so the "
                 "stage that consumes it is a new workflow needing its own "
-                "review. When the point you want is the surface's "
+                "review. When the point you want is an ORCA scan's "
                 "minimum-energy sample, you do not need this tool or a "
                 "second workflow: declare the consumer's geometry input as a "
                 "producer edge from the scan node, and one approval covers "
-                "scan and consumer. artifact_id must identify a completed "
-                "scan result already registered in this workspace."
+                "scan and consumer; a Gaussian scan's points are carried by "
+                "this tool. artifact_id must identify a completed scan "
+                "result already registered in this workspace."
             ),
             {
                 "artifact_id": _string(),
