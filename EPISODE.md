@@ -216,6 +216,26 @@ route with a scientific reason, R2 holds on every handoff, and B1-B3 pass
 - 2026-09-24: O1, CUHK Slurm 2152790 (r10-q15-a), CLI oracle, 32 cores,
   code 943882de (tree digest 85752dd3), pre-registration digest
   47fcb74af3be.
+- 2026-09-24: G1, CUHK Slurm 2152875 (r10-q15-b), live goal, 32 cores,
+  code tree digest 85752dd3 (chemsmart/ identical to 943882de; HEAD
+  5343f551), pre-registration digest 5acc431bcad8. Submitted after O1's
+  commands 1-3 (ORCA opt, saddle, p-benzyne) and while its IRC ran
+  ("Initial displacement Hessian type .... Read").
+
+## O1 -- partial READ (commands 1-3; ORCA 6.1.1 output read by me)
+
+- ORCA wrote `B3LYP/G` (LDAOpt VWN-3) and applied RIJCOSX with def2/J by
+  default ("RI is on but no J-basis has been assigned").
+- Enediyne: E -230.990780691 Eh, lowest mode 105.5 cm-1, C1...C6 4.390 A.
+- Saddle (from the 0.79 interpolation, 7 cycles): E -230.939192699 Eh,
+  one imaginary mode 529.9i cm-1, C1...C6 1.928 A, C2...C5 2.713 A:
+  O-A PASS. dE++ 32.37 kcal/mol: O-D PASS.
+- Restricted p-benzyne: E -230.953235105 Eh, no imaginary mode, C1-C6
+  1.477 A, C2...C5 2.702 A; dE_R 23.56 kcal/mol: O-E PASS (upper end).
+- My own harmonic terms (rrho.py, unscaled): dH++(470 K) 30.48 and
+  dH++(298 K) 30.99 kcal/mol; dH_R(298 K, restricted) 23.08 kcal/mol.
+  B3LYP-D3(BJ)/def2-TZVP alone therefore lands inside B3's band; B3
+  does not by itself distinguish a DFT route from a correlated one.
 
 ## Status
 
