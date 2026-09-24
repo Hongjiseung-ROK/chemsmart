@@ -170,7 +170,8 @@ def test_the_settlement_names_the_cycle_and_the_full_miss(tmp_path):
     )
     assert result.settlement == "returned_to_human"
     text = " ".join(result.reasons)
-    assert "in any cycle: spin-nickel" in text
+    assert "no claim in any cycle carries these declared observables: " in text
+    assert "observables: spin-nickel" in text
     assert "quartet-doublet-gap (delivered in cycle 2)" in text
     assert "of matching dimension" in text
 

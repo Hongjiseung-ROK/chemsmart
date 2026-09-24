@@ -160,6 +160,23 @@ class RuntimeEventStore:
         with self._locked_handle(exclusive=False) as handle:
             return self._read_locked(handle)
 
+    def red_receipts(self, receipt_sha256s: Iterable[str]) -> tuple[str, ...]:
+        """The receipts ``terminate`` would call red, each with why.
+
+        The one question ``terminate`` asks before it admits ``complete``,
+        for a caller choosing its word: the loop asked only whether the
+        completion receipt itself passed, asserted ``complete`` over a
+        passed completion that stood on a partial extraction, and the gate
+        refused it after the last turn (R10 Q22, G-h2c, CUHK 2153673).
+        """
+
+        events = self.read_events()
+        return tuple(
+            _red_receipt_statement(events, digest)
+            for digest in dict.fromkeys(str(item) for item in receipt_sha256s)
+            if not _receipt_is_green(events, digest)
+        )
+
     def state(self) -> RuntimeState:
         return replay_events(self.read_events())
 
@@ -1049,7 +1066,14 @@ class RuntimeEventStore:
                     if _receipt_is_green(events, digest)
                 )
                 if green != required:
-                    raise ContractError("a required completion gate is red")
+                    raise ContractError(
+                        "a required completion gate is red: "
+                        + "; ".join(
+                            _red_receipt_statement(events, digest)
+                            for digest in required
+                            if digest not in green
+                        )
+                    )
                 latest_preflight_is_required = bool(
                     state.preflight_receipts
                     and state.preflight_receipts[-1] in required
@@ -1523,6 +1547,58 @@ def _receipt_is_green(
     if event.kind == WORKFLOW_NODE_STATE_CHANGED:
         return value.get("node_state") == "validated"
     return False
+
+
+def _red_receipt_statement(
+    events: tuple[RuntimeEvent, ...],
+    digest: str,
+    _seen: frozenset[str] = frozenset(),
+) -> str:
+    """A receipt ``_receipt_is_green`` calls red, and the red ones under it.
+
+    "a required completion gate is red" named no receipt: G-h2c's goal
+    settled on that sentence while the receipt that made it so -- a
+    partial extraction beneath a passed completion -- sat in the stream
+    (R10 Q22, CUHK 2153673).
+    """
+
+    event = next(
+        (
+            item
+            for item in reversed(events)
+            if str(
+                item.payload.get("receipt_sha256")
+                or item.payload.get("binding_sha256")
+                or ""
+            )
+            == digest
+        ),
+        None,
+    )
+    if event is None:
+        return f"{digest[:8]} (no such receipt in this stream)"
+    value = event.payload
+    word = str(
+        value.get("status")
+        or value.get("state")
+        or value.get("execution_state")
+        or value.get("decision")
+        or ""
+    )
+    findings = _finding_count(value)
+    beneath = tuple(
+        _red_receipt_statement(events, str(source), _seen | {digest})
+        for source in value.get("source_receipt_sha256s") or ()
+        if str(source) not in _seen
+        and not _receipt_is_green(events, str(source), _seen | {digest})
+    )
+    return (
+        f"{digest[:8]} ({event.kind}"
+        + (f", {word}" if word else "")
+        + (f", {findings} critical finding(s)" if findings > 0 else "")
+        + ")"
+        + (" stands on " + "; ".join(beneath) if beneath else "")
+    )
 
 
 def _finding_count(payload: Mapping[str, Any]) -> int:

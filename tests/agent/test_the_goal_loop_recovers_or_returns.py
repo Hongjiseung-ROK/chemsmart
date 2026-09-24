@@ -622,7 +622,11 @@ def test_an_uncertified_delivery_returns_naming_the_gate(tmp_path):
         executes=[],
     )
     assert result.settlement == "returned_to_human"
-    assert any("completion gate" in reason for reason in result.reasons)
+    # What is missing is a completion receipt: this shape holds none, so
+    # no gate ran for the word to say had not passed (R10 Q22).
+    assert any(
+        "holds no completion receipt" in reason for reason in result.reasons
+    )
 
 
 def test_a_failed_rule_requires_a_scientist_to_answer_it(tmp_path):

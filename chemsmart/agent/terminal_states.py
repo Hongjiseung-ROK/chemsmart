@@ -737,6 +737,24 @@ def _classify_failure(
         and native_class not in _UNDIAGNOSED_FAILURE_CLASSES
     ):
         return "failed_native"
+    # A run that died before it printed an energy took no step, so no
+    # statement about a walk can hold. The result validators write
+    # ``optimization_not_converged`` whenever the convergence marker is
+    # absent -- a finding of absence, not of a walk -- and that finding
+    # typed a death before the first SCF as geometry non-convergence:
+    # Gaussian's link 301 refusing wB97X with D3(BJ) after 0.4 s (R10 Q15
+    # g2), three ORCA nodes dead in Startup (r7m-h3), six sub-second ORCA
+    # deaths in the ax41 campaign. The menu then offered a restart from a
+    # reached geometry that did not exist, and the woken sessions said so.
+    # Every archived non-convergence that was a real walk carried an
+    # energy. An undiagnosed class stays the program's own ending, whose
+    # engine lines say why; a normal termination stays the host's refusal.
+    if (
+        native_class in _UNDIAGNOSED_FAILURE_CLASSES
+        and terminated_normally is not True
+        and any(item.endswith(".result.energy_missing") for item in findings)
+    ):
+        return "failed_native"
     nonconverged = (
         converged is False
         or any(
