@@ -1,0 +1,125 @@
+# R10 Q8 -- what an excited state is, as the hub serves it
+
+Base SHA: a86d96581f6bfb290d2684cf88a86837f9f87c8b (verified `git rev-parse HEAD` at start)
+Episode id: q8
+Branch: worktree-agent-ac5d6ed8468ad4e58
+
+## Question (as currently understood)
+
+Is an excited state one typed physical object across Gaussian, ORCA and
+PySCF (Fundamental 1)?
+
+1. Requested in one vocabulary -- manifold, response approximation,
+   number of states -- that every program either runs as the same
+   calculation or refuses with a program-neutral edit that makes it
+   runnable.
+2. Identified by what it is (spin, manifold root, character, strength),
+   not by its place in one program's list; the same selector name means
+   the same state in every program.
+3. Combined only when it is the same quantity: the host, not the model,
+   knows when two roots come from different response approximations, and
+   says what it can about a window that may be incomplete.
+
+## Premises checked on the base tree (provider-free, before any change)
+
+Probe P1 -- one `td:` section (PBE0/def2-SVP, tddft, nstates 3), varied
+only in `state_manifold`, through `chemsmart run --fake` of the three
+programs (formaldehyde closed shell; allyl radical doublet):
+
+| manifold | Gaussian | ORCA | PySCF |
+|---|---|---|---|
+| singlet (closed shell) | TD(singlets) | TDA false, Triplets false | ok |
+| triplet (closed shell) | TD(triplets) | REFUSED "Unsupported state_manifold 'triplet'" | ok |
+| singlet_triplet (closed shell) | TD(50-50) | Triplets true | REFUSED "requires ... singlet, triplet, unrestricted" |
+| unrestricted (open shell) | TD(nstates=3) | REFUSED "Unsupported state_manifold 'unrestricted'" | ok |
+
+No refusal names a route. ORCA can run an open-shell (UKS) TD-DFT
+natively and the hub cannot ask for it at all; ORCA has no triplet-only
+option (ORCA 6.1.1 manual, section 5.6: `Triplets true` computes the
+spin-adapted triplets *beside* the singlets; for a UHF/UKS reference
+"multiplicity estimated based on rounded <S**2> value, RELEVANCE IS
+LIMITED!"); PySCF can run a singlet and a triplet response on one
+reference and the hub refuses to ask.
+
+Probe P2 -- the archived real td outputs read through each reader
+(`probe_readers.py`, scratch):
+
+- CONFIRMED (brief). One two-manifold request serves two orders.
+  Acrolein `singlet_triplet`, nstates 3: Gaussian `excitation_energies`
+  = [T1 2.978, T2 3.196, S1 3.624, T3 5.648, S2 6.534, S3 7.052] eV
+  (energy order); ORCA = [S1 3.622, S2 6.536, S3 7.049, T1 2.976, T2
+  3.196, T3 5.647] (STATE-table order). Index 0 is T1 in one program and
+  S1 in the other.
+- NEW. ORCA `excited_state_indices` = [1, 2, 3, 1, 2, 3] on that run:
+  the STATE number restarts per manifold, so the selector that is a
+  unique rank in Gaussian and PySCF repeats in ORCA.
+- NEW. Gaussian `td` declares none of `excited_state_manifold_roots`,
+  `excited_state_multiplicities`, `singlet_*`, `triplet_*` (the accessors
+  exist and answer correctly: [1,2,1,3,2,3], [3,3,1,3,1,1]); ORCA `td`
+  declares no `triplet_*`. The excitations guide says "Excited-state
+  selectors answer per manifold root, singlet and triplet apart" -- two
+  programs refuse half of that.
+- NEW. Gaussian's unrestricted run (radical anion, 50 roots) serves no
+  `excited_state_manifold_roots` (the parser counts roots only for a
+  resolved spin label) where PySCF's unrestricted hydroxyl serves 1..n.
+- CONFIRMED (brief, Q7). ORCA's level carries no response method,
+  manifold or root count (Gaussian's and PySCF's do); `LEVEL_IDENTITY_FIELDS`
+  = method, basis, dispersion, solvation, frozen_core: a TDA and a full
+  TD-DFT excitation combine with no observation.
+- NEW. ORCA excitation energies are read from the STATE line's
+  three-decimal eV (3.622) where ORCA also prints 3.622297 eV
+  (absorption table) and 0.133117 Eh: 5e-4 eV of rounding inside
+  cross-program bands of 3-5e-3 eV.
+- CONFIRMED (Q7 O4). Nothing tells a session that the top root of a
+  Davidson window may not be the n-th state.
+
+## Falsifiers of the premise (from the brief)
+
+Premise falsified if, on three chemically different systems (a
+closed-shell chromophore with near-degenerate roots, an open-shell
+system, one where singlet-triplet order matters), all three hold:
+(a) every shared manifold or response word runs as the same calculation
+or is refused with a program-neutral edit that makes it runnable;
+(b) states read back paired and ordered so that identity-by-index is
+already safe at the windows an Agent requests; (c) no operation the
+Agent can call combines values from different response approximations
+without an observation.
+
+Status: NOT falsified on the base tree by the provider-free probes alone
+-- (a) fails for ORCA triplet/unrestricted and PySCF singlet_triplet,
+(b) fails for any two-manifold run (orders differ; ORCA indices repeat),
+(c) fails (TDA + TDDFT combine silently). The oracle below measures (b)
+at the top of a window on real runs.
+
+## Plan
+
+A. Provider-free, in radius, one general commit per defect:
+   1. One state order and one set of names in every reader: states in
+      ascending excitation energy with a unique rank; manifold roots and
+      multiplicities declared in all three; `singlet_*`/`triplet_*`
+      declared in all three; ORCA energies at ORCA's six-decimal
+      precision; Gaussian's unrestricted manifold roots.
+   2. ORCA's level states the response it ran; the level observation
+      compares the response approximation of excited-root operands.
+   3. The shared manifold words run everywhere they can be computed:
+      ORCA `unrestricted` (UKS TD-DFT) and `triplet` (the triplet block
+      of a `Triplets true` solve), PySCF `singlet_triplet` (two response
+      solves on one reference) -- after a fact-finding run shows ORCA's
+      real UKS output.
+B. CLI oracle (pre-registered below before it is issued).
+C. Live Agent goals where the answer depends on state identity.
+
+## Pre-registration
+
+(written before each job is issued; never edited after its result)
+
+(none issued yet)
+
+## Jobs issued
+
+| Slurm | slot | what | code | pre-registration |
+|---|---|---|---|---|
+
+## Status
+
+- step 0: base verified; probes P1 and P2 run on the base tree.
