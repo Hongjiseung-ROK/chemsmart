@@ -12685,15 +12685,19 @@ class CommandCompiledToolHostV1:
         human saying a gate had not passed (L1, R10 Q16, CUHK 2152989).
         """
 
+        # getattr, as the other registry readers here: a host restored for
+        # preflight is built without running __init__.
         validations = []
-        for digest, receipt in self.scientific_validation_receipts.items():
+        for digest, receipt in getattr(
+            self, "scientific_validation_receipts", {}
+        ).items():
             record = canonical_data(receipt)
             record["receipt_sha256"] = digest
             validations.append(record)
         if not validations:
             return ()
         cited: set[str] = set()
-        for decision in self.scientific_decisions.values():
+        for decision in getattr(self, "scientific_decisions", {}).values():
             cited |= cited_receipts(getattr(decision, "evidence_refs", ()))
         result_artifacts, expression_sources = self._result_lineage_maps()
         return failed_criteria(
@@ -12715,9 +12719,9 @@ class CommandCompiledToolHostV1:
             {
                 str(digest): str(receipt.artifact_sha256)
                 for registry in (
-                    self.quantity_extractions,
+                    getattr(self, "quantity_extractions", {}),
                     # A derivation reads its result as an extraction does.
-                    self.thermochemistry_receipts,
+                    getattr(self, "thermochemistry_receipts", {}),
                 )
                 for digest, receipt in registry.items()
                 if getattr(receipt, "artifact_sha256", "")
@@ -12726,9 +12730,9 @@ class CommandCompiledToolHostV1:
                 (str(digest), str(dependency.output_id)): tuple(
                     str(item) for item in dependency.source_receipt_sha256s
                 )
-                for digest, receipt in (
-                    self.quantity_expression_receipts.items()
-                )
+                for digest, receipt in getattr(
+                    self, "quantity_expression_receipts", {}
+                ).items()
                 for dependency in getattr(receipt, "output_dependencies", ())
             },
         )
