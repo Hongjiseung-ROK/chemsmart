@@ -285,6 +285,34 @@ sp-h) each carry an `input_check_probed` event with status `passed`, wall
 0.35 / 0.13 / 0.12 s, inside Slurm 2150438 -- the first ORCA input checks to
 run inside an allocation in R10 (every earlier one was `not_run`).
 
+## A defect of my own change, seen live in G1, repaired (9774ed01)
+
+G1's granted scratch holds an empty `chemsmart-input-check-s1d5dfb2`
+(created 11:11:23.5 HKT, last touched 11:11:24.0; the sp-h-ccsd probe event
+is 03:11:24.02 UTC; still there 30 s later); the three earlier probes and
+O1's four left nothing. Inferred mechanism: past its banner ORCA starts a
+module in children of its own; `_stop` waited for the leader only, so the
+probe could rmtree while a child held its files open, and on NFS an open
+unlinked file survives as a placeholder. 9774ed01 waits on the process group
+and retries the removal; its witness (a child ignoring SIGTERM) is red on
+936f04fe, green on 9774ed01.
+
+### O2 -- pre-registered before issue: the probe's leftovers on real ORCA + NFS
+
+`oracle2/{job.sh,oracle2.py}`, one slot job (8 tasks, 16 GB, 40 min).
+Input: G1's retained sp-h-ccsd input (sha256 0449bd9d...; CCSD(T)/def2-QZVPPD
+AutoAux, UHF, `%pal nprocs 8`), the one whose probe left the directory. Thirty
+probes per tree into `/scratch/.../q9/oracle2/<tree>`: before = 55e4424a
+(oracle1/code-repaired), after = 9774ed01's code. After each return: my
+processes whose cwd lies in the work root, and the root's entries, at return
+and 3 s later.
+- after: 30/30 `passed`; 0 probes with a process inside the root at return;
+  0 entries at return; root empty at the end. Any miss falsifies 9774ed01.
+- before: the race is timing-dependent; I expect >= 1 of 30 probes with a
+  process inside the root at return or an entry left. If 0/30 on both, the
+  mechanism is not reproduced and stays inferred (reported as such; the
+  repair stands on its witness and on "after" being clean, not on this).
+
 ## Status
 
-O1 read. G1 (2150438) running.
+O1 read. G1 (2150438) running. O2 pre-registered.
