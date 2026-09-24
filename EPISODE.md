@@ -174,5 +174,7 @@ Read through the host's own extraction tool from the result files:
 - step 1 (census, provider-free): done (above).
 - step 2 (repairs): done, seven commits (b568eab3 repairs c642982a's
   regression on a host built without __init__).
-- step 3: reference job 2153508 done (above); live goal L-S2 next, on
-  code b568eab3.
+- step 3: reference job 2153508 done (above). Live goal L-S2 submitted:
+  CUHK Slurm 2153514 (slot r10-q19-a), code fd093662 (chemsmart tree ==
+  b568eab3, digest b50dd4cb), pre-registration digest d0cfc0730bb9,
+  /project/xlzhang/jiseung/r10/q19/goals/ls2.
