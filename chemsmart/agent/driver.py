@@ -43,7 +43,7 @@ from chemsmart.agent.delivery import (
     current_assessments,
     unresolved_requirement_ids,
 )
-from chemsmart.agent.execution import anomaly_standing
+from chemsmart.agent.execution import STRUCTURE_MOVING_STAGES, anomaly_standing
 from chemsmart.agent.goal import (
     GOAL_SCHEMA_VERSION,
     GoalLedger,
@@ -302,6 +302,17 @@ def _achieved_word(
                 f"{producer} by {consumer}"
                 for producer, consumer in (
                     delivery.surface_mismatched_characterisations
+                )
+            ),
+        )
+    if delivery.surface_uncompared_characterisations:
+        provenance = provenance + (
+            "characterised by a Hessian whose surface the host could not "
+            "compare with the geometry's: "
+            + ", ".join(
+                f"{producer} by {consumer}"
+                for producer, consumer in (
+                    delivery.surface_uncompared_characterisations
                 )
             ),
         )
@@ -2224,6 +2235,11 @@ class _AnalysisDelivery:
     #: is not told that reads a ground-state spectrum as an excited
     #: minimum's (PySCF round 2 E2, 2026-09-13).
     surface_mismatched_characterisations: tuple[tuple[str, str], ...] = ()
+    #: Producer/consumer node pairs credited although the two surfaces
+    #: could not be compared -- a reader that records no surface, or a
+    #: field it cannot determine. The credit stands; the comparison that
+    #: was not made is said, because None is not agreement.
+    surface_uncompared_characterisations: tuple[tuple[str, str], ...] = ()
     #: The recorded decision's own stated uncertainties, verbatim.
     decision_uncertainties: tuple[str, ...] = ()
     #: Result artifacts a session characterised, with the host checking
@@ -2918,8 +2934,16 @@ def _analysis_delivery(
                 surface = recorded_surface(record)
                 if surface:
                     node_surfaces[node_name] = surface
-                if str(record.get("state") or "") == "valid" and (
-                    printed_modes(record)
+                # A result characterises the structure it was handed only
+                # if it kept that structure: a re-optimisation prints the
+                # modes of the structure it reached. 12 archived credits
+                # went to producers whose consumer had moved (an ORCA
+                # scan's refined well, an opt re-optimised).
+                if (
+                    str(record.get("state") or "") == "valid"
+                    and printed_modes(record)
+                    and str(record.get("jobtype") or "")
+                    not in STRUCTURE_MOVING_STAGES
                 ):
                     characterising.add(node_name)
             if str(record.get("state") or "") != "valid":
@@ -3063,6 +3087,13 @@ def _analysis_delivery(
     # determine -- the Hessian still characterises, as it did before,
     # and the run story says the comparison was not available.
     surface_mismatches: list[tuple[str, str]] = []
+    # ``surfaces_agree`` answers None when it cannot compare, and its own
+    # contract says a caller must not read None as agreement. The credit
+    # stands, as it did before, and the comparison that was not made is
+    # recorded beside it rather than living only in this comment: 36 of
+    # 37 archived credits were given on None (every ORCA, Gaussian and
+    # xTB pair; any PySCF result written before surfaces were recorded).
+    surface_uncompared: list[tuple[str, str]] = []
     for consumer, producer in handoffs.items():
         if consumer not in characterising:
             continue
@@ -3072,6 +3103,8 @@ def _analysis_delivery(
         if verdict is False:
             surface_mismatches.append((producer, consumer))
             continue
+        if verdict is None:
+            surface_uncompared.append((producer, consumer))
         characterised.update(node_outputs.get(producer, ()))
     failed_seed = set(failed_artifacts) | set(failed_artifact_sha256s)
     failed_quantities, _failed_walk = _stale_quantity_ids(
@@ -3231,6 +3264,7 @@ def _analysis_delivery(
         characterised_artifact_sha256s=tuple(sorted(characterised)),
         uncharacterised_source_quantity_ids=uncharacterised_quantities,
         surface_mismatched_characterisations=tuple(surface_mismatches),
+        surface_uncompared_characterisations=tuple(surface_uncompared),
         decision_uncertainties=tuple(decision_uncertainties),
         declared_observable_misses=declared_misses,
         goal_delivered=dict(goal_delivered_ids or {}),
