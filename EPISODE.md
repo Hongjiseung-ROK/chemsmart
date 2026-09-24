@@ -225,6 +225,34 @@ records?
 - Not counted: zero provider turns or turn_deadline_exceeded
   (infrastructure). A weak run is reported, never re-rolled.
 
+## Parity checks over the archive (reader against signer, provider-free)
+
+| question | signer | reader | archived divergences | base ec41a57c | repaired |
+|---|---|---|---|---|---|
+| is the delivery certified? | `_settle` / `_delivery_settlement` | `signed_word_violations` (records only) | 7 (+21 reader blindness, below) | 7 of 271 replayed | 0 of 271 (run path) |
+| what did the analysis walk do? | executor word | its run stream's receipts | 12 runs (empty chains) | 12 | 0 (walk says "") |
+| which verdicts are unanswered? | `_settle` (run stream alone) | wake / planning path (goal grain) | 0 of 102 run-path settle steps | 0 | 0 |
+| why did a node fail? | executor node reason | host reply before it | 5 ("drifted apart" after `capability_loaded`) | reproduced | 0 (d4309cb5) |
+| which rows qualify? | `_record_goal_qualification` | the word it follows | 25 rows under 7 false words | same | none written |
+
+Error of my own instrument, found by cross-checking: run over the archive
+as signed, `signed_word_violations` flagged 28 goals, 21 of them older
+planning-path words whose ledgers name no session stream
+(`session_stream_recorded` did not exist yet); it read a run's partial
+completion as the newest because it could not see the session's passed
+one. Base re-signs all 21 identically and the inventory oracle (which
+infers session streams) finds nothing there. The suite's ledgers always
+name their sessions; the archive census uses the inventory oracle. The
+replayed planning path writes no ledger row, so the repaired tree's "0 of
+271" is a statement about the run path.
+
+## Live goal g2r -- ISSUED
+
+- CUHK Slurm 2153691 (slot r10-q24-a), goal g2r, submitted 2026-09-25
+  05:29 +08:00 by slot_submit; pre-registration digest e752cdc94d77; code
+  commit ed187305, tree digest 2e4edf47999757a8 (426 files, 0
+  AppleDouble); workspace holds h2o2.xyz only (ls checked).
+
 ## Status
 
 - step 0: brief read; base verified; CONDUCT, RSL, charter topics, Q10,
