@@ -277,6 +277,43 @@ B3LYP/def2-TZVP HI optimised and its Hessian in PySCF: r_e 1.60-1.63 A,
 one real mode 2250-2400 cm-1, both receipts validated.
 O2'-C. Gaussian CEP-31G water as written now prints `(5D, 7F)`.
 
+## Goal g1-hi (pre-registered before issue; code d31f1170, packed as code-r2)
+
+Task (TASK.md, verbatim): "The attached structure is hydrogen iodide (HI,
+neutral, singlet) at a bond length of 1.609 Å. I would like its bond
+dissociation energy, HI → H + I, as an electronic energy (no zero-point
+correction), at CCSD(T)/def2-TZVP at this geometry. Please compute it with
+both ORCA and PySCF, and report the value each program gives in kcal/mol
+and whether the two programs agree." Workspace: hi.xyz. Envelope: orca,
+pyscf on CPU; 8 cores, 24 GB; node 1800 s; episode 5400 s; 10 engine
+calls; 2 revisions; delegated approval
+`claude-researcher-q12-owner-delegated` (never a human decision); model
+deepseek-v4-flash-0731 via alibaba-token-plan. One goal is one
+observation. The task names no core potential, frozen core or angular
+form.
+
+Base-tree control (not re-run): O1 E-C -- on 1dbc9984 a PySCF def2-SVP HI
+run passed `run --fake` and was refused at run time
+(`ecp_unmaterialized`), so this task could not have been done in PySCF.
+
+Success (capability): every PySCF node on an iodine species executes and
+its receipt is `validated` with core electrons {I: 28} recorded; the
+reported ORCA De equals O2'-B's ORCA reference within 0.01 kcal/mol.
+If the session's PySCF frozen core is `auto` (or a count equal to
+ORCA's), its PySCF De equals ORCA's within 0.01 kcal/mol; if it is unset,
+PySCF's De is O2'-B's all-electron value within 0.01 kcal/mol, and any
+expression combining an ORCA and a PySCF energy carries a `frozen_core`
+level observation (none on the basis, angular form or core potential).
+Settles achieved or achieved_with_observations; each reported number
+reproduces from the receipts' energies.
+Failure: a PySCF iodine node refused or not validated; a reported De not
+reproducible from the receipts; a De outside 70-82 kcal/mol; an
+observation naming the basis, the angular form or the core potential
+between ORCA and PySCF.
+Recorded, not scored (behaviour of this model): whether the session
+names the core potential or the frozen core, and what it says about any
+difference between the programs.
+
 ## Status
 
 - step 1: tree read; O1 pre-registered above; code unchanged.
