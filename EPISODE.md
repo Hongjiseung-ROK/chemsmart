@@ -341,9 +341,25 @@ the radical centre carries most of it (methyl C 0.8 .. 1.1, hydroxyl O
 form, same partition). Falsified if either program prints no spin column
 for a doublet, or the spins do not close on 1.
 
+## hspin1 read (CUHK 2152359, COMPLETED; ORCA 6.1.1 and Gaussian 16)
+
+Every pre-registered outcome held: both programs print the spin column;
+methyl radical C 0.839 (ORCA) / 0.838 (Gaussian), each H 0.054; hydroxyl O
+0.965 / 0.964; every vector closes on 1.000; the programs agree per atom
+within 0.0011. Served as hirshfeld_atomic_spin_populations (1f1ca4ab).
+
 ## Status
 
-- Census: done (above).
-- Next: PySCF stability record keeps PySCF's own answers (writer), then the
-  reader serves them; Gaussian/ORCA census items; live goals pre-registered
-  below before any is issued.
+- Census: done. Live goals o2r and dans read; CLI references stab1, gstab1,
+  hspin1 read; every pre-registered band held.
+- Integration: r10-integration merged at 4d1f6084 (Q11, Q12, master
+  commits; the writer conflict resolved keeping Q12's `__CHEMSMART_CART__`
+  substitution beside the stability substitutions; the fixture README
+  keeps both new sections). The merged driver still records real -> complex
+  (rendered and run on local PySCF 2.13).
+- Qualification: release.json records for the four PySCF selectors
+  (e37bbeb2), earned by o2r and dans. Gaussian and ORCA selectors served
+  this episode are tested on archived and new CLI bytes, not qualified.
+- Gates on a pristine export of e37bbeb2: tests/agent 3048 passed, 0 failed;
+  touched files ruff/black/isort clean; full suite: see the hand-back.
+- Milestone claimed: A.
