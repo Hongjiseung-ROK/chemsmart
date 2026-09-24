@@ -102,6 +102,33 @@ def _record_claims(run_directory, sufficiency):
         },
         idempotency_key="analysis-claims:test",
     )
+    # And the completion receipt the walk mints over them: a settlement
+    # certifies a delivery from its receipt, and a run that recorded claims
+    # and no completion is a state the executor never writes.
+    completion = {
+        "schema_version": "chemsmart.analysis-completion-receipt.v1",
+        "policy_sha256": "5" * 64,
+        "task_spec_sha256": "a" * 64,
+        "source_receipt_sha256s": [canonical_sha256(record)],
+        "status": "passed",
+        "findings": [],
+    }
+    store.append(
+        turn_id="turn-1",
+        kind="analysis_completion_evaluated",
+        payload={
+            "receipt_sha256": canonical_sha256(completion),
+            "policy_sha256": completion["policy_sha256"],
+            "task_spec_sha256": completion["task_spec_sha256"],
+            "source_receipt_sha256s": completion["source_receipt_sha256s"],
+            "status": "passed",
+            "critical_finding_count": 0,
+            "limitation_output_ids": [],
+            "completion_kind": "scientific_toolchain",
+            "record": completion,
+        },
+        idempotency_key="analysis-completion:test",
+    )
 
 
 def _executed_run(tmp_path, *, sufficiency):

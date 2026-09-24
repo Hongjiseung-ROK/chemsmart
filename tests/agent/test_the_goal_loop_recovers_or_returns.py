@@ -1065,6 +1065,13 @@ def test_the_goals_first_declarations_ride_the_wake(tmp_path):
                 )
             ),
             capture(_planning_session("live-2", review=_review_payload())),
+            # Cycle 2's run claims nothing, so cis-barrier is still owed and
+            # no completion certifies the goal: it is woken again. What the
+            # woken cycles do is not under test.
+            *(
+                _planning_session(f"live-{index}", terminal="blocked")
+                for index in range(3, 9)
+            ),
         ],
         executes=[
             _execute(

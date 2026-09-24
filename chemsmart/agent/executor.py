@@ -135,7 +135,9 @@ class WorkflowExecutionResultV1:
     non_executable_node_ids: tuple[str, ...] = ()
     #: The approved analysis chain's fate, when the bundle carried one.
     analysis_nodes: tuple[ExecutedAnalysisNodeV1, ...] = ()
-    #: "" (no chain) | "completed" | "partial" | "not_run"
+    #: "" (no analysis node ran: no chain, one with no analysis node, or
+    #: one whose every node is declared non-executable) | "completed" |
+    #: "partial" | "not_run"
     analysis_status: str = ""
     analysis_completion_receipt_sha256s: tuple[str, ...] = ()
     analysis_report_path: str = ""
@@ -455,15 +457,46 @@ class ApprovedWorkflowExecutor:
         self._turn = 0
         self._handoff_inputs: dict[str, str] = {}
 
-    def _call(self, tool_name: str, **arguments: Any) -> Any:
+    def _dispatch(self, tool_name: str, arguments: Mapping[str, Any]) -> Any:
         self._turn += 1
-        return _result_of(
-            self.host.dispatch(
-                turn_id=f"exec-{self._turn:04d}",
-                tool_name=tool_name,
-                arguments=arguments,
-            )
+        return self.host.dispatch(
+            turn_id=f"exec-{self._turn:04d}",
+            tool_name=tool_name,
+            arguments=dict(arguments),
         )
+
+    def _call(self, tool_name: str, **arguments: Any) -> Any:
+        reply = self._dispatch(tool_name, arguments)
+        if (
+            isinstance(reply, Mapping)
+            and reply.get("status") == "schema_loaded"
+        ):
+            # The session's host loads a tool on its first call and runs
+            # nothing, because a model's arguments composed before it read
+            # the schema are where a silent error enters -- and asks for
+            # the call again. The analysis-only walk runs on that host, and
+            # read the reply as a receipt with a field missing: five
+            # archived sessions settled their first node of a kind failed,
+            # "the executor and the tool contract have drifted apart", and
+            # lost its dependents (R10 Q24). These arguments are the host's
+            # own, computed from the approved plan; the call is issued
+            # again, as asked.
+            reply = self._dispatch(tool_name, arguments)
+        status = (
+            str(reply.get("status") or "ok")
+            if isinstance(reply, Mapping)
+            else "ok"
+        )
+        if status != "ok":
+            raise ContractError(
+                f"the host did not run {tool_name}: it replied {status!r}"
+                + (
+                    f" ({json.dumps(reply.get('result'), default=str)[:300]})"
+                    if reply.get("result") is not None
+                    else ""
+                )
+            )
+        return _result_of(reply)
 
     def _binding(self, node_id: str) -> Any:
         for binding in self.approval.node_bindings:
@@ -1355,6 +1388,20 @@ class ApprovedWorkflowExecutor:
         )
         executed_all = executed_all and not starved_requirements
         analysis_status = "completed" if executed_all else "partial"
+        # What the walk did, not what all() says about nothing. An approved
+        # toolchain with no analysis node -- or whose every node is
+        # declared non-executable intent -- runs no node and binds no
+        # receipt, and "completed" over it read as a finished chain
+        # wherever the word went: the driver's chainless read (seven
+        # archived achieved words, R10 Q24), the terminal interface's
+        # green "analysis: completed", the recovery row a woken session
+        # reads. No node ran, so no chain was walked: the word the
+        # executor already gives a bundle that carries no toolchain.
+        if not any(
+            record.state != "blocked_unsupported"
+            for record in settled.values()
+        ):
+            analysis_status = ""
         completion_receipts: tuple[str, ...] = ()
         report_path = ""
 
