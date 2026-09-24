@@ -248,7 +248,9 @@ equal on a270eca6).
 | job | slot | what | pre-registration | outcome |
 |---|---|---|---|---|
 | 2149579 | r10-q3-a | batch-dev1: D1 in C, B, A; D3 in C (dev, provider-only) | e7f1723f7b06 | COMPLETED; 4 sessions, exit 0, waiting_for_approval each |
-| (next) | slot | live goal g1 = q03 in arm C (64fc0ca1, knowledge on); g2 = q03 in arm B (64fc0ca1, CHEMSMART_AGENT_SKILLS=0); g3 = q02 in arm C (control). make_goal.py: gaussian, orca, pyscf, xtb on cpu; 32 cores, 120 GB (+8 controller), node 6 h, episode 10 h, 12 engine calls, 0 excursions, 2 revisions; granted by claude-researcher-q3-owner-delegated (a delegated approval, not a human decision); each goal's TASK.md and workspace are its sealed question's own files; bands sealed at af4569be... | -- | submitted g1 first, g2 staggered after g1's planning, g3 when a slot frees |
+| 2151849 | r10-q3-a | live goal g1 = q03 in arm C (64fc0ca1 packed as the campaign code, CHEMSMART_AGENT_SKILLS=1); make_goal.py: gaussian, orca, pyscf, xtb on cpu; 32 cores, 120 GB (+8 controller), node 6 h, episode 10 h, 12 engine calls, 0 excursions, 2 revisions; granted by claude-researcher-q3-owner-delegated (a delegated approval, not a human decision); TASK.md and workspace are the sealed question's own files; bands sealed at af4569be... | 9a82ee130e42 | running; code digest cdfd90c9 verified in the job; cycle 1's two ORCA opt nodes exited in 1-2 s (ORCA 6.1.1: "MP2 analytic Hessian calculations are not implemented - please use NumFreq" -- the session asked for `freq: true` on an MP2 project, and the pinned code does not run the input-check probe inside an allocation); cycle 2 admitted |
+| 2152066 | r10-q3-b | live goal g2 = q03 in arm B (same code, CHEMSMART_AGENT_SKILLS=0), same envelope, submitted after g1's planning session ended | 9a82ee130e42 | running |
+| (queued) | -- | live goal g3 = q02 in arm C (control), same envelope | -- | submitted when a slot frees |
 | 2149677 | r10-q3-a | sealed1: the 48 sealed sessions (provider-only), plan 06ac7515 | 34a1e57ab05a | COMPLETED 0:0, 8:13:53 (04:02-12:15 HKT); the job verified both code digests (d3652db7 = 292b9bf3, cdfd90c9 = 64fc0ca1), all 52 sealed files and the plan digest before the first session; 48 of 48 sessions exit 0 |
 
 ## Sealed run: host records (read before any grading)
@@ -376,6 +378,20 @@ negative, carried by the adequacy statement, and the registered harm
 threshold was met. The master's premise (that reachability would change
 choices and qualifications for the better) is not supported; the false
 sentence itself cost nothing measurable.
+
+## Product consequence (committed 1fd1d17e, separate so it reverts cleanly)
+
+The registered harm threshold fired and no benefit was found, so the
+knowledge switch now defaults to off (on for 1/true/yes/on). At HEAD the
+default and an explicit 0 give one surface -- catalogue c84be0a9 (62
+entries), tools 1295775e, system prompt fda60dcd, the same prompt digest
+the sealed B arm read (the catalogue text has changed since 64fc0ca1
+through other episodes' merges). With the switch on, everything f21ae5e7
+built is unchanged and tested; the reachability witness runs in both
+states. f21ae5e7's honesty repair stands either way: no prompt names
+knowledge a session cannot load. Merge of r10-integration: 422e0607,
+clean; it exposed a false alarm in the witness (a correct rule naming the
+singlet_*/triplet_* selector blocks), repaired in cbd02f00.
 
 ## Status
 
