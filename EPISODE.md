@@ -450,3 +450,20 @@ the workspace holding the item's `data/` directory exactly as released
   and nothing under chemsmart/ is ignored or untracked except
   __pycache__ -- so the bytes that run are the pack's; the check is
   repeated when the set has settled.
+- Archived set finished (2026-09-24 07:53 -> 09:17 local), all eleven
+  settled, one goal each, none re-run. Host words: ar01 achieved, ar02
+  achieved, ar03 returned_to_human, ar04 unreachable_from_evidence, ar05
+  achieved_with_observations, ar06 achieved, ar07 achieved, ar08
+  achieved, ar09 achieved, ar10 unreachable_from_evidence, ar11
+  achieved. The reading fired on the eight certified words and on none
+  of the other three, as designed. ar03 returned to the human because
+  its own session declared a 1.0 kcal/mol tolerance for its answer and
+  stated its uncertainty on its own word ("attested"), and with
+  max_revisions 0 no cycle could resolve it -- a behaviour ending, and
+  one that keeps the reading out by construction. Provider health: all
+  19 archived sessions had provider turns (5 to 19 requests each), no
+  non-succeeded attempt and no turn_deadline_exceeded; no infrastructure
+  failure, nothing re-run. One reading session (ar06) ended `blocked`;
+  its goal settled on the held word. After the set, verify_code.py over
+  the worktree again gives 124de73a and the last commit touching
+  chemsmart/ is still 0173e309.
