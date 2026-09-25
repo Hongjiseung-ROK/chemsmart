@@ -438,6 +438,461 @@ def projected_harmonic_frequencies(hessian, positions, masses, directions=()):
     )
 
 
+# ---------------------------------------------------------------------------
+# Internal rotation: the one-dimensional hindered rotor
+# ---------------------------------------------------------------------------
+#
+# A torsion about a single bond is a harmonic oscillator only near the
+# bottom of a deep well.  H2O2 has two mirror-image wells over one turn and
+# a trans barrier of about 1.9 kT at 298 K; methanol's methyl barrier is
+# about 1.8 kT.  A harmonic mode counts one well and a parabola that never
+# ends, so the entropy it gives misses by several J/(K mol).  The treatment
+# below is the one NIST-JANAF and Gurvich use for their own tables (Dorofeeva,
+# Novikov & Neumann, JPCRD 30, 475 (2001)): the internal-rotation levels are
+# the eigenvalues of the one-dimensional Hamiltonian -B d2/dphi2 + V(phi) on a
+# Fourier potential, with B from the reduced moment of the rotating top, and
+# the partition function sums every level over one full turn and divides by
+# the rotor's own symmetry number.
+
+#: B (cm^-1) = ROTOR_CONSTANT_CM1_AMU_A2 / I for a rotor of moment I (amu A^2).
+ROTOR_CONSTANT_CM1_AMU_A2 = units._hplanck / (
+    8.0 * math.pi**2 * units._c * 100.0 * units._amu * 1e-20
+)
+
+#: k / (h c): a temperature in kelvin times this is kT in cm^-1.
+BOLTZMANN_CM1_PER_K = units._k / (units._hplanck * units._c * 100.0)
+
+#: J/mol per cm^-1.
+CM1_TO_J_PER_MOL = units._hplanck * units._c * 100.0 * units._Nav
+
+#: How far (Angstrom) an atom of a rotating top may sit from the image of an
+#: equivalent atom under a turn about the bond it rotates on, and the turn
+#: still count as a symmetry of the top.  Wider than the whole-molecule
+#: tolerance above because the axis is the bond, not the top's own axis: a
+#: methyl group's local three-fold axis tilts a few degrees off the bond it
+#: turns about, which moves the image of each hydrogen by a few hundredths
+#: of an Angstrom, while a top that is not symmetric (OH, CH2CH3) misses by
+#: several tenths.  The deviation found is stated on every receipt.
+ROTOR_TOP_SYMMETRY_TOLERANCE_ANGSTROM = 0.15
+
+#: A top whose every atom lies within this distance (Angstrom) of the axis
+#: has nothing to turn: a linear group (C#N, C#CH) has no torsion.
+ROTOR_AXIS_OFFSET_ANGSTROM = 0.1
+
+
+@dataclass(frozen=True)
+class InternalRotorTopsV1:
+    """The two ends of a bond a torsion turns about.
+
+    ``axis`` is the bond as zero-based atoms ``(b, c)`` of a torsion
+    a-b-c-d; ``top`` is every atom on ``c``'s side (``c`` included) and
+    ``frame`` every atom on ``b``'s side, split by the host's adjacency
+    (``chemsmart.io.molecules.perception``).  ``top_order`` and
+    ``frame_order`` are the orders of the rotations about the bond that map
+    each end onto itself, with the largest atom displacement those
+    rotations leave (``top_deviation``, ``frame_deviation``, Angstrom).
+    """
+
+    axis: tuple[int, int]
+    top: tuple[int, ...]
+    frame: tuple[int, ...]
+    top_order: int
+    frame_order: int
+    top_deviation: float
+    frame_deviation: float
+
+    @property
+    def symmetry_number(self) -> int:
+        """The rotor's internal symmetry number, lcm of the two orders.
+
+        Turning one end by 2 pi / n_top or the other by 2 pi / n_frame gives
+        an indistinguishable molecule, so the potential repeats every
+        2 pi / lcm(n_top, n_frame): 3 for ethane and methanol, 1 for
+        H2O2, 6 for nitromethane's methyl against its NO2.
+        """
+
+        return math.lcm(int(self.top_order), int(self.frame_order))
+
+
+def _rotor_axis(positions, axis):
+    x = np.asarray(positions, dtype=float)
+    b, c = (int(index) for index in axis)
+    direction = x[c] - x[b]
+    length = float(np.linalg.norm(direction))
+    if length == 0.0:
+        raise ValueError(f"atoms {b + 1} and {c + 1} coincide")
+    return x[c], direction / length
+
+
+def _rotation_matrix(unit, angle):
+    """Right-handed rotation by ``angle`` (radians) about ``unit``."""
+
+    ux, uy, uz = unit
+    k = np.array([[0.0, -uz, uy], [uz, 0.0, -ux], [-uy, ux, 0.0]])
+    return np.eye(3) + math.sin(angle) * k + (1.0 - math.cos(angle)) * (k @ k)
+
+
+def _end_rotational_order(symbols, positions, atoms, point, unit, tolerance):
+    """Order of the largest C_n about the axis mapping ``atoms`` onto
+    themselves, and the largest displacement that rotation leaves."""
+
+    x = np.asarray(positions, dtype=float)
+    members = [int(index) for index in atoms]
+    relative = x[members] - point
+    radial = relative - np.outer(relative @ unit, unit)
+    off_axis = [
+        position
+        for position, row in enumerate(radial)
+        if float(np.linalg.norm(row)) > ROTOR_AXIS_OFFSET_ANGSTROM
+    ]
+    if not off_axis:
+        raise ValueError(
+            "every atom of one end lies on the bond axis, so turning it "
+            "about the bond moves nothing: a linear group has no torsion"
+        )
+    labels = [str(symbols[index]) for index in members]
+    best = (1, 0.0)
+    for order in range(2, len(off_axis) + 1):
+        image = relative @ _rotation_matrix(unit, 2.0 * math.pi / order).T
+        worst = 0.0
+        taken = set()
+        for position, row in enumerate(image):
+            candidates = [
+                (float(np.linalg.norm(row - relative[other])), other)
+                for other in range(len(members))
+                if labels[other] == labels[position] and other not in taken
+            ]
+            distance, other = min(candidates)
+            taken.add(other)
+            worst = max(worst, distance)
+        if worst <= tolerance:
+            best = (order, worst)
+    return best
+
+
+def internal_rotor_tops(
+    symbols,
+    positions,
+    axis,
+    *,
+    tolerance_angstrom=ROTOR_TOP_SYMMETRY_TOLERANCE_ANGSTROM,
+):
+    """Split a structure at the bond ``axis`` (zero-based ``(b, c)``).
+
+    Refused when the two atoms are not adjacent under the host's declared
+    convention, when the bond is in a ring (its torsion is not an internal
+    rotation of one part against the rest), and when an end is linear.
+    ``positions`` are in Angstrom.
+    """
+
+    import networkx as nx
+
+    from chemsmart.io.molecules.perception import adjacency_graph
+
+    b, c = (int(index) for index in axis)
+    graph = adjacency_graph(symbols, positions)
+    if not graph.has_edge(b, c):
+        raise ValueError(
+            f"atoms {b + 1} and {c + 1} are not bonded under the host's "
+            "adjacency convention, so no internal rotation turns about them"
+        )
+    graph.remove_edge(b, c)
+    top = nx.node_connected_component(graph, c)
+    if b in top:
+        raise ValueError(
+            f"the {b + 1}-{c + 1} bond is in a ring: turning one side "
+            "about it is not an internal rotation of a rigid top"
+        )
+    frame = nx.node_connected_component(graph, b)
+    if len(top) + len(frame) != len(list(symbols)):
+        raise ValueError(
+            "the structure is in more than two pieces once the bond is "
+            "cut, so the two ends of the rotor are not the whole molecule"
+        )
+    point, unit = _rotor_axis(positions, (b, c))
+    top_order, top_deviation = _end_rotational_order(
+        symbols, positions, sorted(top), point, unit, tolerance_angstrom
+    )
+    frame_order, frame_deviation = _end_rotational_order(
+        symbols, positions, sorted(frame), point, unit, tolerance_angstrom
+    )
+    return InternalRotorTopsV1(
+        axis=(b, c),
+        top=tuple(sorted(top)),
+        frame=tuple(sorted(frame)),
+        top_order=int(top_order),
+        frame_order=int(frame_order),
+        top_deviation=float(top_deviation),
+        frame_deviation=float(frame_deviation),
+    )
+
+
+def internal_rotation_displacement(positions, axis, turning):
+    """Cartesian displacement (N x 3) per radian of turning ``turning``
+    rigidly about the bond ``axis``; every other atom stands still."""
+
+    x = np.asarray(positions, dtype=float)
+    point, unit = _rotor_axis(x, axis)
+    displacement = np.zeros_like(x)
+    for index in turning:
+        displacement[int(index)] = np.cross(unit, x[int(index)] - point)
+    return displacement
+
+
+def _rigid_motion_basis(positions, masses):
+    vectors = np.array(
+        [
+            vector / np.linalg.norm(vector)
+            for vector in _translation_rotation_vectors(positions, masses)
+            if float(np.linalg.norm(vector)) > 1e-10
+        ]
+    ).T
+    basis, singular, _ = np.linalg.svd(vectors, full_matrices=False)
+    return basis[:, singular > 1e-8]
+
+
+def internal_rotation_moment(positions, masses, axis, turning):
+    """The reduced moment of one internal rotation, I(3,4) of East & Radom.
+
+    The kinetic energy of turning ``turning`` rigidly about the bond at
+    zero total linear and angular momentum: the turn is written in
+    mass-weighted Cartesian coordinates and its translation and rotation
+    components are removed, which is exactly the counter-rotation a free
+    molecule makes.  Exact within the rigid-rotor model for one internal
+    rotation and the same from either end (East & Radom, J. Chem. Phys.
+    106, 6655 (1997), Sec. IV.B: methanol 0.6348 amu A^2 at MP2/6-31G(d)).
+    Units follow the inputs: amu A^2 for amu and Angstrom.
+    """
+
+    x = np.asarray(positions, dtype=float)
+    m = np.asarray(masses, dtype=float)
+    weighted = (
+        internal_rotation_displacement(x, axis, turning) * np.sqrt(m)[:, None]
+    ).ravel()
+    basis = _rigid_motion_basis(x, m)
+    internal = weighted - basis @ (basis.T @ weighted)
+    return float(internal @ internal)
+
+
+@dataclass(frozen=True)
+class TorsionalPotentialV1:
+    """A torsional potential V(phi) as a Fourier series over one period.
+
+    ``V(phi) = constant + sum_k cosine[k-1] cos(k w phi)
+    + sine[k-1] sin(k w phi)`` in cm^-1, with ``w = 2 pi / period`` and phi
+    in radians the dihedral as the scan drove it.  ``points`` samples were
+    fitted by least squares, ``rms_residual_cm1`` is how closely.
+    """
+
+    period_rad: float
+    constant: float
+    cosine: tuple[float, ...]
+    sine: tuple[float, ...]
+    points: int
+    rms_residual_cm1: float
+
+    @property
+    def order(self) -> int:
+        return len(self.cosine)
+
+    @property
+    def frequency(self) -> float:
+        return 2.0 * math.pi / self.period_rad
+
+    def value(self, phi):
+        phi = np.asarray(phi, dtype=float)
+        total = np.full_like(phi, self.constant, dtype=float)
+        for k, (a, b) in enumerate(zip(self.cosine, self.sine), start=1):
+            total = total + a * np.cos(k * self.frequency * phi)
+            total = total + b * np.sin(k * self.frequency * phi)
+        return total
+
+    def second_derivative(self, phi):
+        phi = np.asarray(phi, dtype=float)
+        total = np.zeros_like(phi, dtype=float)
+        for k, (a, b) in enumerate(zip(self.cosine, self.sine), start=1):
+            w = k * self.frequency
+            total = total - w * w * (a * np.cos(w * phi) + b * np.sin(w * phi))
+        return total
+
+    def stationary_points(self, samples=7200):
+        """Minima and maxima over one period, refined on a fine grid.
+
+        Returns ``(minima, maxima)``, each a tuple of ``(phi_rad,
+        value_cm1)`` in ascending phi.
+        """
+
+        grid = np.linspace(0.0, self.period_rad, samples, endpoint=False)
+        values = self.value(grid)
+        before = np.roll(values, 1)
+        after = np.roll(values, -1)
+        minima = tuple(
+            (float(grid[i]), float(values[i]))
+            for i in range(samples)
+            if values[i] < before[i] and values[i] <= after[i]
+        )
+        maxima = tuple(
+            (float(grid[i]), float(values[i]))
+            for i in range(samples)
+            if values[i] > before[i] and values[i] >= after[i]
+        )
+        return minima, maxima
+
+    @property
+    def minimum(self):
+        """``(phi_rad, value_cm1)`` of the lowest point over one period."""
+
+        grid = np.linspace(0.0, self.period_rad, 7200, endpoint=False)
+        values = self.value(grid)
+        lowest = int(np.argmin(values))
+        return float(grid[lowest]), float(values[lowest])
+
+
+#: The highest harmonic of the period a scan's potential is fitted with, at
+#: most; fewer when the scan has fewer points than twice this plus one.
+TORSIONAL_FOURIER_ORDER = 6
+
+
+def fit_torsional_potential(
+    phi_rad, energies_cm1, period_rad, max_order=TORSIONAL_FOURIER_ORDER
+):
+    """Least-squares Fourier series of one period of a torsional potential.
+
+    ``phi_rad`` are the dihedral values of the samples (any origin; each is
+    taken modulo the period), ``energies_cm1`` their energies on any common
+    zero.  Cosine and sine terms up to ``max_order`` harmonics of the
+    period, fewer when the samples cannot determine them.
+    """
+
+    phi = np.asarray(phi_rad, dtype=float)
+    energy = np.asarray(energies_cm1, dtype=float)
+    if phi.shape != energy.shape or phi.ndim != 1:
+        raise ValueError("one energy per dihedral value")
+    order = min(int(max_order), (len(phi) - 1) // 2)
+    if order < 1:
+        raise ValueError(
+            f"{len(phi)} point(s) cannot determine a torsional potential"
+        )
+    w = 2.0 * math.pi / float(period_rad)
+    columns = [np.ones_like(phi)]
+    for k in range(1, order + 1):
+        columns.append(np.cos(k * w * phi))
+        columns.append(np.sin(k * w * phi))
+    design = np.column_stack(columns)
+    coefficients, *_ = np.linalg.lstsq(design, energy, rcond=None)
+    residual = energy - design @ coefficients
+    return TorsionalPotentialV1(
+        period_rad=float(period_rad),
+        constant=float(coefficients[0]),
+        cosine=tuple(float(value) for value in coefficients[1::2]),
+        sine=tuple(float(value) for value in coefficients[2::2]),
+        points=int(len(phi)),
+        rms_residual_cm1=float(np.sqrt(np.mean(residual * residual))),
+    )
+
+
+@dataclass(frozen=True)
+class HinderedRotorV1:
+    """The levels of one internal rotation on its potential.
+
+    ``levels_cm1`` are the eigenvalues of -B d2/dphi2 + V(phi) over one full
+    turn, measured from the potential's minimum, so the lowest is the
+    rotor's zero-point energy.  ``symmetry_number`` divides the sum over
+    every level (the classical count of indistinguishable orientations);
+    ``basis`` is the largest |m| of the free-rotor basis exp(i m phi).
+    """
+
+    rotational_constant_cm1: float
+    symmetry_number: int
+    levels_cm1: tuple[float, ...]
+    basis: int
+    harmonic_frequency_cm1: float
+
+    @property
+    def zero_point_cm1(self) -> float:
+        return float(self.levels_cm1[0])
+
+    def thermodynamics(self, temperature_k):
+        """``(q, S, U, Cv)`` at T: S and Cv in J/(K mol), U in J/mol from
+        the potential minimum (zero-point energy included)."""
+
+        kt = BOLTZMANN_CM1_PER_K * float(temperature_k)
+        levels = np.asarray(self.levels_cm1, dtype=float)
+        weights = np.exp(-(levels - levels[0]) / kt)
+        z = float(weights.sum())
+        mean = float((weights * levels).sum() / z)
+        second = float((weights * levels * levels).sum() / z)
+        q = z * math.exp(-levels[0] / kt) / self.symmetry_number
+        entropy = R * (math.log(q) + mean / kt)
+        energy = mean * CM1_TO_J_PER_MOL
+        heat_capacity = R * (second - mean * mean) / (kt * kt)
+        return q, entropy, energy, heat_capacity
+
+    def harmonic_thermodynamics(self, temperature_k):
+        """``(S, U, Cv)`` of the harmonic oscillator this rotor replaces:
+        the one with the same moment and the curvature at the minimum."""
+
+        nu = float(self.harmonic_frequency_cm1)
+        kt = BOLTZMANN_CM1_PER_K * float(temperature_k)
+        x = nu / kt
+        entropy = R * (x / math.expm1(x) - math.log1p(-math.exp(-x)))
+        energy = (0.5 * nu + nu / math.expm1(x)) * CM1_TO_J_PER_MOL
+        heat_capacity = R * x * x * math.exp(x) / math.expm1(x) ** 2
+        return entropy, energy, heat_capacity
+
+
+def hindered_rotor(potential, moment_amu_a2, symmetry_number, *, basis=None):
+    """Solve the one-dimensional rotor on ``potential`` (see HinderedRotorV1).
+
+    The potential is referred to its own minimum.  The free-rotor basis
+    runs to |m| = ``basis``; by default far enough that B m^2 exceeds the
+    potential's range by 60000 cm^-1, so every level a partition function
+    below 2000 K can reach is converged.
+    """
+
+    moment = float(moment_amu_a2)
+    if not moment > 0.0:
+        raise ValueError("a rotor needs a positive reduced moment")
+    sigma = int(symmetry_number)
+    b_const = ROTOR_CONSTANT_CM1_AMU_A2 / moment
+    fold = potential.frequency
+    harmonics = int(round(fold))
+    if abs(fold - harmonics) > 1e-9 or harmonics < 1:
+        raise ValueError(
+            "the potential's period must divide one full turn a whole "
+            f"number of times, not {2.0 * math.pi / potential.period_rad:g}"
+        )
+    phi_min, v_min = potential.minimum
+    grid = np.linspace(0.0, potential.period_rad, 3600, endpoint=False)
+    v_range = float(potential.value(grid).max()) - v_min
+    if basis is None:
+        basis = int(math.ceil(math.sqrt((v_range + 60000.0) / b_const))) + 10
+    size = 2 * basis + 1
+    hamiltonian = np.zeros((size, size), dtype=complex)
+    ms = np.arange(-basis, basis + 1)
+    hamiltonian[np.diag_indices(size)] = b_const * ms * ms + (
+        potential.constant - v_min
+    )
+    for k, (a, b) in enumerate(zip(potential.cosine, potential.sine), start=1):
+        shift = k * harmonics
+        if shift >= size:
+            continue
+        upper = 0.5 * (a - 1j * b)
+        for row in range(shift, size):
+            hamiltonian[row, row - shift] += upper
+            hamiltonian[row - shift, row] += np.conj(upper)
+    levels = np.linalg.eigvalsh(hamiltonian)
+    curvature = float(potential.second_derivative(phi_min))
+    harmonic = math.sqrt(2.0 * b_const * curvature) if curvature > 0 else 0.0
+    return HinderedRotorV1(
+        rotational_constant_cm1=float(b_const),
+        symmetry_number=sigma,
+        levels_cm1=tuple(float(value) for value in levels),
+        basis=int(basis),
+        harmonic_frequency_cm1=float(harmonic),
+    )
+
+
 class Thermochemistry:
     """Class for thermochemistry analysis using SI units.
 
@@ -490,8 +945,15 @@ class Thermochemistry:
         near_zero_frequency_tolerance_cm=None,
         rotational_mode="physical",
         projected_frequencies=None,
+        internal_rotors=(),
         **kwargs,
     ):
+        # Internal rotations counted as hindered rotors
+        # (:class:`HinderedRotorV1`) beside the vibrational modes.  Their
+        # harmonic modes must already be absent from ``projected_frequencies``
+        # -- the caller projects each rotor's turn out of the Hessian -- or
+        # the torsion is counted twice.  None leaves every number as it was.
+        self.internal_rotors = tuple(internal_rotors or ())
         # The kept modes of a projected analysis
         # (:func:`projected_harmonic_frequencies`), in cm^-1, used in place
         # of the program's printed spectrum: a held coordinate removed is
@@ -1420,16 +1882,36 @@ class Thermochemistry:
         ]
         return R * sum(s)
 
+    @cached_property
+    def internal_rotor_terms(self):
+        """Summed ``(q, S, U, Cv, ZPE)`` of the hindered rotors at T.
+
+        S and Cv in J/(K mol), U and ZPE in J/mol from each potential's
+        minimum; ``q`` is the product of the rotor partition functions on
+        that zero.  All zero (and q one) when no rotor is treated.
+        """
+
+        q, entropy, energy, heat_capacity, zero_point = 1.0, 0.0, 0.0, 0.0, 0.0
+        for rotor in getattr(self, "internal_rotors", ()) or ():
+            rq, rs, ru, rc = rotor.thermodynamics(self.T)
+            q *= rq
+            entropy += rs
+            energy += ru
+            heat_capacity += rc
+            zero_point += rotor.zero_point_cm1 * CM1_TO_J_PER_MOL
+        return q, entropy, energy, heat_capacity, zero_point
+
     @property
     def zero_point_energy(self):
         """Obtain the vibrational zero-point energy (ZPE) in J mol^-1.
         Formula:
             E_ZPE = R * Σ(1/2 * Θ_v,K)
+        plus each hindered rotor's lowest level above its potential minimum.
         """
         if self.theta is None:
             return None
         u = [1 / 2 * t for t in self.theta]
-        return R * sum(u)
+        return R * sum(u) + self.internal_rotor_terms[4]
 
     @property
     def vibrational_internal_energy(self):
@@ -1468,18 +1950,27 @@ class Thermochemistry:
         """
         if self.vibrational_partition_function_v0 is None:
             return None
-        return (
+        total = (
             self.translational_partition_function
             * self.rotational_partition_function
             * self.electronic_partition_function
             * self.vibrational_partition_function_v0
         )
+        rotors = getattr(self, "internal_rotors", ()) or ()
+        if rotors:
+            # The v=0 convention: each rotor counted from its lowest level.
+            kt = BOLTZMANN_CM1_PER_K * self.T
+            for rotor in rotors:
+                total *= rotor.thermodynamics(self.T)[0] * math.exp(
+                    rotor.zero_point_cm1 / kt
+                )
+        return total
 
     @property
     def total_entropy(self):
         """Obtain the total entropy in J mol^-1 K^-1.
         Formula:
-            S_tot = S_t + S_r + S_v + S_e
+            S_tot = S_t + S_r + S_v + S_e (+ S of each hindered rotor)
         """
         if self.vibrational_entropy is None:
             return None
@@ -1488,13 +1979,14 @@ class Thermochemistry:
             + self.rotational_entropy
             + self.electronic_entropy
             + self.vibrational_entropy
+            + self.internal_rotor_terms[1]
         )
 
     @property
     def total_internal_energy(self):
         """Obtain the total internal energy in J mol^-1.
         Formula:
-            E_tot = E_t + E_r + E_v + E_e
+            E_tot = E_t + E_r + E_v + E_e (+ U of each hindered rotor)
         """
         if self.vibrational_internal_energy is None:
             return None
@@ -1503,13 +1995,14 @@ class Thermochemistry:
             + self.rotational_internal_energy
             + self.electronic_internal_energy
             + self.vibrational_internal_energy
+            + self.internal_rotor_terms[2]
         )
 
     @property
     def total_heat_capacity(self):
         """Obtain the total heat capacity in J mol^-1 K^-1.
         Formula:
-            C_tot = C_t + C_r + C_v + C_e
+            C_tot = C_t + C_r + C_v + C_e (+ Cv of each hindered rotor)
         """
         if self.vibrational_heat_capacity is None:
             return None
@@ -1518,6 +2011,7 @@ class Thermochemistry:
             + self.rotational_heat_capacity
             + self.electronic_heat_capacity
             + self.vibrational_heat_capacity
+            + self.internal_rotor_terms[3]
         )
 
     def _calculate_damping_function(self, freq_cutoff):
@@ -1709,6 +2203,7 @@ class Thermochemistry:
             + self.rotational_entropy
             + self.electronic_entropy
             + self.qrrho_vibrational_entropy
+            + self.internal_rotor_terms[1]
         )
 
     @property
@@ -1754,6 +2249,7 @@ class Thermochemistry:
             + self.rotational_internal_energy
             + self.electronic_internal_energy
             + self.qrrho_vibrational_internal_energy
+            + self.internal_rotor_terms[2]
         )
 
     @property

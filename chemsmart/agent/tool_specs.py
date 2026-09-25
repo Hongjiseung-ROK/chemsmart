@@ -2162,6 +2162,37 @@ def _legacy_tool_definitions(
                         "stationary point."
                     ),
                 },
+                "internal_rotors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "torsion": _TORSION_ATOMS_SCHEMA,
+                            "scan_artifact_id": _string(),
+                            "scan_program": thermochemistry_program,
+                        },
+                        "required": ["torsion", "scan_artifact_id"],
+                        "additionalProperties": False,
+                    },
+                    "description": (
+                        "Torsions to count as one-dimensional hindered "
+                        "rotors instead of harmonic oscillators, each named "
+                        "by the one-based dihedral a-b-c-d a scan drove (it "
+                        "turns about b-c) with the registered relaxed scan "
+                        "whose energies are its potential (scan_program "
+                        "defaults to program). The scan must be this "
+                        "molecule, drive a dihedral about the same bond and "
+                        "cover one full period of the rotor: 360 deg for "
+                        "H2O2, whose two gauche wells are mirror images; "
+                        "120 deg for a methyl group. The host projects each "
+                        "rotor's rigid turn from the Hessian and states the "
+                        "potential, the reduced moment, the symmetry numbers "
+                        "and which mode it replaced. A harmonic receipt "
+                        "names the torsions it counted as oscillators."
+                    ),
+                },
             },
             ("program", "artifact_id", "temperature_k", "pressure_atm"),
         ),
@@ -3223,6 +3254,15 @@ def _unit_string(lead: str) -> dict:
     }
 
 
+#: A torsion as the four one-based atoms a scan or modred takes.
+_TORSION_ATOMS_SCHEMA = {
+    "type": "array",
+    "minItems": 4,
+    "maxItems": 4,
+    "items": {"type": "integer", "minimum": 1},
+}
+
+
 #: Held coordinates as the one-based atom rows ``modred`` takes; the host
 #: normalises and checks them (``normalized_projected_coordinates``).
 _PROJECTED_COORDINATES_SCHEMA = {
@@ -4067,6 +4107,35 @@ def _analysis_intent_node_schema_full(
                     "-- the free energy of the surface they are held on "
                     "(a modred result holding exactly these), not a "
                     "stationary point's. Omit for a stationary point."
+                ),
+            },
+            "internal_rotors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "torsion": _TORSION_ATOMS_SCHEMA,
+                        "scan_input_id": _string(),
+                        "scan_artifact_id": _string(),
+                    },
+                    "required": ["torsion"],
+                    "additionalProperties": False,
+                },
+                "description": (
+                    "Thermochemistry-only: torsions counted as "
+                    "one-dimensional hindered rotors instead of harmonic "
+                    "oscillators, each the one-based dihedral a-b-c-d (it "
+                    "turns about b-c) with its relaxed scan: scan_input_id "
+                    "names an input of this node bound to a scan stage's "
+                    "program output (the node then binds that input beside "
+                    "its frequency result), or scan_artifact_id names a "
+                    "registered scan result. The scan covers one full "
+                    "period of the rotor (360 deg for H2O2, 120 deg for a "
+                    "methyl group) from the structure's own value, offset "
+                    "from a planar 0 or 180 deg point. Omit for harmonic "
+                    "torsions."
                 ),
             },
             "support_state": {
