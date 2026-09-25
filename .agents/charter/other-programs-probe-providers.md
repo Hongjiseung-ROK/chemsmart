@@ -116,7 +116,8 @@ answered ``invalid`` and the session fell back first to
 ``additional_route_parameters: maxpoints=50`` -- which appends a bare
 token beside the keyword it belongs inside -- and then to one
 directionless node; after it, ``irc: {maxpoints: 60, stepsize: 0.1}``
-validated and reached the route -- and a third goal on the same molecule
+validated and its direction reached the route (its numbers did not
+until R10 Q28, below) -- and a third goal on the same molecule
 and the byte-identical task then ran the two branches as two nodes, one
 direction each, which is what the architecture means by a path and what
 the first two goals had been refused. Making those controls
@@ -127,6 +128,42 @@ the second goal its path, and the fields are read from the ``irc(...)``
 leaf of the route now, as the TD leaf already was. What a plan still
 cannot say is a direction per *node*: ``CommandNodeIntentV1`` has no
 such field, so the direction travels in the project a node names.
+
+The numbers a Gaussian project states for its reaction path reached the
+route only with R10 Q28 (ee589269, 23cb2daf). Before that, the `irc`
+command's options defaulted to values (maxpoints 512, maxcycle 128,
+stepsize 20, recalc 6) that overrode the project, and a step size was
+written only beside a predictor. So every Gaussian IRC before then, R9's
+included, ran maxpoints=512. The preview's comparison caught it. One
+goal's node was held on a red preview (expected 60, observed 512), and
+another session rewrote its own project to 512 to pass (CUHK 2153762,
+2153763). A project's controls now reach the route unless the command
+line states one.
+
+Native fields on the Agent path (R10 Q28). Each program's settings class
+keeps the native fields a person may set: ORCA `input_string`,
+`route_to_be_written`, `additional_route_parameters` and the
+`additional_*_options`, and Gaussian's route and link fields. PySCF
+already refused its own. In an Agent-authored project:
+- a native word for an intent a typed setting carries is refused, and
+  names that setting;
+- `input_string` and `route_to_be_written`, which replace the host's
+  input, are refused outright.
+
+In the archive, 104 of 1,788 authoring calls set a native field, 88 %
+for intents a typed setting already carried, broken symmetry above all.
+One session had learned `input_string` from the loader's list of
+accepted keys. That is why an unknown key is now answered with the
+settings the capability offers. What has no typed form (Hirshfeld
+populations, spin flips on named sites) stays allowed and visible to the
+reviewer.
+
+Gaussian gained three typed settings, each read back from Gaussian's own
+output (CUHK 2153749):
+- `scf_convergence`, offered as `tight` only: `verytight` is accepted
+  and applies the same 1.00D-08 threshold;
+- `defgrid`, which was accepted before and never written;
+- `geom_maxiter`.
 
 One boundary of the Gaussian route channel is worth stating because the
 program does not state it. A route parameter is appended verbatim, so a

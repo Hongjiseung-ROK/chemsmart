@@ -342,3 +342,63 @@ def test_a_reading_a_process_left_open_settles_the_word_it_held(tmp_path):
         "goal_settled",
     ]
     assert "never recorded" in entries[-2]["payload"]["error"]
+
+
+def test_what_the_reading_concluded_reaches_the_settlement(tmp_path):
+    """The reading's rule sends a check that the delivery holds, and the
+    statement that nothing else bears on it, into the decision's words --
+    and the settlement read only its findings and counts, so a reading
+    that concluded without a finding reached the human as "recorded no
+    finding" and nothing more (all 14 archived readings of R10 Q6 and
+    Q17 recorded decision uncertainties; 48 of their 60 appear nowhere
+    in the settlement). The planning session's recorded uncertainties
+    always reached it."""
+
+    from .test_a_finding_carries_its_standing import _TASK
+
+    build = tmp_path / "reading-build"
+    host = _host(build / "events.jsonl", tmp_path / "reading-workspace")
+    caveat = (
+        "the stationary point is uncharacterised: no frequencies were "
+        "printed, so a minimum is not established by vibrational evidence"
+    )
+    reply = host.dispatch(
+        turn_id="t1",
+        tool_name="record_scientific_decision",
+        arguments={
+            "decision_id": "d-reading",
+            "task_spec_sha256": _TASK,
+            "assumptions": ["the supplied structures are as named"],
+            "method_rationale": "re-read the delivered geometry",
+            "alternatives": [],
+            "uncertainties": [caveat],
+            "diagnostics": [],
+            "stage_order": ["read"],
+            "evidence_refs": [],
+            "findings": [],
+        },
+    )
+    assert reply["status"] == "ok", reply
+    rows = tuple(
+        json.loads(line)
+        for line in (build / "events.jsonl").read_text().splitlines()
+        if line.strip()
+    )
+    result = run_goal_loop(
+        **_goal(
+            tmp_path,
+            sessions=[
+                _planning_session("live-1", review=_review_payload()),
+                _reading_session("live-reading", rows=rows),
+            ],
+            executes=[_execute(tmp_path, failed=False, status="completed")],
+            reading_turn=True,
+        )
+    )
+    assert result.settlement == "achieved"
+    entries = _ledger(tmp_path).entries()
+    settled = entries[-1]["payload"]
+    assert any(caveat in reason for reason in settled["reasons"])
+    assert settled["evidence"]["reading"]["decision_uncertainties"] == [caveat]
+    recorded = next(e for e in entries if e["kind"] == "reading_recorded")
+    assert recorded["payload"]["decision_uncertainties"] == [caveat]

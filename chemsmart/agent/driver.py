@@ -7447,11 +7447,13 @@ class GoalDriver:
             # would hand this goal another session's reading.
             events_path = candidate if candidate.is_file() else None
         findings: tuple[Mapping[str, Any], ...] = ()
+        uncertainties: tuple[str, ...] = ()
         claims = decisions = typed_reads = 0
         if events_path is not None:
             self._record_workspace(events_path, "")
             delivery = _analysis_delivery(events_path)
             findings = delivery.findings
+            uncertainties = tuple(delivery.decision_uncertainties)
             claims = delivery.claims
             decisions = delivery.decisions
             typed_reads = _session_typed_reads(events_path)
@@ -7466,6 +7468,7 @@ class GoalDriver:
             "decisions": decisions,
             "typed_reads": typed_reads,
             "findings": tuple(dict(row) for row in findings),
+            "decision_uncertainties": uncertainties,
             "cost": {
                 **_session_provider_cost(events_path),
                 "driver_wall_seconds": round(wall_seconds, 3),
@@ -7539,7 +7542,28 @@ class GoalDriver:
                     else ""
                 )
             )
-        added = (line,) + _finding_reasons(findings)
+        # The rule sends a check that the delivery holds, and "nothing
+        # else bears on it", into the decision's words; the planning
+        # session's recorded uncertainties reach the settlement, and the
+        # reading's were never read (R10 Q29 census: all 14 archived
+        # readings recorded some; 48 of their 60 appear nowhere in the
+        # settlement, the rest only where a planning session had stated
+        # the same words).
+        uncertainties = tuple(
+            str(item) for item in summary.get("decision_uncertainties") or ()
+        )
+        added = (
+            (line,)
+            + (
+                (
+                    "the reading's recorded decision states its "
+                    "uncertainties: " + " | ".join(uncertainties),
+                )
+                if uncertainties
+                else ()
+            )
+            + _finding_reasons(findings)
+        )
         evidence = dict(opened.get("evidence") or {})
         evidence["reading"] = {
             key: summary.get(key)
@@ -7549,6 +7573,7 @@ class GoalDriver:
                 "error",
                 "claims",
                 "decisions",
+                "decision_uncertainties",
                 "typed_reads",
                 "cost",
             )
