@@ -1306,7 +1306,16 @@ class ORCAJobSettings(MolecularJobSettings):
                 "geometry optimisation runs at least one step"
             )
         self.opt_convergence = _normalize_orca_opt_convergence(opt_convergence)
-        self.gbw = gbw
+        # ORCA writes its orbital file (.gbw) on every run and no input word
+        # stops it, so ``gbw: false`` could be accepted, advertised and never
+        # honoured (R10 Q31 census): it is refused instead.
+        if gbw is not None and gbw is not True:
+            raise ValueError(
+                f"gbw takes true only, got {gbw!r}: ORCA writes its .gbw "
+                "orbital file on every run and no ORCA input stops it, so "
+                "gbw: false cannot reach the program. Remove gbw."
+            )
+        self.gbw = True
         self.mdci_cutoff = _normalize_choice(
             mdci_cutoff, ORCA_MDCI_CUTOFF_KEYWORDS, "mdci_cutoff"
         )
