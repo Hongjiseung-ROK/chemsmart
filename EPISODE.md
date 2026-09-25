@@ -376,6 +376,83 @@ dH(412 K) 9.19 kcal/mol. O-D (cZc 2-7 above tZt) FAILS: the reactive
 conformer lies 9.4 kcal/mol above the ground state, so the question's
 conformer trap is about 9 kcal/mol.
 
+## O1e -- READ (CUHK Slurm 2153621, all 17 commands exit 0; native outputs
+and the host's PySCF reader)
+
+- O-A PASS: one imaginary mode, -570.2 cm-1; C1...C6 2.253 A; torsions
+  +32.9/-32.9 deg (the mirror-symmetric, disrotatory saddle).
+- O-B PASS: IRC forward ends at C1...C6 2.992 A (open chain), backward at
+  1.558 A (the ring), both reading the saddle's Hessian.
+- O-C PASS: PySCF RKS -> UKS stable at tZt (+0.0495 Eh), cZc (+0.0608), the
+  saddle (+0.0642) and CHD (+0.0611).
+- O-D FAIL (recorded above): cZc 9.35, tZc 3.52 kcal/mol above tZt (dE).
+- O-E PASS: B3LYP-D3(BJ)/def2-TZVP dE++ (tZt -> TS) 29.06.
+- O-F PASS: CCSD(T)/cc-pVTZ // B3LYP-D3(BJ)/def2-TZVP dE++ 30.86, dE_rxn
+  -17.02 kcal/mol.
+- O-G PASS: ORCA T1 0.0115 (tZt), 0.0110 (TS), 0.0111 (cZc), 0.0106 (CHD).
+- O-H PASS: ORCA vs PySCF CCSD(T) totals -7.2e-7 (tZt), -5.0e-7 Eh (TS);
+  HF references within 2e-8 Eh.
+- O-I PASS: with my unscaled RRHO from the DFT frequencies, dH++(412 K,
+  from tZt) = 29.79 kcal/mol (experiment 29.1 +- 0.5; +0.7) and dH_rxn(298
+  K) = -15.88 (experiment -14.5 measured, -16.1 estimated). Referenced to the
+  reactive cZc conformer instead, dH++ would be 21.81, 7.3 below experiment:
+  the size of the question's trap. The hub's CLI answers the question.
+
+## G1 -- READ (CUHK Slurm 2153658, COMPLETED 11:31 HKT after 8 h 16 min;
+code tree 5c72afb5 verified on the node; 88 provider turns, all
+deepseek-v4-flash-0731)
+
+- Settlement: `execution_wave_decision_pending` (the driver parks), 4 cycles,
+  3 revisions admitted, 7 engine calls, no delivered claim. Reason: "the
+  Agent made no execution-boundary decision on workflow
+  hexatriene-rclosure-r4", with 23 engine calls and 13,323 s left and one
+  previewed ORCA TS node ready.
+- R1 route: ALL ORCA, by the Agent's recorded choice. It weighed Gaussian
+  twice and kept ORCA for thermal-correction consistency ("mixing its TS
+  frequencies with ORCA-minima frequencies would break thermal-correction
+  consistency across the composite; it remains a fallback"). PySCF and xTB
+  unused. A legitimate single-program route: B cannot be claimed on R1.
+- What ran: B3LYP-D3(BJ)/def2-TZVP opt+freq of the reactant (= O1's tZt,
+  E identical to 1e-9 Eh) and of 1,3-cyclohexadiene; DLPNO-CCSD(T)/def2-TZVP
+  on both; three relaxed C1...C6 scans from the extended tZt minimum
+  (5.8 -> 1.5 A, 22 points: 15 done in the 3 h node limit; 4.5 -> 1.6 A with
+  RIJCOSX, 13 points: 11 done; 3.0 -> 1.9 A at def2-SVP: step 1 took 50
+  optimisation cycles and ORCA aborted). No saddle was ever computed.
+- R2: every handoff stayed inside ORCA (reactant -> scans, product -> DLPNO);
+  no cross-program handoff to read.
+- R3: no delivered number, so B1-B4 are not scored. My arithmetic on G1's
+  own engine outputs (not a claim of the Agent's): dE_rxn DLPNO-CCSD(T)/
+  def2-TZVP -17.24, dH_rxn(298 K) -16.09 kcal/mol, inside B4.
+- H-G1a NOT EXERCISED: the session only ever asked for B3LYP-D3(BJ) in ORCA
+  (parameterised); no validation, compile or engine call named dispersion.
+  Its three invalid validations were an `rks` reference word ORCA does not
+  take (x2) and a DLPNO node without AuxC.
+- The model (host records):
+  - It wrote its final execution decision in prose ("Wave selection:
+    [ts-opt-freq, ts-irc, ts-sp-dlpno]") with finish_reason stop, twice,
+    after the host's wake.execution_wave_decision_pending, while
+    select_execution_wave was exposed (last exposure plan of that session)
+    and it had called that tool in each earlier cycle. The host rightly read
+    prose as no decision. The goal ended here.
+  - Its cycle-2 decision named the folded s-cis conformer as the barrier's
+    reference ("the measured kinetics are for the conformer that can
+    close"), the trap worth 7.3 kcal/mol; cycle 3 took the validated tZt
+    minimum as the reactant reference, and its final plan's thermochemistry
+    used it. Never delivered, so never scored.
+  - Its own cycle-4 diagnosis of the scan losses was correct and measured:
+    the extended minimum has C1...C6 5.749 A, so every scan demanded 2.5-2.8
+    A of compression. Its repair (host dihedral edits to a folded seed,
+    C1...C6 2.574 A, torsions 0/45 deg, C1) was sound in kind.
+- Hub finding (not a repaired layer): a timed-out ORCA scan hands on nothing.
+  `bind_reached_geometry` refused both dead scans ("orca declares no geometry
+  selector in the 'as_reached' structural state for jobtype 'scan'"), so 26
+  converged scan points from 6 node-hours were lost to the goal.
+
+Milestone B: NOT EARNED. The route was single-program by the model's
+recorded, defensible choice, and the goal ended on the model's prose wave
+decision. The dispersion repair was not exercised live. The oracle shows the
+hub's CLI carries the question to experiment (29.79 vs 29.1 +- 0.5).
+
 ## Jobs issued
 
 - 2026-09-25: census D, CUHK Slurm 2153534 (r10-q20-a), 16 cores,
