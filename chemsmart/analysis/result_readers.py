@@ -1304,7 +1304,15 @@ def _orca_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:
 
 
 def _gaussian_archive_sections(output: Any) -> list[str] | None:
-    """The last archive entry of a Gaussian log, split at its ``\\\\``."""
+    """The last archive entry of a Gaussian log, split at its ``\\\\``.
+
+    Gaussian wraps the entry at a fixed width wherever the characters fall,
+    the closing ``\\\\@`` included, so the lines are joined before the end
+    is looked for: searched in the raw text, an entry wrapped between its
+    last backslash and the ``@`` read as no entry, and the Hessian of 3 of
+    122 archive-bearing Gaussian logs in this repository and R10 Q30's
+    oracle (a frozen-atom optimisation; ethane held at 5 deg) was absent.
+    """
 
     text = getattr(output, "content_lines_string", None)
     if not text:
@@ -1312,14 +1320,14 @@ def _gaussian_archive_sections(output: Any) -> list[str] | None:
     start = text.rfind(" 1\\1\\")
     if start < 0:
         return None
-    end = text.find("\\\\@", start)
-    if end < 0:
-        return None
     joined = "".join(
         line[1:] if line.startswith(" ") else line
-        for line in text[start : end + 3].splitlines()
+        for line in text[start:].splitlines()
     )
-    return joined.split("\\\\")
+    end = joined.find("\\\\@")
+    if end < 0:
+        return None
+    return joined[: end + 3].split("\\\\")
 
 
 def _gaussian_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:

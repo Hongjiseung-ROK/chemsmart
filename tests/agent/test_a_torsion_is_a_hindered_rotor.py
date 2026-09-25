@@ -197,6 +197,29 @@ def test_a_harmonic_receipt_names_the_torsions_it_counts_as_oscillators():
     assert "torsions counted as harmonic oscillators" not in none
 
 
+@pytest.mark.parametrize(
+    "relative",
+    [
+        # R10 Q30 oracle O1 (CUHK 2153802): ethane held at H-C-C-H = 5
+        # deg; Gaussian wrapped its archive between the last "\\" and "@".
+        "hindered_rotor/c2h6_b3lyp_d3bj_tzvp_held5.log",
+        # A frozen-atom optimisation, wrapped the same way.
+        "outputs/frozen_coordinates_opt.log",
+    ],
+)
+def test_a_gaussian_hessian_is_read_wherever_its_archive_wraps(relative):
+    path = Path(__file__).resolve().parents[1] / "data" / "GaussianTests"
+    reader = reader_for("gaussian")
+    output = reader.open_output(path / relative)
+    record = reader.cartesian_hessian_for_output(output)
+    assert record is not None
+    size = 3 * len(record.symbols)
+    hessian = np.asarray(record.hessian)
+    assert hessian.shape == (size, size)
+    assert np.allclose(hessian, hessian.T)
+    assert np.asarray(record.gradient).shape == (len(record.symbols), 3)
+
+
 def _registered(artifact_id, path, kind="gaussian_output"):
     from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
 
