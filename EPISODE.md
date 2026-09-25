@@ -7,11 +7,11 @@ claude-opus-5-5[1m]. Episode id `q26`.
 ## The question (as currently understood)
 
 When the hub refuses to write a program input, does the Agent learn why, in
-the compile reply (`compile_command`, handler `_prepare_program_node`) and in
-the review it reads? Where the reason is lost, carry it through one path,
-bounded, sanitised and true, so the compile reply and the review say the same
-words from one function; then observe whether the Agent takes the route the
-refusal names instead of guessing.
+the compile reply (`compile_command`, handler `_prepare_program_node`), the
+frontier and the review it reads? Where the reason is lost, carry it through
+one path, bounded, sanitised and true, so the three say the same words from
+one function; then observe whether the Agent takes the route the refusal
+names instead of guessing.
 
 What decides whether a reason arrives is the phase in which the refusal
 fires, not the refusal:
@@ -20,80 +20,202 @@ fires, not the refusal:
 - compile-time agent gates (`RoutedContractError`): the rejection carries
   the failure report;
 - inside the safe preview's Click invocation (CLI settings construction and
-  the writers): `chemsmart/agent/preview.py` keeps
-  `type(result.exception).__name__` and a digest of the output only.
+  the writers): the base kept `type(result.exception).__name__` and a digest
+  of the output only.
 
-## Established so far (provider-free, base tree, scripted model)
+## Instruments (scratch, not committed)
 
-Instrument: `run_live_agent_session` driven end to end with only the provider
-transport replaced by a script (HOME fenced to scratch, placeholder key, no
-provider contacted). Every reply below is the reply a model would read.
+- `drive.py` / `census_drive.py`: `run_live_agent_session` driven end to end
+  with only the provider transport replaced by a script (HOME and the
+  config dir fenced, placeholder key, no provider contacted). Every reply
+  recorded is the reply a model would read. 3.3 s per session.
+- `probe_reason.py`: the oracle -- the program's own `str(exc)` from the same
+  project, geometry and state through `chemsmart run --fake --no-scratch`.
+- `raise_sites.py` + `phase_trace.py`: every raise site in the Gaussian,
+  ORCA, PySCF and xTB settings, writers and CLI builders, with the phase its
+  function runs in, traced over a battery of valid nodes for every program
+  and job type.
+- `scan_compile.py` (cluster job 2153702): every compile-path refusal in the
+  archived R10 session streams of the named episode directories.
 
-- ORCA, PySCF, Gaussian: `broken_symmetry: true` on a triplet (O2, 0/3).
-  The reason exists (`str(exc)` is the full sentence, naming both routes:
-  "Bind multiplicity 1 for the broken-symmetry singlet, or remove
-  broken_symmetry for the high-spin state."). The compile reply carries
-  `status: preview_failed`, `exception_class: "ValueError"`, findings that
-  restate rule ids, `next_action: "inspect the generated-input validation
-  findings"`, and an observation asserting the singlet translation the writer
-  refused ("ORCA runs the unrestricted determinant ... on the singlet").
-- Gaussian (writer refusal): the refused writer leaves a 0-byte `.com`; the
-  validator reads it and reports five `preview.semantic.mismatch` findings
-  (functional, basis, charge, multiplicity, and `broken_symmetry expected True
-  observed False`). The tool description promises "A red finding names the
-  field that needs repair".
-- A plan whose only node is refused is never materialised: no review is
-  attempted and the session ending names no reason. With a second, valid node
-  the review refuses: "every initial workflow node requires a green preview
-  ... (compiled, not previewed): compile_command previews a node" -- no
-  reason, and a route (recompile) that fails identically; the ending also
-  says "safe preview remain valid".
-- Reaches the model: ORCA MDCI with no pair (the writer's refusal duplicated
-  as an agent-layer RoutedContractError, Q14); Gaussian route refusals that
-  do not depend on the bound state (Gaussian's validate() builds the route):
-  `broken_symmetry` + semiempirical, `freq` + `numfreq`.
+## Established (provider-free, host records)
 
-## Falsifiers and pre-registered outcomes
+Census C2 (driven, base): 13 refusal cases. The program's own sentence
+reached the model in 4 (Gaussian route refusals at project validation x2,
+ORCA td manifold at validation, ORCA MDCI through its agent-layer copy); a
+different gate's sentence in 1 (ORCA bp86, the vocabulary gate at
+establish); only the class `ValueError` in 8: broken_symmetry on a triplet
+in ORCA, Gaussian and PySCF (the sentence names both routes), ORCA without a
+basis, reference rhf on a triplet, an invalid mdci_density, semiempirical
+with a functional, ab initio with DFT. For those, the compile reply said
+"inspect the generated-input validation findings" over findings restating
+rule ids; the frontier called the node ready with next action
+compile_and_preview; the review said "compiled, not previewed:
+compile_command previews a node". The observation stated the refused
+broken-symmetry translation. Gaussian's refused writer left a 0-byte `.com`
+read back as five false semantic mismatches. On the repaired tree: 12 of 13
+carry the program's own sentence (bp86 unchanged, refused earlier by the
+vocabulary gate in its own words).
 
-Premise P: a refusal whose reason exists in the hub does not reach the model.
-- Census C1 (static + phase trace): every raise site in the Gaussian, ORCA,
-  PySCF and xTB settings, writers and CLI builders, classified by the phase
-  it can fire in (validation / preview / unexercised) with a state-dependence
-  flag. Denominator: raise sites. Outcome reported as counts, not tuned.
-- Census C2 (driven): each preview-phase refusal family I can trigger, driven
-  through the public compile path on the base; record what the compile reply
-  and the review carry. P is FALSIFIED if every driven refusal's reason
-  reaches the model (compile reply or review) on the base.
-- Replay R1 (archive): every compile-path refusal in the archived R10 session
-  streams (named episode directories only), with the hidden reason recovered
-  by re-running the preview on the tree that produced it where possible; what
-  the session did in its next calls: took the route the hidden reason names /
-  changed something else (a guess) / recompiled unchanged (blind retry) /
-  abandoned the node or program / ended. Counted with the denominator. If no
-  archived instance exists, reported as zero, not substituted.
+Census C1 (static + trace, base): 279 raise sites; by the phase their
+function runs in -- Gaussian 23 validation / 12 preview-only / 25
+unexercised, ORCA 24/26/28, PySCF 64/21/6, xTB 17/15/3, shared 8/0/7: 74
+preview-only sites (58 ValueError, 10 UsageError, 3 FileNotFoundError, 2
+BadParameter, 1 TypeError), plus validation-phase sites whose condition
+reads compile-bound state (broken symmetry in PySCF). A sizing census: a
+function first entered only in the preview in this battery may be entered
+at validation when its input is set.
 
-Repair outcome (to be pre-registered in full before any live goal): the
-compile reply and the review render one refusal text from one function; the
-text is the program's own sentence, bounded and free of host paths; a
-refused writer leaves no input file behind. A witness drives the public
-entry point and is red on the base, green after.
+Archive A1 (job 2153702; 113 session streams, 3,969 tool rows): 240
+compile_command calls -- 206 previewed, 3 preview_failed, 8 waiting, 4 needs
+project validation, 2 needs clarification, 1 needs project, 1 needs
+capability selection, the rest rejected; 53 invalid project validations and
+49 compile-path rejections (reasons carried); 1 review refusal. The 3
+preview failures are all R10 Q15: g2's is a validator finding with no
+exception (the field named); g1's two raised AttributeError and were read
+as 11 and 15 findings; the session next searched for ORCA's FlipSpin syntax
+and wrote `additional_route_parameters: "FlipSpin 1,6"`.
 
-## Oracle
+Replay R1 (job 2153704): Q15 g1's recorded tree digest 85752dd3... is
+`r10/q15/code-943882de`; on it both archived compiles reproduce
+AttributeError, message `'NoneType' object has no attribute
+'chemical_symbols'`, leaving a 22-byte `.inp` that is exactly the
+`input_string` ("%scf\n FlipSpin 1,6\nend"): input_string replaced the whole
+input and the fake runner found no molecule. Corrected premise: the archived
+loss was a crash naming no route, not a routed refusal, and the findings the
+session read were true of the written file. Same message on the control
+tree (9297d6ba) and the repaired tree, which now carries it beside the
+class. Route-taking count from the archive: 0 of 2 events could take a
+named route (none was named); both were followed by a native-keyword guess
+(one session).
 
-The program's own refusal sentence (`str(exc)` of the exception the preview's
-Click invocation raised), recovered by re-running the same argv on the same
-tree. The host's rules are the oracle for "which route is legal"; no model
-output is ever the oracle.
+## Repair (committed)
+
+- 661c9c8e writers: a refused input leaves no file behind (failure path).
+- d6de6c16 agent: the safe preview keeps `exception_message` (program's
+  words, <= 800 chars, host paths replaced by role, others by `<path>`,
+  key-shaped strings redacted); `preview_refusal` renders it; compile
+  reply (`refusal`, `next_action`), frontier (`blocking_reason`) and review
+  (held state) say that one sentence.
+- 89243262 agent: compile_time_observations states the writer's refusal,
+  not the refused broken-symmetry translation.
+- Witness `tests/agent/test_a_refused_input_says_why.py`: red on a pristine
+  export of the base (KeyError 'refusal'; the 0-byte artifact), each part
+  red on the commit before its repair, green after.
+- 6b5adf48 merged r10-integration (Q25) cleanly.
+
+## Live goals G1, G2 -- PRE-REGISTRATION (written before submission)
+
+Task (TASK.md sha256 6eedde20...): the vertical singlet-triplet gap of
+p-benzyne at the given regular-hexagon geometry (R10 Q18 O0's), "at a DFT
+level you can defend"; says nothing of broken symmetry, projects,
+refusals or routes. Workspace: `pbenzyne.xyz` (sha256 e7626c65...).
+Envelope: orca, gaussian, pyscf on cpu; 16 cores, 48 GB, node 1 h,
+episode 3 h, 6 engine calls, 2 revisions; local dispatch; approval
+`claude-researcher-q26-owner-delegated` (delegated, never a human
+decision). G1 and G2 are two independent samples of the same task on the
+repaired tree (6b5adf48 = r10-integration 9297d6ba + the three repair
+commits; code digest dcdd750a..., in r10/q26/code-g1). goal.sh sha256:
+G1 37768363..., G2 0543618f...; envelope.yaml G1 225c9b63..., G2
+240ade12... (differ only in the scratch path). Agent:
+deepseek-v4-flash-0731 via alibaba-token-plan. The control arm for the
+behavioural question is the counterfactual experiment CF below, not a
+live goal: natural exercise is rare (A1: 3 of 240 compiles), so a live
+control would most likely not be exercised at all.
+
+Why this task: at one geometry and one level the natural route is two
+single points differing only in the bound state, so one project may serve
+both; if it carries broken_symmetry the triplet node is refused in every
+program. Q18 g1 (adiabatic, the same molecule) kept two projects, so
+exercise is uncertain and is itself an outcome. Replays: each goal's
+transcript is replayed call for call through the host on the control tree
+(9297d6ba), which shows what the old reply said at the same call.
+
+Outcomes, read from host records (streams, transcripts, ledger):
+- X, exercised: a compile_command reply with status preview_failed and a
+  non-empty exception_class. Not exercised in an arm -> no behavioural claim
+  from that arm.
+- For each exercised refusal, the session's next 8 tool calls classified:
+  ROUTE (the next change applies a route the sentence names: for
+  broken_symmetry on a non-singlet, the refused node's project no longer
+  carries broken_symmetry or its multiplicity is 1; otherwise the named
+  field changed as named), GUESS (another field, or native keywords in
+  additional_route_parameters / input_string), RETRY (the same node
+  compiled with no change between), ABANDON (node withdrawn or program
+  changed without a named route), END.
+- Predictions: an exercised refusal in G1 or G2 -> ROUTE. FALSIFIED (the
+  behavioural claim for the live goals) if a goal is exercised and its
+  first change is not ROUTE.
+- Host words: the goals' compile reply, frontier and any review carry the
+  sentence; the control-tree replay of the same calls carries the class
+  only.
+- Physics (never tuned after a result), against O1: a delivered gap is
+  PASS if its sign is positive (singlet lower) and it lies within 1.5
+  kcal/mol of O1 at B3LYP/def2-SVP (unprojected 2.56, projected 4.95), or
+  within [0.5, 9] kcal/mol at another hybrid functional or basis; a
+  restricted singlet (dE near -22 kcal/mol at B3LYP/def2-SVP) is the
+  known trap and is recorded as that error whatever its number.
+
+## Oracle O1 (local PySCF 2.14 triplet + Q18's broken-symmetry fixture)
+
+Regular-hexagon geometry, B3LYP in Gaussian's VWN form (PySCF b3lypg,
+ORCA B3LYP/G), def2-SVP. Triplet UKS (PySCF, grids level 5):
+-230.700651808 Eh, <S**2> 2.0067. Broken-symmetry singlet (ORCA, Q18 O1
+fixture): -230.704724039 Eh, <S**2> 0.970279 (Gaussian -230.704724145).
+Restricted singlet (PySCF): -230.665089215 Eh, 24.87 kcal/mol above the BS
+singlet, equal to Q18's printed 24.87 -- the two programs agree to the
+digit here. dE = E(T) - E(S): unprojected +2.555 kcal/mol; Yamaguchi
+projected +4.948 kcal/mol; against the restricted singlet -22.316
+kcal/mol. (A PySCF broken-symmetry singlet from a GuessMix-like start
+collapsed to the restricted solution, as Q18 recorded; that run is not
+used.)
+
+## Counterfactual refusal turn CF -- PRE-REGISTRATION
+
+Question: given the same session up to a refused compile, does the reply's
+content change what the model does next? Design: one scripted prefix
+(make_prefix.py sha256 60ad88c2..., transcript 729ee62d...) on the G1 task
+and workspace, in the provider's own exposure mode: inspect ORCA sp, bind
+0/1 and 0/3 to pbenzyne.xyz, one ORCA project `orca-b3lyp-def2svp-bs`
+({functional: b3lyp, basis: def2-svp, broken_symmetry: true}) for both a
+singlet node and a triplet node, plan, finalise, compile both (singlet
+previewed, triplet refused). cf_probe.py (fbf447f3...) replays those 7
+assistant turns through each arm's host (host digests translated by
+path), then hands up to 3 turns to the real provider
+(deepseek-v4-flash-0731, alibaba-token-plan, the session's own lease; the
+model's calls run on that arm's host, planning only). Arms: control =
+r10/q26/code-g2 (9297d6ba, 812e923b...), repaired = r10/q26/code-g1
+(dcdd750a...). The arms differ only in what the host said at the refused
+compile, and anywhere later that the model reads it. N = 6 per arm,
+interleaved; job cf.sh (3e320fe8...).
+
+Outcome: the first change after the refusal, classified by cf_classify.py
+(7d19d233...): RETRY, ROUTE (the triplet gets a project without
+broken_symmetry), ROUTE_OVERBROAD (the shared project loses
+broken_symmetry, so the singlet loses it too), MULT, NATIVE, GUESS,
+ABANDON, READ_ONLY, END, INFRA. INFRA (no provider turn) is reported and
+not counted. Each sample is also read by hand; a disagreement with the
+mechanical class is reported beside it.
+
+Predictions: repaired ROUTE >= 4 of 6; control ROUTE <= 2 of 6, with its
+other samples spread over RETRY, GUESS, NATIVE or READ_ONLY. FALSIFIED (the
+claim that the sentence changes the model's next move) if the repaired
+arm's ROUTE count does not exceed the control arm's. A control arm that
+takes the route as often as the repaired arm is reported as it is: the
+model knew the route without being told.
 
 ## Jobs issued
 
-- 2026-09-25: none. (A read-only stream bundle was written to
-  `/project/xlzhang/jiseung/r10/q26/corpus/` on the login node; it is not a
-  job and nothing was downloaded.)
+- 2026-09-25: archive scan, CUHK Slurm 2153702 (r10-q26-a), 1 core,
+  pre-registration d0f3d7336465; COMPLETED (results above).
+- 2026-09-25: replay R1, CUHK Slurm 2153704 (r10-q26-a), 2 cores,
+  pre-registration d0f3d7336465; COMPLETED (results above).
 
 ## Status
 
-- 2026-09-25: base verified; governance, lessons, charter topics, Q20's
-  record and the round merges read; gate open; scripted-model instrument
-  built in scratch; census C2 begun (six cases above). Next: C1, the archive
-  scan as a slot job, the repair.
+- 2026-09-25: census, archive scan, replay R1 and the repair done; witness
+  red on base, green here. tests/agent on the merged tree (6b5adf48, Q25's
+  conftest fence): 3207 passed, 0 failed. (Before the merge one test was
+  red only under my own scratch fence, which pinned Path.home and so
+  overrode that test's HOME; the fence was corrected.) Next: submit G1 and
+  CF, then G2.
