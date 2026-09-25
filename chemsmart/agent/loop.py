@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import time
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Mapping
@@ -966,19 +967,34 @@ class ToolLoopRunner:
                 break
             tool_results = []
             for call_id, tool_name, arguments in decoded_tool_calls:
+                non_finite = _non_finite_paths(arguments)
                 self.event_store.append(
                     turn_id=envelope.turn_id,
                     kind=EventKind.TOOL_STARTED.value,
                     payload={
                         "request_id": call_id,
                         "tool": tool_name,
-                        "arguments_sha256": canonical_sha256(arguments),
+                        # A non-finite number has no canonical form, so
+                        # the digest is over the arguments with each one
+                        # written as its JSON token, and the paths say so.
+                        "arguments_sha256": canonical_sha256(
+                            _non_finite_as_tokens(arguments)
+                            if non_finite
+                            else arguments
+                        ),
+                        **(
+                            {"non_finite_argument_paths": non_finite}
+                            if non_finite
+                            else {}
+                        ),
                     },
                     idempotency_key="tool-started:" + call_id,
                 )
                 wait_started = None
                 wait_emitted = False
                 try:
+                    if non_finite:
+                        raise _NonFiniteToolArgumentError(non_finite)
                     if tool_name == "execute_approved_program_node":
                         wait_timeout = (
                             self.host.execution_wait_timeout_seconds()
@@ -1461,6 +1477,70 @@ def _decode_tool_call(
     if not name or not isinstance(arguments, dict):
         raise DeepSeekProtocolError("tool call lacks name or object arguments")
     return call_id, name, arguments
+
+
+class _NonFiniteToolArgumentError(ContractError):
+    """A tool call whose arguments hold a number JSON does not define.
+
+    ``json.loads`` accepts ``NaN`` and ``Infinity`` and reads ``1e999`` as
+    infinity, so a provider response decodes into arguments no canonical
+    record may hold. Hashing them into the ``tool_started`` row used to
+    raise out of the loop: the session ended with no error the model could
+    read (R10 Q17: two of 77 sealed goals settled returned_to_human on
+    "canonical records cannot contain NaN or infinity"). The call is
+    refused as that call instead, and the session reads why.
+    """
+
+    cause = "non_finite_tool_argument"
+    next_legal_route = (
+        "call the tool again with finite numbers, or leave out a field the "
+        "tool does not require"
+    )
+
+    def __init__(self, paths: list[str]) -> None:
+        super().__init__(
+            "tool arguments carry a number JSON does not define (NaN or "
+            "Infinity) at "
+            + ", ".join(paths)
+            + "; the call was not run, because every host record holds "
+            "finite numbers only"
+        )
+
+
+def _non_finite_paths(value: Any, path: str = "$") -> list[str]:
+    """JSON paths of every NaN or infinite number inside ``value``."""
+
+    if isinstance(value, float):
+        return [] if math.isfinite(value) else [path]
+    if isinstance(value, Mapping):
+        return [
+            found
+            for key, item in value.items()
+            for found in _non_finite_paths(item, f"{path}.{key}")
+        ]
+    if isinstance(value, (list, tuple)):
+        return [
+            found
+            for index, item in enumerate(value)
+            for found in _non_finite_paths(item, f"{path}[{index}]")
+        ]
+    return []
+
+
+def _non_finite_as_tokens(value: Any) -> Any:
+    """``value`` with each non-finite number written as its JSON token."""
+
+    if isinstance(value, float) and not math.isfinite(value):
+        if math.isnan(value):
+            return "NaN"
+        return "Infinity" if value > 0 else "-Infinity"
+    if isinstance(value, Mapping):
+        return {
+            key: _non_finite_as_tokens(item) for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [_non_finite_as_tokens(item) for item in value]
+    return value
 
 
 def _contains_private_reasoning(value: Any) -> bool:
