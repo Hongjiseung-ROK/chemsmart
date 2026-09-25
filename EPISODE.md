@@ -381,12 +381,40 @@ one stub sample per matched arm (no provider call): each must end its
 session with a terminal state, record its probe turns, and raise no error;
 otherwise no real matched turn is taken.
 
+## Replay 3 -- READ (CUHK Slurm 2154056, 4.5 min; G1's archive unchanged)
+
+- r2-c4 (G1's tree, c0896a07): R-replay HOLDS. Cycle 3's recovery row
+  equals the archived one field for field (analysis_status completed,
+  terminal_states scan-bracket-r3 failed_nonconverged_scan_step); all 42
+  turns served, all replies aligned; the notice is byte-identical
+  (`content_sha256` 9d6af724...); the park row equals the archived one
+  (reason "the Agent made no execution-boundary decision on workflow
+  hexatriene-rclosure-r4", decision 63c26831..., ready ts-opt-freq) but
+  for the approval and review paths, which name the replay's copy; the
+  settlement reasons equal G1's.
+- q32-c4 (fccd4d89): the same session, the notice naming both calls (digest
+  11b751da...), and the park row with the reason extended exactly as
+  pre-registered. Its recovery row carries the fields later integration
+  added (`uncertified`, `undelivered_declared_observable_ids`) beside the
+  same terminal states -- the host's evolution since c0896a07, not q32's.
+- Stub pass of the matched instrument (no provider call): each of the four
+  arms ended its session (P arms `waiting_for_approval` after the notice,
+  T arms `blocked`), recorded its probe turn, raised nothing. The P probe is
+  the turn that answers the notice (41 archived turns, the 41st being the
+  text close that triggers it).
+
 ## Jobs issued
 
 - 2026-09-25: replay 1, CUHK Slurm 2154046 (r10-q32-a), 4 cores, 2 h
   limit, pre-registration b5cd1a1bebf6, code fccd4d89 (digest b9392764...).
 - 2026-09-25: replay 2, CUHK Slurm 2154049 (r10-q32-a), pre-registration
   fb0160375028, code fccd4d89.
+- 2026-09-25: replay 3, CUHK Slurm 2154056 (r10-q32-a), pre-registration
+  68959aed2d54, code fccd4d89.
+- 2026-09-25 (next): matched turns 1 as pre-registered above (4 arms x 6,
+  interleaved sample by sample, a stub pass first), 4 cores, 6 h limit,
+  code fccd4d89; tools/matched_turns.py and replay_cycle.py uploaded to
+  r10/q32/tools.
 
 ## Status
 
