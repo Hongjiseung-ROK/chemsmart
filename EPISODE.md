@@ -397,6 +397,48 @@ From each session's public transcript and promoted projects (scratch
 - Exercise of this change's specific surfaces (typed Gaussian numerics, the
   native-word refusal) in cycle 1: NOT EXERCISED in either goal.
 
+## G1, G2 -- READ (host records: ledgers, run streams, transcripts, logs)
+
+- G1 (2153762, 9:19 wall): settled `returned_to_human` -- "irc-both
+  never launched: node requires a green safe-preview preflight". The saddle
+  ran (29.5 s): one imaginary mode, -1205.93 cm-1 (band [-1290, -1170] IN),
+  O...O 2.377 A ([2.36, 2.40] IN). The session's typed
+  `irc: {maxpoints: 60}` on a directionless IRC was previewed at execution
+  and read back as maxpoints=512 from both branch inputs: the typed intent
+  was dropped by the host, and the node never ran. No barrier delivered.
+- G2 (2153763, 47:19): settled `achieved_with_observations`; the host
+  qualified gaussian:cpu:ts and gaussian:cpu:irc from its nodes. Saddle
+  -1079.49 cm-1 ([-1160, -1050] IN), one imaginary mode, O...O 2.3628 A
+  ([2.34, 2.39] IN); IRC ends -913.740542149 and -913.740542256 Eh (mirror
+  images to 1.1e-7 Eh), barrier 2.02 kcal/mol ([1.9, 2.4] IN), both ends
+  change the graph. Cycle 2: the session asked for `irc: {maxpoints: 20}`,
+  met the same red preview (expected 20, observed 512), and wrote "I align
+  the project value with what the renderer emits (512)" -- it changed its
+  science to fit the host defect. Saddles differ from R9's (-1231.3,
+  -1106.1) because routes now carry 5d 7f (R10's basis-form change), not
+  this change.
+- P1 HOLDS: no .com either goal ran carries a native word (routes are
+  host-written: opt=(ts,calcfc,noeigentest), irc(...)).
+- P2 no claim: no native-gate refusal occurred.
+- P3 HOLDS for path controls: both goals stated Gaussian IRC controls in
+  typed fields (R9 g1 used `additional_route_parameters: maxpoints=50`);
+  the typed Gaussian numerics (scf_convergence, defgrid, geom_maxiter) were
+  not exercised.
+- P4 HOLDS for every delivered number; G1 delivered none past the saddle.
+
+What the goals found (a falsified premise of my census): the typed IRC
+controls the census counted as carrying the maxpoints=/IRC=() intents were
+accepted and never written. The Gaussian irc command's option defaults were
+the numbers (512, 128, 20, 6, False) and override the project; every IRC R9
+ran reads maxpoints=512 whatever its project said, and `stepsize` was
+written only beside a predictor. The route q28's refusal names for those
+words was therefore not walkable. Repaired in ee589269 and 23cb2daf
+(shared: the Click layer and the preview reader), witnessed red on
+74add467 and green after; previewed, not yet run by an engine.
+Charter sentence to correct (other-programs-probe-providers.md): "after
+it, irc: {maxpoints: 60, stepsize: 0.1} validated and reached the route"
+-- it validated; the route carried maxpoints=512 until ee589269.
+
 ## Status
 
 2026-09-25: code, census, replays, oracle O1 and gates done; live goals
