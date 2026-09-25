@@ -106,6 +106,81 @@ two or fewer beyond G1 AND T two or fewer beyond G1 -> narrow to G1's
 cases, say so, hand back. A class that recurs (three or more beyond G1)
 is repaired; one that does not is left with its count.
 
+## Census -- READ (2026-09-25; provider-free, host records only)
+
+Directories read. CUHK (pulled as one archive, `r10/q32/pull/cuhk-census.tgz`):
+the 87 roots in `census-roots.txt` -- every campaign directory under
+`/project/xlzhang/jiseung/` except the deployed checkout, `miniforge3`,
+`r10/m*`, `r10/master` and the sealed and private directories of q3, q17
+and q29 (r8/{gaussian,integration,orca,pyscf,xtb}, r9/{gaussian,master,
+orca,pyscf,xtb}, r10/q1-q31 bar q17's and q29's sealed parts (q23 holds no
+goal), agent-smoke, agent-surface-20260921, agent-surface-eval-20260921,
+level-heartbeat, losartan-micropka-r2, po3-atorvastatin-pka-concurrency,
+pyscf-{agent-knowledge,irc,ts-irc}-*, round-a-*, sm3-*, wave-heartbeat,
+xtb-ir-acetamide-pyscf-stability-r2..r10). ax41: the mirror's
+`2026-09-14/campaign/ax41-refine-100` and `2026-09-14/research`.
+Denominator: 148 + 195 ledgers; 2 CUHK dry-run copies outside
+`.chemsmart-agent` not walked; 333 unique goals (143 CUHK, 190 ax41) by
+(goal_id, goal_sha256); 602 goal sessions, 18 with zero provider turns
+(infrastructure), 584 counted; 573 of them ended on a no-tool turn.
+
+P (a typed act written as prose):
+- The wave notice fired in 65 sessions. With `select_execution_wave` in the
+  exposure plan in force when it fired: 60, answered by a typed act in 59
+  and in prose in 1 -- G1 (R10 Q20, cycle 4). With the tool not in view: 5,
+  all prose, all parked (CUHK R8 2026-09-20: r8/gaussian g1 and g2,
+  r8/orca goal-irc, r8/xtb goal and goal3) -- the goals that earned 3dc3069c
+  ("a workflow that may run is offered the decision that runs it"). Every
+  one of the 8 ledger parks is accounted for: G1, those 5, R10 Q15 g2 (no
+  ready node; repaired by R10 Q22) and losartan-micropka-r2 cycle 4 (a
+  selection a later plan replaced; `_undecided_boundary_reason`).
+- Refusal or decision in prose: 0. The termination notice fired in 159
+  sessions; the 48 that had recorded no wave were read in full, and the 38
+  refusal-language hits on returned or unsettled goals across all 573
+  text endings were read: every refusal was recorded by
+  `record_scientific_decision` (some the host did not verify), or the
+  session declined both a claim and a refusal because the observable was
+  reachable and not yet computed, or the goal predates a host that read
+  refusals (ax41, 2026-09-05).
+- P beyond G1 with the typed act in view: 0 (the brief's prior of a class
+  is not borne out: one session in 60).
+
+T (converged partial results thrown away), read from the native outputs:
+- G1 (R10 Q20) scan-c1c6: timeout after 10815 s, 14 steps converged of 22
+  planned (step 15 killed); scan-c1c6-r2: timeout after 10808 s, 10
+  converged of 13 (step 11 killed); both refused by `bind_reached_geometry`
+  ("orca declares no geometry selector in the 'as_reached' structural state
+  for jobtype 'scan'"). The brief's "15 of 22 and 11 of 13 converged"
+  counts steps started; converged points are 14 and 10 (24, not 26).
+  Cycle 2's last converged point is C1...C6 = 2.325 A at -233.464022 Eh
+  (RIJCOSX), 0.07 A from O1e's saddle (2.253 A, -233.462825 Eh): the
+  thrown-away surface held the transition-state seed cycle 3 went looking
+  for, and cycle 3's replacement scan from the extended minimum died at its
+  first step.
+- R10 Q4 g1 (binaphthyl racemisation) orca-scan: timeout after 18010 s, 17
+  converged of 18 started (0-160 deg); the decision recorded "the cycle-1
+  scan timed out and its result resolves no surface quantities".
+- ax41 e4p-cyclohexane-b2 scan-chair: timeout, 11 converged of 13; ax41
+  e2-cyclohexane-c scan-ring-dihedral: timeout, 10 converged; neither
+  carried forward, both goals returned to the human.
+- Marginal: R10 Q24 g2r and Q27 g1 (1 converged point each, then a native
+  failure); not counted. Not partial: G1 scan-bracket-r3 and R9 g5
+  (step 1 never converged), R10 Q15 g2 (died in l301).
+- Also found: ORCA writes `<stem>.NNN.xyz` for a step that did NOT converge
+  (G1 scan-bracket-r3 holds .001.xyz with step 1 unconverged), so a point
+  file is not evidence of convergence; `ORCAOutput.scan_profile` and
+  `scan_point_records` read only the final "Calculated Surface" table, which
+  a killed scan never prints, while both docstrings promise a truncated
+  surface as partial evidence; and the repair menu tells both
+  `timeout_terminated` and `failed_nonconverged_scan_step` that
+  `bind_reached_geometry` carries a scan's reached structure, which the
+  reader refuses for every ORCA scan.
+- T beyond G1: 3 goals, each with at least 10 converged constrained minima
+  lost. T recurs; P does not.
+
+Decision (by the pre-registered rule): the partial-scan class is repaired;
+the prose-act class narrows to G1's case.
+
 ## Oracles for any repair (fixed before the repair is written)
 
 - R-replay (provider-free): G1's cycle-4 planning session replayed through
