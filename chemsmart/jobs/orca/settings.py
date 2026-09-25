@@ -185,6 +185,32 @@ def _normalize_orca_scf_convergence(value):
     return normalized
 
 
+def _normalize_orca_scf_tol(value):
+    """An ORCA SCF preset word for the ``!`` line, or a refusal.
+
+    ``scf_tol`` is written as ``<word>SCF`` on the route (the command's
+    ``--scf-tol`` offers exactly those presets). A number was written the
+    same way -- ``scf_tol: 1e-10`` became ``1e-10SCF``, which is no ORCA
+    keyword (R10 Q31 census) -- because nothing checked the word. A preset
+    is kept as stated; anything else is refused with the typed setting
+    that states an SCF convergence.
+    """
+
+    if value is None:
+        return None
+    literal = str(value).strip()
+    word = literal.casefold()
+    word = word[:-3] if word.endswith("scf") else word
+    if word in {*ORCA_SCF_CONVERGENCE, "normal"}:
+        return literal
+    raise ValueError(
+        f"scf_tol takes an ORCA SCF preset word (one of "
+        f"{sorted({*ORCA_SCF_CONVERGENCE, 'normal'})}, written <word>SCF on "
+        f"the route), got {value!r}: ORCA has no route word for a numeric "
+        "tolerance. State the SCF convergence as scf_convergence."
+    )
+
+
 #: ORCA's words for cores and memory. CHEMSMART writes ``%pal nprocs``
 #: and ``%maxcore`` into every input itself, from the resources the run is
 #: granted (``ORCAInputWriter._write_processors`` / ``_write_memory``), so
@@ -1290,7 +1316,7 @@ class ORCAJobSettings(MolecularJobSettings):
         # ORCA-specific parameters
         self.aux_basis = aux_basis
         self.extrapolation_basis = extrapolation_basis
-        self.scf_tol = scf_tol
+        self.scf_tol = _normalize_orca_scf_tol(scf_tol)
         self.scf_algorithm = scf_algorithm
         self.scf_maxiter = scf_maxiter
         self.scf_convergence = _normalize_orca_scf_convergence(scf_convergence)
