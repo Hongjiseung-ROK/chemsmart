@@ -221,3 +221,104 @@ def test_the_surface_a_checkpoint_froze_is_the_route_a_refusal_names(
     )
     assert surface.surface == "held_surface"
     assert "projected_coordinates [[2, 28], [4, 28]]" in surface.route()
+
+
+def test_a_frequency_job_is_judged_by_the_check_its_program_printed(
+    tmp_path,
+):
+    """Gaussian judges the structure of every frequency job with the exact
+    Hessian; the host read that as "unmeasured"."""
+
+    host = _host(tmp_path, "gaussian-freq-at-90")
+    with pytest.raises(ContractError) as refused:
+        host._derive_thermochemistry(
+            "turn-1",
+            {
+                "program": "gaussian",
+                "artifact_id": "gaussian-freq-at-90",
+                "temperature_k": 298.15,
+                "pressure_atm": 1.0,
+            },
+        )
+    message = str(refused.value)
+    assert "free_energy_needs_a_stationary_point" in message
+    assert "maximum force 0.00317 (threshold 0.00045)" in message
+
+
+def test_a_saddle_its_program_checked_is_characterised_and_derived(
+    tmp_path,
+):
+    """The same job at 0 deg is the cis saddle by Gaussian's check, so its
+    order is certified and its free energy derived -- of the modes Gaussian
+    printed, which the receipt says are short of the structure's."""
+
+    host = _host(tmp_path, "gaussian-freq-at-0")
+    host._characterise_stationary_point(
+        "turn-1",
+        {
+            "result_artifact_id": "gaussian-freq-at-0",
+            "program": "gaussian",
+            "order_claimed": 1,
+        },
+    )
+    receipt = host._derive_thermochemistry(
+        "turn-2",
+        {
+            "program": "gaussian",
+            "artifact_id": "gaussian-freq-at-0",
+            "temperature_k": 298.15,
+            "pressure_atm": 1.0,
+            "reaction_coordinate_mode": 1,
+        },
+    )
+    said = " ".join(receipt.assumptions)
+    assert "stationary point: the gaussian sp result's own convergence" in said
+    assert "maximum force 9e-06 (threshold 0.00045)" in said
+    assert "the program printed 5 vibrational mode(s)" in said
+
+
+def test_a_minimum_its_program_converged_stays_stationary():
+    """A control: Gaussian's forces on internal coordinates, not a Cartesian
+    threshold.  Bromochloromethane's largest Cartesian component is 4.91e-4,
+    so a repair that judged Gaussian's archive gradient against geomeTRIC's
+    4.5e-4 would refuse this minimum's free energy."""
+
+    receipt = _derive("gaussian-bromochloromethane")
+    assert any(
+        line.startswith("stationary point") for line in receipt.assumptions
+    )
+
+
+def test_an_xtb_optimisation_is_judged_by_its_own_level():
+    """``--opt loose`` converges on a gradient norm of 4e-3 Eh/Bohr."""
+
+    from chemsmart.analysis.result_quantities import (
+        free_energy_surface,
+        structure_stationarity,
+    )
+
+    path = (
+        _DATA / "XTBTests/outputs/p_benzyne_opt_alpb_toluene"
+        "/p_benzyne_opt_alpb_toluene.out"
+    )
+    output = reader_for("xtb").open_output(str(path))
+    reading = structure_stationarity("xtb", output)
+    assert reading.stationarity == "stationary"
+    assert "optimisation level loose" in reading.sentence()
+    assert "gradient norm 0.00118 (threshold 0.004)" in reading.sentence()
+    assert free_energy_surface("xtb", output).surface == "stationary_point"
+
+
+def test_a_search_that_ended_is_not_said_to_have_been_handed_its_geometry():
+    from chemsmart.analysis.result_quantities import structure_stationarity
+
+    path = (
+        _DATA / "GaussianTests/outputs/"
+        "dppeFeCl2_phenyldioxazolone_opt_triplet_opt_error_termination_link.log"
+    )
+    reading = structure_stationarity(
+        "gaussian", reader_for("gaussian").open_output(str(path))
+    )
+    assert reading.stationarity == "not_stationary"
+    assert "its optimisation's last check" in reading.sentence()
+    assert "handed" not in reading.sentence()

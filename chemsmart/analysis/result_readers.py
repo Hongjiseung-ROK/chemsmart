@@ -1453,6 +1453,293 @@ def _pyscf_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:
     )
 
 
+@dataclass(frozen=True)
+class ConvergenceCheckV1:
+    """A program's own convergence check at the structure a result ends on.
+
+    What the program printed when it judged whether the structure its
+    modes (or its reached geometry) belong to is stationary: each
+    criterion as ``(name, value, threshold, met)`` in the program's own
+    coordinates and units, which rows measure the gradient
+    (``force_rows``), the program's verdict on the whole check
+    (``converged``), and the energy change its own quadratic model
+    predicts where it prints one.  The criteria are the program's:
+    Gaussian and ORCA judge forces on redundant internal coordinates, xTB
+    the norm of the Cartesian gradient, geomeTRIC each Cartesian
+    component.  One structure passes all of them only by accident -- a
+    Gaussian-converged bromochloromethane has internal forces of at most
+    2.9e-4 and a largest Cartesian component of 4.9e-4 -- so a host
+    criterion applied to a structure another program judged is not that
+    program's criterion (R10 Q33 census: 3 Gaussian and 9 ORCA converged
+    minima above geomeTRIC's 4.5e-4).
+    """
+
+    program: str
+    criterion: str
+    source: str
+    rows: tuple[tuple[str, float, float, bool], ...]
+    force_rows: tuple[str, ...]
+    #: The program's own answer, by its own rule: ORCA's and xTB's printed
+    #: verdict on the search (ORCA converges a held H2O2 with its RMS
+    #: gradient row above tolerance, by rules its table does not print),
+    #: Gaussian's force rows at the structure (its frequency step's
+    #: displacement rows are the Newton step along soft modes with the
+    #: exact Hessian: they fail at 1e-8 Eh of predicted change on five
+    #: archived minima its optimiser converged).
+    stationary: bool
+    converged: bool | None = None
+    predicted_energy_change_eh: float | None = None
+    #: The check was taken at the structure the result's modes were
+    #: computed at (Gaussian's frequency step), not only at the end of a
+    #: search: it then speaks for a result that searched for nothing.
+    at_modes: bool = False
+
+    @property
+    def forces_met(self) -> bool:
+        """Whether every gradient row of the check is within its threshold."""
+
+        rows = [row for row in self.rows if row[0] in self.force_rows]
+        return bool(rows) and all(row[3] for row in rows)
+
+    def verdict(self) -> str:
+        """The program's printed verdict, or '' when it printed none."""
+
+        if self.converged is None:
+            return ""
+        return (
+            "the program's verdict: converged"
+            if self.converged
+            else "the program's verdict: not converged"
+        )
+
+    def words(self, force_rows: bool = True) -> str:
+        """``maximum force 1.62e-04 (threshold 4.5e-04)``, joined."""
+
+        return ", ".join(
+            f"{name.lower()} {value:.3g} (threshold {threshold:.3g})"
+            for name, value, threshold, _met in self.rows
+            if (name in self.force_rows) == force_rows
+        )
+
+
+def _gaussian_job_blocks(output: Any) -> list[list[str]]:
+    """A Gaussian log's lines, one list per job step (Link1)."""
+
+    blocks, current = [], []
+    for line in getattr(output, "contents", None) or ():
+        current.append(line)
+        if line.startswith("Normal termination of Gaussian") or (
+            line.startswith("Error termination")
+        ):
+            blocks.append(current)
+            current = []
+    if current:
+        blocks.append(current)
+    return blocks
+
+
+_GAUSSIAN_CHECK_ROW = re.compile(
+    r"^(Maximum Force|RMS\s+Force|Maximum Displacement|RMS\s+Displacement)"
+    r"\s+([-+0-9.DE]+)\s+([-+0-9.DE]+)\s+(YES|NO)\b"
+)
+
+
+def _gaussian_float(text: str) -> float:
+    return float(str(text).replace("D", "E"))
+
+
+def _gaussian_convergence_check(output: Any) -> ConvergenceCheckV1 | None:
+    """Gaussian's own convergence table at the structure its modes belong to.
+
+    Gaussian judges a structure with its Berny criteria on redundant
+    internal coordinates -- maximum and RMS force (Hartree/Bohr or
+    Hartree/radian), maximum and RMS displacement of the Newton step --
+    and prints the table wherever it computes forces: every optimisation
+    step, and once more in a frequency job, with the exact Hessian, at the
+    very structure the modes are computed at.  That last table is read:
+    the frequency step's when the log has modes (an ``opt freq`` or a
+    ``freq`` job), else the optimisation's last.  A frozen coordinate is
+    left out of Gaussian's force check, so on a constrained optimisation
+    the check is on the surface it held.
+    """
+
+    blocks = _gaussian_job_blocks(output)
+    with_modes = [
+        block
+        for block in blocks
+        if any(line.startswith("Harmonic frequencies") for line in block)
+    ]
+    with_check = [
+        block
+        for block in blocks
+        if any("Converged?" in line and "Threshold" in line for line in block)
+        and any(line.startswith("Berny optimization") for line in block)
+    ]
+    chosen = with_modes[-1:] or with_check[-1:]
+    if not chosen:
+        return None
+    block = chosen[0]
+    starts = [
+        index
+        for index, line in enumerate(block)
+        if "Converged?" in line and "Threshold" in line
+    ]
+    if not starts:
+        return None
+    start = starts[-1]
+    rows = []
+    for line in block[start + 1 : start + 5]:
+        found = _GAUSSIAN_CHECK_ROW.match(line)
+        if found:
+            rows.append(
+                (
+                    re.sub(r"\s+", " ", found.group(1)),
+                    _gaussian_float(found.group(2)),
+                    _gaussian_float(found.group(3)),
+                    found.group(4) == "YES",
+                )
+            )
+    if len(rows) != 4:
+        return None
+    predicted = None
+    converged = False
+    for line in block[start + 5 : start + 10]:
+        if line.startswith("Predicted change in Energy="):
+            predicted = _gaussian_float(line.split("=", 1)[1].split()[0])
+        if line.startswith("Optimization completed"):
+            converged = True
+    return ConvergenceCheckV1(
+        program="gaussian",
+        criterion=(
+            "Gaussian's Berny criteria on redundant internal coordinates "
+            "(forces in Hartree/Bohr or Hartree/radian)"
+        ),
+        source=(
+            "its frequency step's check with the exact Hessian"
+            if with_modes
+            else "its optimisation's last check"
+        ),
+        rows=tuple(rows),
+        force_rows=("Maximum Force", "RMS Force"),
+        stationary=all(row[3] for row in rows[:2]),
+        converged=converged,
+        predicted_energy_change_eh=predicted,
+        at_modes=bool(with_modes),
+    )
+
+
+def _orca_convergence_check(output: Any) -> ConvergenceCheckV1 | None:
+    """ORCA's last geometry-convergence table and its own verdict.
+
+    ORCA checks the energy change, the RMS and maximum gradient and the RMS
+    and maximum step of its optimisation coordinates (redundant internal
+    coordinates unless told otherwise) against the tolerances the table
+    prints, and says whether the search converged in its own words.  The
+    gradient rows are at the structure whose gradient it last computed; the
+    step rows bound how far the final structure is from it.
+    """
+
+    lines = list(getattr(output, "contents", None) or ())
+    starts = [
+        index
+        for index, line in enumerate(lines)
+        if "|Geometry convergence|" in line
+    ]
+    if not starts:
+        return None
+    rows = []
+    for line in lines[starts[-1] + 3 : starts[-1] + 12]:
+        parts = line.split()
+        if len(parts) >= 5 and parts[-1] in {"YES", "NO"}:
+            try:
+                rows.append(
+                    (
+                        " ".join(parts[:-3]),
+                        float(parts[-3]),
+                        float(parts[-2]),
+                        parts[-1] == "YES",
+                    )
+                )
+            except ValueError:
+                continue
+        elif rows and line.startswith("---"):
+            break
+    if not rows:
+        return None
+    converged = None
+    for line in lines:
+        if "THE OPTIMIZATION HAS CONVERGED" in line:
+            converged = True
+        elif "The optimization did not converge" in line:
+            converged = False
+    gradient_rows = [
+        row for row in rows if row[0] in {"RMS gradient", "MAX gradient"}
+    ]
+    return ConvergenceCheckV1(
+        program="orca",
+        criterion=(
+            "ORCA's geometry-convergence tolerances on its optimisation "
+            "coordinates (gradient in Eh/Bohr)"
+        ),
+        source="its last geometry-convergence check",
+        rows=tuple(rows),
+        force_rows=("RMS gradient", "MAX gradient"),
+        stationary=(
+            bool(converged)
+            if converged is not None
+            else bool(gradient_rows) and all(row[3] for row in gradient_rows)
+        ),
+        converged=converged,
+    )
+
+
+def _xtb_convergence_check(output: Any) -> ConvergenceCheckV1 | None:
+    """xTB's own criterion for the optimisation level it ran.
+
+    xTB's optimiser (ANCopt) converges when the energy change and the norm
+    of the Cartesian gradient fall below the thresholds of the level asked
+    for (normal: 5e-6 Eh and 1e-3 Eh/Bohr; loose: 5e-5 and 4e-3); the
+    setup block prints both, and the summary prints the gradient norm at
+    the structure the run reached.  A run that optimised nothing (a
+    ``--hess`` at a handed geometry) prints no level and has no check.
+    """
+
+    try:
+        threshold = output.gradient_convergence
+        level = output.optimization_level
+        norm = output.gradient_norm
+        energy = output.energy_convergence
+        converged = output.geometry_optimization_converged
+    except AttributeError:
+        return None
+    if threshold is None or norm is None:
+        return None
+    return ConvergenceCheckV1(
+        program="xtb",
+        criterion=(
+            f"xTB's optimisation level {level}: gradient norm at most "
+            f"{float(threshold):g} Eh/Bohr"
+            + (
+                f" and energy change at most {float(energy):g} Eh"
+                if energy is not None
+                else ""
+            )
+        ),
+        source="the gradient norm at the structure it reached",
+        rows=(
+            (
+                "gradient norm",
+                float(norm),
+                float(threshold),
+                float(norm) <= float(threshold),
+            ),
+        ),
+        force_rows=("gradient norm",),
+        stationary=bool(converged),
+        converged=bool(converged),
+    )
+
+
 _GAUSSIAN_PARAMETER_ROW = re.compile(
     r"^!\s*(\S+)\s+([RADL])\(([-0-9,]+)\)\s+(-?[0-9.]+)\s+(.*)$"
 )
@@ -1982,6 +2269,16 @@ class ResultReaderV1:
     resolve_torsional_scan: Callable[[Any], TorsionalScanV1 | None] | None = (
         None
     )
+    #: The program's own convergence check at the structure this result's
+    #: modes, or its reached geometry, belong to (:class:`ConvergenceCheckV1`):
+    #: the criteria the program judged that structure by, in its own
+    #: coordinates, with the numbers it printed.  Not a selector: it says
+    #: whether a structure is stationary by the criterion it was converged
+    #: with, which a host criterion on another coordinate system is not.
+    #: ``None`` means the program printed no such check for this result.
+    resolve_convergence_check: (
+        Callable[[Any], ConvergenceCheckV1 | None] | None
+    ) = None
     #: The zero-based atoms this result held fixed in space in all three
     #: Cartesian coordinates, from the program's own record.  Not a
     #: selector: it says what the structure was not relaxed along.  Gaussian
@@ -1990,6 +2287,20 @@ class ResultReaderV1:
     #: stationary.  ``None`` means this reader cannot say; ``()`` that the
     #: program froze none.
     resolve_frozen_atoms: Callable[[Any], tuple[int, ...] | None] | None = None
+
+    def convergence_check_for_output(
+        self, output: Any
+    ) -> ConvergenceCheckV1 | None:
+        """The program's own check at this result's structure, or None."""
+
+        if self.resolve_convergence_check is None:
+            return None
+        try:
+            return self.resolve_convergence_check(output)
+        except (
+            Exception
+        ):  # noqa: BLE001 - a reader that cannot say says nothing
+            return None
 
     def frozen_atoms_for_output(self, output: Any) -> tuple[int, ...] | None:
         """The atoms this result froze in space, or None when unknowable."""
@@ -7148,6 +7459,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         accessors=_orca_accessors(),
         resolve_cartesian_hessian=_orca_cartesian_hessian,
         resolve_torsional_scan=_orca_torsional_scan,
+        resolve_convergence_check=_orca_convergence_check,
         resolve_frozen_atoms=_orca_frozen_atoms,
         # An ORCA IRC's product structure is a sidecar beside the log, as
         # xTB's reached optimisation frame is: the geometry handoff seals
@@ -7753,6 +8065,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         accessors=_gaussian_accessors(),
         resolve_cartesian_hessian=_gaussian_cartesian_hessian,
         resolve_torsional_scan=_gaussian_torsional_scan,
+        resolve_convergence_check=_gaussian_convergence_check,
         resolve_frozen_atoms=_gaussian_frozen_atoms,
         # Gaussian prints the SMD-CDS term in kcal/mol to two decimals.
         source_units={"solvation_nonelectrostatic_energy": "kcal/mol"},
@@ -8335,6 +8648,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         # without an identity a consumer can resolve.
         resolve_level=_xtb_level,
         resolve_stationarity_gradient=_xtb_stationarity_gradient,
+        resolve_convergence_check=_xtb_convergence_check,
     ),
     "pyscf": ResultReaderV1(
         program="pyscf",

@@ -2066,13 +2066,24 @@ class StructureStationarityV1:
     property of a point where the gradient vanishes: the partition
     function expands the energy about it and counts every remaining
     motion as a vibration about it.  The answer is read from the result
-    through its reader, in this order, because a measurement outranks a
-    label: one atom has no internal coordinate; a gradient the reader
-    binds to the structure the modes belong to is compared with the
-    optimiser's own criterion; a coordinate the result held or drove is
-    not relaxed; a geometry search is as converged as the program's own
-    marker says; and a result handed its geometry, with no gradient
-    bound to it, is ``unmeasured`` -- neither shown nor refuted.
+    through its reader, in this order: one atom has no internal
+    coordinate; a coordinate the result held, an atom it froze in space,
+    or a coordinate it drove is not relaxed; a geometry search that printed
+    its own non-convergence did not reach a stationary point; the
+    program's own convergence check at the structure the modes belong to
+    judges it by the criterion it was converged with, in the program's own
+    coordinates (``check``); a gradient the reader binds to that structure,
+    where no program judged it, is compared with the host's criterion; a
+    search's own convergence marker; and a result handed its geometry,
+    with none of these, is ``unmeasured`` -- neither shown nor refuted.
+
+    A measurement outranks a label, and a criterion belongs to the
+    coordinates it was applied in: Gaussian and ORCA converge forces on
+    redundant internal coordinates, xTB the norm of the Cartesian
+    gradient, geomeTRIC each Cartesian component, and a structure one of
+    them converged can sit above another's threshold (R10 Q33: an xTB
+    ``--opt loose`` result, gradient norm 1.2e-3 under its 4e-3, was called
+    not stationary by its largest component against geomeTRIC's 4.5e-4).
     """
 
     stationarity: str
@@ -2084,6 +2095,7 @@ class StructureStationarityV1:
     held_coordinates: int = 0
     driven_points: int = 0
     frozen_atoms: int = 0
+    check: Any = None
 
     def __post_init__(self) -> None:
         if self.stationarity not in STATIONARITY_WORDS:
@@ -2094,9 +2106,44 @@ class StructureStationarityV1:
     def sentence(self) -> str:
         """What the structure is and what says so, in one clause."""
 
+        from chemsmart.agent.terminal_states import GEOMETRY_SEARCH_JOBTYPES
+
         job = f"{self.program} {self.jobtype}".strip()
+        noun = (
+            "search" if self.jobtype in GEOMETRY_SEARCH_JOBTYPES else "result"
+        )
         if self.basis == "atom":
             return "stationary point: one atom has no internal coordinate"
+        if self.basis == "program_check":
+            check = self.check
+            stationary = self.stationarity == "stationary"
+            others = check.words(force_rows=False)
+            measured = (
+                "; the largest Cartesian gradient component the host reads "
+                f"there is {self.max_abs_gradient_eh_per_bohr:.3g} Eh/Bohr, "
+                "a number on other coordinates than this criterion's"
+                if self.max_abs_gradient_eh_per_bohr is not None
+                else ""
+            )
+            return (
+                (
+                    "stationary point"
+                    if stationary
+                    else "not a stationary point"
+                )
+                + f": the {job} {noun}'s own convergence check at this "
+                f"structure ({check.source}; {check.criterion}) gives "
+                f"{check.words()}"
+                + (f"; {check.verdict()}" if check.verdict() else "")
+                + (f"; its other criteria: {others}" if others else "")
+                + (
+                    "; its predicted energy change "
+                    f"{check.predicted_energy_change_eh:.2g} Eh"
+                    if check.predicted_energy_change_eh is not None
+                    else ""
+                )
+                + measured
+            )
         if self.basis == "measured_gradient":
             relation = (
                 "at or below" if self.stationarity == "stationary" else "above"
@@ -2111,7 +2158,14 @@ class StructureStationarityV1:
                 "result's structure is "
                 f"{self.max_abs_gradient_eh_per_bohr:.3g} Eh/Bohr, "
                 f"{relation} the optimiser's criterion of "
-                f"{self.criterion_eh_per_bohr:g} (geomeTRIC convergence_gmax)"
+                f"{self.criterion_eh_per_bohr:g} (geomeTRIC convergence_gmax"
+                + (
+                    ", which PySCF's optimiser applies"
+                    if self.program == "pyscf"
+                    else ", the host's criterion where no optimiser judged "
+                    "this structure"
+                )
+                + ")"
             )
         if self.basis == "held_coordinate":
             held = []
@@ -2148,6 +2202,15 @@ class StructureStationarityV1:
                 "program's own convergence marker, and its modes belong to "
                 "the structure it reached"
             )
+        if self.basis == "search_unjudged":
+            return (
+                f"stationarity unmeasured: this {job} search ended before "
+                "its program judged any structure (it printed no "
+                "convergence check and no verdict), so nothing shows or "
+                "refutes that the geometry it stopped at is a stationary "
+                "point of this surface; a free energy describes a state "
+                "only if it is one"
+            )
         return (
             f"stationarity unmeasured: this {job} result was handed its "
             "geometry and binds no gradient to it, so it neither shows "
@@ -2183,10 +2246,12 @@ def structure_stationarity(
     characterisation refuses an order on.
 
     Every fact is read through the program's reader: the structure's
-    atoms, the gradient bound to one structure
-    (``stationarity_gradient_for_output``), a held or driven coordinate
-    (``constrained_coordinate_count``, ``scan_steps_planned``), and a
-    geometry search's own convergence marker (``converged``).
+    atoms, a held, frozen or driven coordinate
+    (``constrained_coordinate_count``, ``frozen_atoms_for_output``,
+    ``scan_steps_planned``), a geometry search's own convergence marker
+    (``converged``), the program's own convergence check at the structure
+    (``convergence_check_for_output``) and the gradient the reader binds
+    to that structure (``stationarity_gradient_for_output``).
     """
 
     from chemsmart.agent.terminal_states import (
@@ -2209,24 +2274,15 @@ def structure_stationarity(
             stationarity="stationary", basis="atom", **common
         )
     gradient = reader.stationarity_gradient_for_output(output)
-    if gradient is not None:
-        criterion = float(HESS_STATIONARITY_GRADIENT_EH_PER_BOHR)
-        return StructureStationarityV1(
-            stationarity=(
-                "stationary" if gradient <= criterion else "not_stationary"
-            ),
-            basis="measured_gradient",
-            max_abs_gradient_eh_per_bohr=float(f"{gradient:.6g}"),
-            criterion_eh_per_bohr=criterion,
-            **common,
-        )
+    measured = float(f"{gradient:.6g}") if gradient is not None else None
     held = _reader_answer(reader, output, "constrained_coordinate_count")
     frozen = reader.frozen_atoms_for_output(output) or ()
     if held or frozen:
         # What a result held it was not relaxed along, whatever its
-        # optimiser's check on the rest says: Gaussian leaves a frozen
+        # program's check on the rest says: that check is taken on the
+        # surface the held coordinates define (Gaussian leaves a frozen
         # coordinate out of its forces and prints a zero force on a frozen
-        # atom, so no check it prints shows the full surface stationary.
+        # atom), so it cannot show the structure stationary on the full one.
         return StructureStationarityV1(
             stationarity="not_stationary",
             basis="held_coordinate",
@@ -2242,6 +2298,7 @@ def structure_stationarity(
             driven_points=int(driven),
             **common,
         )
+    converged = None
     if jobtype in GEOMETRY_SEARCH_JOBTYPES:
         converged = _reader_answer(reader, output, "converged")
         if converged is None and "converged" not in reader.accessors:
@@ -2249,17 +2306,49 @@ def structure_stationarity(
             # names the parser's own marker for the host's sensors.
             converged = getattr(output, "converged", None)
         if converged is not None and not bool(converged):
+            # The search's own verdict outranks its last check: an ORCA
+            # OptTS that ran out of cycles printed gradient rows within
+            # tolerance at its last step and its modes where its Hessian
+            # was taken, 1.23 A away (po3-r19).
             return StructureStationarityV1(
                 stationarity="not_stationary",
                 basis="search_not_converged",
                 **common,
             )
-        if converged is not None:
-            return StructureStationarityV1(
-                stationarity="stationary",
-                basis="search_converged",
-                **common,
-            )
+    check = reader.convergence_check_for_output(output)
+    if check is not None and (
+        jobtype in GEOMETRY_SEARCH_JOBTYPES or check.at_modes
+    ):
+        return StructureStationarityV1(
+            stationarity=(
+                "stationary" if check.stationary else "not_stationary"
+            ),
+            basis="program_check",
+            check=check,
+            max_abs_gradient_eh_per_bohr=measured,
+            **common,
+        )
+    if measured is not None:
+        criterion = float(HESS_STATIONARITY_GRADIENT_EH_PER_BOHR)
+        return StructureStationarityV1(
+            stationarity=(
+                "stationary" if measured <= criterion else "not_stationary"
+            ),
+            basis="measured_gradient",
+            max_abs_gradient_eh_per_bohr=measured,
+            criterion_eh_per_bohr=criterion,
+            **common,
+        )
+    if converged is not None:
+        return StructureStationarityV1(
+            stationarity="stationary",
+            basis="search_converged",
+            **common,
+        )
+    if jobtype in GEOMETRY_SEARCH_JOBTYPES:
+        return StructureStationarityV1(
+            stationarity="unmeasured", basis="search_unjudged", **common
+        )
     return StructureStationarityV1(
         stationarity="unmeasured", basis="fixed_geometry", **common
     )
