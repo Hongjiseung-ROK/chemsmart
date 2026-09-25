@@ -463,3 +463,62 @@ def test_an_approved_chain_carries_it_to_the_executor(tmp_path):
     assert any(
         "5 of 6 vibrational modes kept" in line for line in receipt.assumptions
     )
+
+
+@pytest.mark.parametrize(
+    "relative,printed,has",
+    [
+        # Gaussian's own freq=projected at H2O2 held at 90 deg (R10 Q27
+        # oracle O1b, CUHK 2153717): the gradient's direction removed.
+        ("GaussianTests/projected_frequencies/g_sp90_gas_phase.log", 5, 6),
+        # A Gaussian optimisation with frozen atoms prints only the modes
+        # of the atoms that moved.
+        ("GaussianTests/outputs/frozen_coordinates_opt.log", 12, 36),
+    ],
+)
+def test_a_spectrum_short_of_its_structure_says_what_it_lacks(
+    tmp_path, relative, printed, has
+):
+    """A partition function counts every mode a structure has.
+
+    Unless the host removed one itself and named it. A program can remove
+    one before it prints, and the free energy derived from what it
+    printed is then of fewer modes than the molecule has: the receipt
+    says so, with both counts.
+    """
+
+    from chemsmart.agent.runtime.event_store import RuntimeEventStore
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
+    path = (_TESTS_DATA / relative).resolve()
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "events.jsonl", session_id="s"
+        ),
+        artifacts={
+            "gaussian-short": TrustedArtifactRefV1(
+                artifact_id="gaussian-short",
+                kind=reader_for("gaussian").artifact_kind,
+                sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+                size_bytes=path.stat().st_size,
+                path=str(path),
+                cli_value=str(path),
+            )
+        },
+        task_spec_sha256s=("a" * 64,),
+        approved_workspace=tmp_path / "workspace",
+    )
+    receipt = host._derive_thermochemistry(
+        "turn-1",
+        {
+            "program": "gaussian",
+            "artifact_id": "gaussian-short",
+            "temperature_k": 298.15,
+            "pressure_atm": 1.0,
+        },
+    )
+    assert any(
+        line.startswith(f"the program printed {printed} vibrational mode(s)")
+        and f"structure has {has}" in line
+        for line in receipt.assumptions
+    )

@@ -2739,6 +2739,44 @@ def _held_coordinate_projection(
     )
 
 
+def _modes_the_program_removed(engine: Any) -> str:
+    """A sentence when the printed spectrum is short of the structure's modes.
+
+    A harmonic partition function counts every vibration a structure has --
+    3N-6, or 3N-5 for a linear rotor -- unless the host removed one itself
+    and says which (``projected_coordinates``).  A program can remove one
+    before it prints: Gaussian's ``freq=projected`` drops the direction of
+    the gradient, which at H2O2 held at 0 or 180 deg (a symmetric saddle,
+    gradient orthogonal to the torsion) is a stretch-bend mixture, not the
+    held torsion, and Gaussian's own free energy there came out 5.4 and 1.7
+    kcal/mol below the saddles' (R10 Q27 oracle O1b, CUHK 2153717); a
+    Gaussian optimisation with frozen atoms prints the modes of the others
+    only (12 of a 14-atom structure's 36 in an archived fixture).  Such a
+    spectrum is used as printed, and the receipt says what it lacks.
+    """
+
+    frequencies = engine.vibrational_frequencies
+    if frequencies is None or engine.molecule.is_monoatomic:
+        return ""
+    atoms = int(engine.molecule.num_atoms)
+    expected = 3 * atoms - (5 if engine.is_linear_rotor else 6)
+    printed = len(frequencies)
+    if engine.quasi_linear_padded_mode_cm1 is not None:
+        printed += 1
+    if printed >= expected:
+        return ""
+    return (
+        f"the program printed {printed} vibrational mode(s) where this "
+        f"{atoms}-atom structure has {expected}: it removed "
+        f"{expected - printed} direction(s) itself before its own analysis "
+        "(Gaussian's freq=projected removes the direction of the gradient; "
+        "frozen atoms take their own motions out of the analysis), so this "
+        "free energy counts only the printed modes and lacks "
+        "motion(s) the host neither chose nor can name; removing a named "
+        "held coordinate is projected_coordinates"
+    )
+
+
 def _stationarity_refusal(
     stationarity: StructureStationarityV1, artifact_id: str
 ) -> QuantityExtractionError:
@@ -2906,6 +2944,9 @@ def derive_result_thermochemistry(
             "trusted result program differs from the requested thermochemistry "
             f"program: expected {request.program!r}, observed {engine.program!r}"
         )
+    missing_modes = (
+        _modes_the_program_removed(engine) if projection is None else ""
+    )
     # `check_frequencies` keys on the program job label: one imaginary
     # mode is a correct transition state for a `ts` job and a refusal
     # for the identical structure labelled `opt`. The label is the
@@ -3110,19 +3151,21 @@ def derive_result_thermochemistry(
         raise QuantityExtractionError(
             "result artifact changed during thermochemistry derivation"
         )
-    assumptions = _thermochemistry_assumptions(
-        request, engine.convention_statements
-    ) + (
-        # What the free energy stands on, with the number or the marker
-        # that says so. Inside ``assumptions`` (already inside the digest
-        # and the recorded record) for the reason the reaction-coordinate
-        # selection is: a receipt minted before this line keeps verifying.
-        # A projected free energy stands on the surface it was projected
-        # onto, and says which coordinates, how many modes and which rotor
-        # treatment, in the same place.
-        (stationarity.sentence(),)
-        if projection is None
-        else projection.statements
+    assumptions = (
+        _thermochemistry_assumptions(request, engine.convention_statements)
+        + (
+            # What the free energy stands on, with the number or the marker
+            # that says so. Inside ``assumptions`` (already inside the digest
+            # and the recorded record) for the reason the reaction-coordinate
+            # selection is: a receipt minted before this line keeps verifying.
+            # A projected free energy stands on the surface it was projected
+            # onto, and says which coordinates, how many modes and which rotor
+            # treatment, in the same place.
+            (stationarity.sentence(),)
+            if projection is None
+            else projection.statements
+        )
+        + ((missing_modes,) if missing_modes else ())
     )
     body = {
         "schema_version": "chemsmart.thermochemistry-receipt.v1",
