@@ -49,6 +49,10 @@ class _ORCAThermochemistrySection:
     energy, geometry, frequencies, and thermochemistry together prevents a
     downstream analysis from combining values produced by different jobs or
     optimization stages.
+
+    A section is one Hessian's thermochemistry block; ``frequencies`` is
+    ``None`` when ORCA printed no frequency table for that Hessian, and
+    ``end_index`` is exclusive.
     """
 
     start_index: int
@@ -59,7 +63,7 @@ class _ORCAThermochemistrySection:
     charge: int | None
     multiplicity: int | None
     coordinate_lines: tuple[str, ...]
-    frequencies: tuple[float, ...]
+    frequencies: tuple[float, ...] | None
     temperature_k: float | None
     pressure_atm: float | None
     point_group: str | None
@@ -615,7 +619,26 @@ class ORCAOutput(ORCAFileMixin):
 
     @cached_property
     def _complete_thermochemistry_sections(self):
-        """Return complete frequency/thermochemistry sections in file order."""
+        """Return one section per Hessian thermochemistry block, in file order.
+
+        ORCA prints a thermochemistry block for every Hessian it computes,
+        but the frequency table -- with its normal modes and IR spectrum --
+        for only some of them. An OptTS prints one for each Hessian; a
+        relaxed scan or a ScanTS with Freq prints it for its first Hessian
+        alone and only the thermochemistry for every later one: ten
+        Hessians and one table, at scan point 1, on CUHK Slurm 2154022.
+        Keyed on the tables, that run's one section began at scan point 1
+        and ran to the end of the file, and the host served scan point 1's
+        frequencies, electronic energy, zero-point energy and geometry
+        beside the saddle's Gibbs energy.
+
+        So a section is one thermochemistry block. Its table is the last
+        one printed after the previous block (and after its job's start)
+        and before this one, taken only when the table's real modes are the
+        block's own ``freq.`` lines -- ORCA's printback that both describe
+        one Hessian. A section without such a table has ``frequencies``
+        ``None``: nothing printed for another Hessian stands in for them.
+        """
         sections = []
         charge_pattern = re.compile(r"Total Charge\s+Charge")
         multiplicity_pattern = re.compile(r"Multiplicity\s+Mult")
@@ -623,11 +646,62 @@ class ORCAOutput(ORCAFileMixin):
             r"Point Group:\s*([^,]+),\s*Symmetry Number:\s*(\d+)"
         )
         coordinate_pattern = re.compile(standard_coord_pattern)
+        thermochemistry_frequency_pattern = re.compile(
+            r"^\s*freq\.\s+"
+            r"([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][-+]?\d+)?)\s+E\(vib\)"
+        )
+        tables = {
+            start: frequencies
+            for start, _end, frequencies in self._vibrational_frequency_blocks
+        }
+        table_starts = sorted(tables)
+        job_marker_indices = tuple(
+            index for index, _ in self._orca_job_markers
+        )
+        block_starts = [
+            index
+            for index, line in enumerate(self.contents)
+            if "THERMOCHEMISTRY AT" in line
+        ]
 
-        for start, end, frequencies in self._vibrational_frequency_blocks:
-            local_lines = self.contents[start:end]
-            if not any("THERMOCHEMISTRY AT" in line for line in local_lines):
-                continue
+        for position, block_start in enumerate(block_starts):
+            job_number, job_start = self._job_context_for_index(block_start)
+            lower = max(
+                job_start, block_starts[position - 1] if position else -1
+            )
+            later = [
+                index
+                for index in (
+                    *block_starts,
+                    *table_starts,
+                    *job_marker_indices,
+                )
+                if index > block_start
+            ]
+            end = min(later) if later else len(self.contents)
+            local_lines = self.contents[block_start:end]
+            printed = []
+            for line in local_lines:
+                match = thermochemistry_frequency_pattern.match(line)
+                if match is not None:
+                    printed.append(float(match.group(1)))
+
+            start = block_start
+            frequencies = None
+            candidates = [
+                index for index in table_starts if lower < index < block_start
+            ]
+            if candidates:
+                real = sorted(
+                    value for value in tables[candidates[-1]] if value > 0.0
+                )
+                if len(real) == len(printed) and all(
+                    abs(table_value - block_value) <= 0.011
+                    for table_value, block_value in zip(real, sorted(printed))
+                ):
+                    start = candidates[-1]
+                    frequencies = tables[start]
+
             gibbs_lines = [
                 line
                 for line in local_lines
@@ -745,12 +819,57 @@ class ORCAOutput(ORCAFileMixin):
 
         Falling back to the whole file when no complete section is
         parsed keeps a single-block output reading exactly as before.
+
+        Every accessor of one Hessian's printout -- normal modes, IR
+        columns, thermal corrections, entropy terms -- reads these lines:
+        scanning the whole file from the top read an OptTS's initial,
+        guess-geometry block for all of them (R10 Q31).
         """
 
         section = self._last_complete_thermochemistry_section
         if section is None:
             return self.contents
-        return self.contents[section.start_index : section.end_index + 1]
+        return self.contents[section.start_index : section.end_index]
+
+    @property
+    def unprinted_frequency_table_reason(self):
+        """Why this output's frequencies cannot be served, or ``None``.
+
+        A sentence when the Hessian whose thermochemistry the output
+        describes printed no frequency table (a relaxed scan or ScanTS with
+        Freq prints one for its first Hessian only), or when several tables
+        and no thermochemistry leave no way to tell which Hessian is the
+        result's.
+        """
+
+        sections = self._complete_thermochemistry_sections
+        if sections:
+            if sections[-1].frequencies is not None:
+                return None
+            printed = sum(
+                1 for section in sections if section.frequencies is not None
+            )
+            held = (
+                "the one Hessian"
+                if len(sections) == 1
+                else f"the last of the {len(sections)} Hessians"
+            )
+            return (
+                f"ORCA printed no frequency table for {held} whose "
+                f"thermochemistry this output holds ({printed} of "
+                f"{len(sections)} printed one), so the frequencies and "
+                "normal modes of the structure that thermochemistry "
+                "describes are not in this output; a ScanTS with Freq "
+                "prints the table for its first Hessian only"
+            )
+        tables = len(self._vibrational_frequency_blocks)
+        if tables > 1:
+            return (
+                f"ORCA printed {tables} frequency tables and no complete "
+                "thermochemistry block, so this output does not say which "
+                "Hessian describes its structure"
+            )
+        return None
 
     @property
     def thermochemistry_jobtype(self):
@@ -3255,12 +3374,20 @@ class ORCAOutput(ORCAFileMixin):
         """
         Get vibrational frequencies from the ORCA output file.
         Including translational and rotational modes.
+
+        The table of the Hessian whose thermochemistry the output describes
+        (the last complete section), never another Hessian's; ``None`` when
+        ORCA printed none for it (``unprinted_frequency_table_reason``).
         """
-        vibrational_frequencies = (
-            list(self._vibrational_frequency_blocks[-1][2])
-            if self._vibrational_frequency_blocks
-            else []
-        )
+        vibrational_frequencies = []
+        if self.unprinted_frequency_table_reason is None:
+            section = self._last_complete_thermochemistry_section
+            if section is not None:
+                vibrational_frequencies = list(section.frequencies)
+            elif self._vibrational_frequency_blocks:
+                vibrational_frequencies = list(
+                    self._vibrational_frequency_blocks[-1][2]
+                )
         logger.debug(
             f"Vibrational frequencies, including translations and rotations: "
             f"{vibrational_frequencies}"
@@ -3347,19 +3474,25 @@ class ORCAOutput(ORCAFileMixin):
         Modes are Cartesian displacements weighted by diagonal matrix
         M(i,i)=1/sqrt(m[i]) where m[i] is the mass of displaced atom.
         Thus, these vectors are normalized but *not* orthogonal
+
+        Read from the Hessian the frequencies are, and absent whenever
+        they are.
         """
         from chemsmart.utils.repattern import (
             orca_line_integer_followed_by_floats,
         )
 
         normal_modes = []
+        if self.all_vibrational_frequencies is None:
+            return normal_modes
+        lines = self._last_thermochemistry_lines
 
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(lines):
             if line_i == "NORMAL MODES":
                 j = i + 7  # Start after header lines
 
-                while j < len(self.contents):
-                    j_line = self.contents[j]
+                while j < len(lines):
+                    j_line = lines[j]
 
                     # Check for empty line (end of normal modes section)
                     if len(j_line.strip()) == 0:
@@ -3376,7 +3509,7 @@ class ORCAOutput(ORCAFileMixin):
 
                         pre_modes = []
                         for k in range(coord_lines_to_read):
-                            coord_line = self.contents[j + 1 + k]
+                            coord_line = lines[j + 1 + k]
 
                             # Check if this line matches the coordinate pattern
                             if re.fullmatch(
@@ -3760,10 +3893,13 @@ class ORCAOutput(ORCAFileMixin):
         molar_absorption_coefficients = [
             0.0 for freq in self.vibrational_frequencies if freq == 0.0
         ]
+        if self.all_vibrational_frequencies is None:
+            return None
+        lines = self._last_thermochemistry_lines
 
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(lines):
             if line_i == "IR SPECTRUM":
-                for line_j in self.contents[i + 6 :]:
+                for line_j in lines[i + 6 :]:
                     if (
                         "* The epsilon (eps) is given for a Dirac delta lineshape."
                         in line_j
@@ -3787,10 +3923,13 @@ class ORCAOutput(ORCAFileMixin):
         integrated_absorption_coefficients = [
             0.0 for freq in self.vibrational_frequencies if freq == 0.0
         ]
+        if self.all_vibrational_frequencies is None:
+            return None
+        lines = self._last_thermochemistry_lines
 
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(lines):
             if line_i == "IR SPECTRUM":
-                for line_j in self.contents[i + 6 :]:
+                for line_j in lines[i + 6 :]:
                     if (
                         "* The epsilon (eps) is given for a Dirac delta lineshape."
                         in line_j
@@ -3812,10 +3951,13 @@ class ORCAOutput(ORCAFileMixin):
         transition_dipole_deriv_norm = [
             0.0 for freq in self.vibrational_frequencies if freq == 0.0
         ]
+        if self.all_vibrational_frequencies is None:
+            return None
+        lines = self._last_thermochemistry_lines
 
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(lines):
             if line_i == "IR SPECTRUM":
-                for line_j in self.contents[i + 6 :]:
+                for line_j in lines[i + 6 :]:
                     if (
                         "* The epsilon (eps) is given for a Dirac delta lineshape."
                         in line_j
@@ -3833,9 +3975,12 @@ class ORCAOutput(ORCAFileMixin):
     def transition_dipoles(self):
         """Transition dipole for each vibrational mode, (Tx, Ty, Tz)."""
         transition_dipoles = []
-        for i, line_i in enumerate(self.contents):
+        if self.all_vibrational_frequencies is None:
+            return transition_dipoles
+        lines = self._last_thermochemistry_lines
+        for i, line_i in enumerate(lines):
             if line_i == "IR SPECTRUM":
-                for line_j in self.contents[i + 6 :]:
+                for line_j in lines[i + 6 :]:
                     if len(line_j) == 0:
                         break
                     line_j_elements = line_j.split()
@@ -3940,9 +4085,9 @@ class ORCAOutput(ORCAFileMixin):
         """
         Total mass in amu.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if "THERMOCHEMISTRY" in line_i:
-                for line_j in self.contents[i + 3 :]:
+                for line_j in self._last_thermochemistry_lines[i + 3 :]:
                     if "Total Mass" in line_j:
                         line_j_elements = line_j.split()
                         return float(line_j_elements[-2])
@@ -4041,9 +4186,9 @@ class ORCAOutput(ORCAFileMixin):
         E(vib) - the finite temperature correction to
         E(ZPE) due to population of excited vibrational states.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if "INNER ENERGY" in line_i:
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "Thermal vibrational correction" in line_j:
                         line_j_elements = line_j.split()
                         thermal_vibration_correction_in_Hartree = float(
@@ -4063,9 +4208,9 @@ class ORCAOutput(ORCAFileMixin):
     def thermal_rotation_correction(self):
         """E(rot)  - is the rotational thermal energy.
         Default units are Hartree."""
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if "INNER ENERGY" in line_i:
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "Thermal rotational correction" in line_j:
                         line_j_elements = line_j.split()
                         thermal_rotation_correction_energy_in_Hartree = float(
@@ -4086,9 +4231,9 @@ class ORCAOutput(ORCAFileMixin):
         """
         E(trans)- is the translational thermal energy.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if "INNER ENERGY" in line_i:
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "Thermal translational correction" in line_j:
                         line_j_elements = line_j.split()
                         thermal_translation_correction_in_Hartree = float(
@@ -4121,9 +4266,9 @@ class ORCAOutput(ORCAFileMixin):
         """
         Total correction due to Thermal (trans, rot, vib) + ZPE.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if "INNER ENERGY" in line_i:
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "Total correction" in line_j:
                         line_j_elements = line_j.split()
                         thermal_energy_correction_in_Hartree = float(
@@ -4162,9 +4307,9 @@ class ORCAOutput(ORCAFileMixin):
         kB is Boltzmann's constant.
         Default units are Hartree.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if line_i == "ENTHALPY":
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "Thermal Enthalpy correction" in line_j:
                         line_j_elements = line_j.split()
                         thermal_enthalpy_correction_in_Hartree = float(
@@ -4188,9 +4333,9 @@ class ORCAOutput(ORCAFileMixin):
         """
         Return electronic entropy in J/mol/K.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if line_i == "ENTROPY":
-                for line_j in self.contents[i + 10 :]:
+                for line_j in self._last_thermochemistry_lines[i + 10 :]:
                     if "Electronic entropy" in line_j:
                         line_j_elements = line_j.split()
                         electronic_entropy_hartree = float(line_j_elements[-4])
@@ -4224,9 +4369,9 @@ class ORCAOutput(ORCAFileMixin):
         """
         Return vibrational entropy in J/mol/K.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if line_i == "ENTROPY":
-                for line_j in self.contents[i + 10 :]:
+                for line_j in self._last_thermochemistry_lines[i + 10 :]:
                     if "Vibrational entropy" in line_j:
                         line_j_elements = line_j.split()
                         vibrational_entropy_hartree = float(
@@ -4262,9 +4407,9 @@ class ORCAOutput(ORCAFileMixin):
         """
         Return rotational entropy in J/mol/K.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if line_i == "ENTROPY":
-                for line_j in self.contents[i + 10 :]:
+                for line_j in self._last_thermochemistry_lines[i + 10 :]:
                     if "Rotational entropy" in line_j:
                         line_j_elements = line_j.split()
                         rotational_entropy_hartree = float(line_j_elements[-4])
@@ -4298,9 +4443,9 @@ class ORCAOutput(ORCAFileMixin):
         """
         Return translational entropy in J/mol/K.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if line_i == "ENTROPY":
-                for line_j in self.contents[i + 10 :]:
+                for line_j in self._last_thermochemistry_lines[i + 10 :]:
                     if "Translational entropy" in line_j:
                         line_j_elements = line_j.split()
                         translational_entropy_hartree = float(
@@ -4386,9 +4531,11 @@ class ORCAOutput(ORCAFileMixin):
         Return rotational entropy in J/mol/K for different symmetry numbers.
         """
         rotational_entropy_symmetry_correction_J_per_mol_per_K = {}
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if "rotational entropy values for sn=1,12" in line_i:
-                for line_j in self.contents[i + 2 :]:  # i+2 onwards
+                for line_j in self._last_thermochemistry_lines[
+                    i + 2 :
+                ]:  # i+2 onwards
                     if len(line_j) == 0:
                         break
                     if "S(rot)" in line_j:
@@ -4447,9 +4594,9 @@ class ORCAOutput(ORCAFileMixin):
         the Gibbs free energy minus the electronic energy, G - E(el).
         Default units are Hartree.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if line_i == "GIBBS FREE ENERGY":
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "G-E(el)" in line_j:
                         line_j_elements = line_j.split()
                         thermal_gibbs_free_energy_correction_in_Hartree = (

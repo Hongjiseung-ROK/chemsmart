@@ -33,9 +33,10 @@ logger = logging.getLogger(__name__)
 @click.option(
     "-i",
     "--invert-constraints/--no-invert-constraints",
-    default=False,
+    default=None,
     type=bool,
-    help="Invert the constraints for frozen atoms in optimization.",
+    help="Invert the constraints for frozen atoms in optimization. "
+    "Default: the project's invert_constraints.",
 )
 @click.pass_context
 def opt(
@@ -75,7 +76,8 @@ def opt(
 
     # merge project opt settings with job settings from cli keywords
     opt_settings = opt_settings.merge(job_settings, keywords=keywords)
-    opt_settings.invert_constraints = invert_constraints
+    if invert_constraints is not None:
+        opt_settings.invert_constraints = invert_constraints
 
     # cli-supplied solvent model, solvent id, and additional solvent options
     opt_settings.modify_solvent(

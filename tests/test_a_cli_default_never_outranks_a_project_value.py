@@ -16,118 +16,32 @@ session declared ``recalc_hess: 999`` in project YAML so a saddle search
 could not become an unbounded chain of numerical second derivatives; the
 written ORCA input carried ``5``; the preview validator correctly reported
 ``expected 999, observed 5`` and the workflow was refused. ``recalc_hess``
-was the only option in the whole CLI shaped that way, and one line fixed
-it -- so this test pins the invariant rather than the case, because the
-next such option is what it exists to catch.
-"""
+was not the only option in the CLI shaped that way.
 
-import ast
-import pathlib
-import re
+The invariant is held by
+``tests/agent/test_a_stated_setting_reaches_the_input.py``, which reads
+the defaults Click passes. The scan that stood here read the callbacks'
+Python signatures instead, which Click never consults, and skipped
+``False``: it passed over Gaussian's IRC options defaulting to 512, 128,
+20 and 6 (every Gaussian IRC through R10 Q28 ran maxpoints=512) and over
+the fourteen options R10 Q31 found (ORCA ``--tssearch-type optts``, five
+ORCA IRC booleans, ``forces``). This file keeps the live loss.
+"""
 
 import pytest
 
-CLI_ROOT = pathlib.Path(__file__).resolve().parents[1] / "chemsmart" / "cli"
-
-
-def _signature_defaults(function: ast.FunctionDef) -> dict[str, object]:
-    """Literal defaults in a command callback's signature, by name."""
-
-    args = function.args
-    defaults: dict[str, object] = {}
-    pairs = list(zip(args.kwonlyargs, args.kw_defaults))
-    if args.defaults:
-        offset = len(args.args) - len(args.defaults)
-        pairs += list(zip(args.args[offset:], args.defaults))
-    for argument, node in pairs:
-        if node is None:
-            continue
-        try:
-            defaults[argument.arg] = ast.literal_eval(node)
-        except (ValueError, SyntaxError):
-            continue
-    return defaults
-
-
-def _offenders() -> list[str]:
-    """Every option whose own default defeats its own guard."""
-
-    found: list[str] = []
-    for path in sorted(CLI_ROOT.rglob("*.py")):
-        source = path.read_text(encoding="utf-8")
-        for function in [
-            node
-            for node in ast.walk(ast.parse(source))
-            if isinstance(node, ast.FunctionDef)
-        ]:
-            body = ast.get_source_segment(source, function) or ""
-            for name, value in _signature_defaults(function).items():
-                if value is None or value is False:
-                    continue
-                assigns = re.search(
-                    rf"\.{re.escape(name)}\s*=\s*{re.escape(name)}\b", body
-                )
-                if not assigns:
-                    continue
-                guarded = re.search(
-                    rf"if\s+{re.escape(name)}\s+is\s+not\s+None\s*:", body
-                ) or re.search(rf"if\s+{re.escape(name)}\s*:", body)
-                if guarded:
-                    found.append(
-                        f"{path.relative_to(CLI_ROOT.parents[1])}"
-                        f"::{function.name} option {name!r} defaults to "
-                        f"{value!r} under a 'did the user type it' guard"
-                    )
-    return found
-
-
-@pytest.mark.capability("setting:orca:recalc_hess")
-def test_no_cli_option_default_defeats_its_own_guard():
-    """The guard means "the caller typed this", so the default is None."""
-
-    offenders = _offenders()
-    assert not offenders, (
-        "a CLI option would overwrite the project's own value with a "
-        "default nobody passed:\n  " + "\n  ".join(offenders)
-    )
-
-
-@pytest.mark.capability("setting:orca:recalc_hess")
-def test_the_scan_finds_a_planted_offender():
-    """The scan is falsifiable: it must catch the shape it forbids.
-
-    Without this, a scan that silently matched nothing would pass over a
-    repository full of offenders -- the class of defect this laboratory
-    has paid for before ("a cheap proxy is not a measurement").
-    """
-
-    planted = ast.parse(
-        "def cmd(ctx, recalc_hess=5):\n"
-        "    settings = ctx.obj['s']\n"
-        "    if recalc_hess is not None:\n"
-        "        settings.recalc_hess = recalc_hess\n"
-    )
-    function = planted.body[0]
-    source = (
-        "def cmd(ctx, recalc_hess=5):\n"
-        "    settings = ctx.obj['s']\n"
-        "    if recalc_hess is not None:\n"
-        "        settings.recalc_hess = recalc_hess\n"
-    )
-    defaults = _signature_defaults(function)
-    assert defaults.get("recalc_hess") == 5
-    body = ast.get_source_segment(source, function) or ""
-    assert re.search(r"if\s+recalc_hess\s+is\s+not\s+None\s*:", body)
-    assert re.search(r"\.recalc_hess\s*=\s*recalc_hess\b", body)
-
 
 @pytest.mark.capability("program_jobtype:orca:cpu:ts")
-def test_a_project_recalc_hess_reaches_the_job(tmp_path):
+def test_a_project_recalc_hess_reaches_the_job(
+    tmp_path, orca_jobrunner_no_scratch
+):
     """The live loss, driven through the real command.
 
     Both halves matter: the project's declared value must survive, and a
-    project that declares nothing must still get the settings class's own
-    5, so restoring project authority changes no existing behaviour.
+    project that declares nothing must still have its OptTS written with
+    Recalc_Hess 5, so restoring project authority changes no existing
+    input. (The 5 is the writer's for an OptTS since R10 Q31: a ScanTS is
+    written with no recalculation, which ORCA 6.1.1 cannot run.)
     """
 
     from unittest.mock import MagicMock, patch
@@ -178,7 +92,23 @@ def test_a_project_recalc_hess_reaches_the_job(tmp_path):
     assert declared.geom_maxiter == 300
 
     silent = run("silent", {})
-    assert silent.recalc_hess == 5, (
-        "a project that declares nothing must still receive the settings "
-        f"class's own default, not {silent.recalc_hess}"
+    assert silent.recalc_hess is None, (
+        "a project that declares nothing states no recalculation, not "
+        f"{silent.recalc_hess}"
     )
+
+    from chemsmart.io.molecules.structure import Molecule
+    from chemsmart.jobs.orca.ts import ORCATSJob
+    from chemsmart.jobs.orca.writer import ORCAInputWriter
+
+    job = ORCATSJob(
+        molecule=Molecule.from_filepath(str(molecule)),
+        settings=silent,
+        label="silent_ts",
+        jobrunner=orca_jobrunner_no_scratch,
+    )
+    ORCAInputWriter(job=job).write(target_directory=str(tmp_path))
+    written = (tmp_path / "silent_ts.inp").read_text(encoding="utf-8")
+    assert (
+        "Recalc_Hess 5" in written
+    ), "a silent project's OptTS must still be written with Recalc_Hess 5"

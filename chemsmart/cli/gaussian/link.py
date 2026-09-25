@@ -116,19 +116,25 @@ def link(
     # instance with IRC parameters
     link_kwargs = link_settings.__dict__.copy()
 
-    # Add IRC-specific parameters with defaults if this is an IRC job
+    # The reaction-path controls a person typed, over the project's: an
+    # option not typed leaves the project's value (or the settings class's
+    # own default: recalc 6, maxpoints 512, maxcycles 128) in place. They
+    # were replaced here by those defaults whatever the project said, the
+    # shape R10 Q28 repaired in `run gaussian irc` (R10 Q31).
     if jobtype in ["irc", "ircf", "ircr"]:
         irc_params = {
-            "predictor": predictor,
-            "recorrect": recorrect,
-            "recalc_step": recalc_step if recalc_step is not None else 6,
-            "direction": direction,  # Will be set based on jobtype
-            "maxpoints": maxpoints if maxpoints is not None else 512,
-            "maxcycles": maxcycles if maxcycles is not None else 128,
-            # None: Gaussian's own step, or 20 on a predictor route, which
-            # is what this job has always written.
-            "stepsize": stepsize,
-            "flat_irc": flat_irc if flat_irc is not None else False,
+            name: value
+            for name, value in (
+                ("predictor", predictor),
+                ("recorrect", recorrect),
+                ("recalc_step", recalc_step),
+                ("direction", direction),
+                ("maxpoints", maxpoints),
+                ("maxcycles", maxcycles),
+                ("stepsize", stepsize),
+                ("flat_irc", flat_irc),
+            )
+            if value is not None
         }
         link_kwargs.update(irc_params)
         logger.info(f"Adding IRC parameters to link job: {irc_params}")
@@ -173,9 +179,14 @@ def link(
 
     logger.debug(f"Label for job: {label}")
 
-    # automatically use unrestricted dft if link job
-    if not link_settings.functional.lower().startswith("u"):
-        link_settings.functional = "u" + link_settings.functional
+    # A link job's stability step and its target run unrestricted: the
+    # method is written with the U prefix. It read the functional alone, so
+    # a link over an ab initio method (functional None) died here after
+    # its project validated (R10 Q31 census).
+    for field in ("functional", "ab_initio"):
+        method = getattr(link_settings, field)
+        if method and not str(method).lower().startswith("u"):
+            setattr(link_settings, field, "u" + str(method))
 
     logger.info(
         f"Link job {jobtype} settings from project: {link_settings.__dict__}"

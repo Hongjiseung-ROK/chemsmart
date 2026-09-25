@@ -251,6 +251,12 @@ def _validate_native_input(expectation, paths):
             "multiplicity": expectation.multiplicity,
         }
     )
+    # A setting the writer writes for no stage of this job type is not
+    # demanded of its input: the writer's own table says which. An
+    # optimiser control stated in the phase section every stage reads was
+    # demanded of a single point's route and reported red (R10 Q31).
+    for field in _settings_not_written_for(expectation, expected_settings):
+        expected_settings.pop(field, None)
     parsed_candidates = [
         (path, settings_cls.from_filepath(str(path))) for path in candidates
     ]
@@ -498,6 +504,24 @@ def _validate_gaussian_link_input(
     target_settings = dict(expected_settings)
     for field in ("guess", "link_route", "stable"):
         target_settings.pop(field, None)
+    # The link command writes the method unrestricted (the U prefix) in
+    # both steps, whichever of functional or ab_initio names it; that is
+    # the link's own translation, not a changed method.
+    for field in ("functional", "ab_initio"):
+        declared = str(target_settings.get(field) or "").strip().casefold()
+        observed = str(getattr(parsed_target, field, "") or "").casefold()
+        if declared and observed == f"u{declared}":
+            setattr(parsed_target, field, target_settings[field])
+    # The target route also carries the checkpoint words the link writer
+    # adds to every second step, which no project states.
+    extra = getattr(parsed_target, "additional_route_parameters", None)
+    if extra:
+        kept = [
+            word
+            for word in str(extra).split()
+            if word.casefold() not in {"geom=check", "guess=read"}
+        ]
+        parsed_target.additional_route_parameters = " ".join(kept) or None
     findings.extend(_settings_match(parsed_target, target_settings))
     if not _geometry_sets_equal(expectation.input_artifact.path, [path]):
         findings.append(
@@ -931,6 +955,11 @@ def _pyscf_settings_round_trip(expectation, result):
                 result.name,
             )
         ]
+    # The expectation carries the settings the validation receipt records;
+    # a field it does not record (a non-scientific ``title``) was rebuilt
+    # here at its default, so the artifact's own value was reported as a
+    # mismatch the project never stated (R10 Q31 census).
+    declared = set(expected)
     return [
         _mismatch(
             f"settings.{item.field}",
@@ -940,7 +969,33 @@ def _pyscf_settings_round_trip(expectation, result):
         )
         for item in verify_provenance(settings, result)
         if item.rule_id != RULE_PROVENANCE_INCOMPLETE
+        and (
+            item.field in declared
+            or item.field not in PySCFJobSettings.default().__dict__
+        )
     ]
+
+
+def _settings_not_written_for(expectation, expected_settings):
+    """The fields the program's writer writes for no stage of this job.
+
+    Asked of the program's settings module, which owns the writer's table.
+    A Gaussian ``link`` node writes its linked target's route, so the
+    target's job type is the one asked.
+    """
+
+    import importlib
+
+    module = importlib.import_module(
+        f"chemsmart.jobs.{expectation.program}.settings"
+    )
+    ask = getattr(module, "settings_not_written_for", None)
+    if ask is None:
+        return ()
+    jobtype = expectation.jobtype
+    if expectation.program == "gaussian" and jobtype == "link":
+        jobtype = str(expected_settings.get("jobtype") or jobtype)
+    return tuple(ask(jobtype))
 
 
 def _settings_class(program):
@@ -1047,6 +1102,21 @@ def _settings_match(parsed, expected, *, native_input=None):
             )
             continue
         observed = getattr(parsed, field)
+        if is_orca and field == "solventfilename":
+            # ORCA reads a solvent file by its name without the extension,
+            # which is what the writer writes; a stated path is compared
+            # through the same function.
+            from chemsmart.jobs.orca.settings import orca_solvent_file_name
+
+            if orca_solvent_file_name(value) == observed:
+                continue
+        if is_orca and field == "light_elements_basis" and observed is None:
+            # ORCA gives every element without a NewGTO override the route
+            # basis, and the per-element basis owner refuses a light set
+            # that differs from it; the reader reports the light set only
+            # beside a %basis block, so an input with none was read as
+            # missing a setting it honours.
+            observed = getattr(parsed, "basis", None)
         if is_orca and field == "functional":
             expected_functional = _normalize_orca_functional(value)
             observed_functional = _normalize_orca_functional(observed)

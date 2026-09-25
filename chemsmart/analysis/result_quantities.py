@@ -3824,11 +3824,24 @@ def derive_result_thermochemistry(
         if getattr(engine, name, None) is None
     )
     if absent:
+        # A ScanTS with Freq converged and ran its frequency step; ORCA
+        # printed the table for its first Hessian only. The refusal names
+        # what the output itself says, not a cause it did not have
+        # (R10 Q31, CUHK 2154022).
+        unprinted = getattr(
+            getattr(engine, "file_object", None),
+            "unprinted_frequency_table_reason",
+            None,
+        )
+        cause = (
+            f" {unprinted[0].upper()}{unprinted[1:]}."
+            if isinstance(unprinted, str) and unprinted
+            else " A run whose optimisation did not converge never reached "
+            "its frequency step, so there is no Hessian to derive it from."
+        )
         raise QuantityExtractionError(
             f"{request.program} result {request.artifact_id!r} carries no "
-            "thermochemistry: " + ", ".join(absent) + ". A run whose "
-            "optimisation did not converge never reached its frequency "
-            "step, so there is no Hessian to derive it from."
+            "thermochemistry: " + ", ".join(absent) + "." + cause
         )
     evidence_ref = f"artifact:{request.artifact_id}#{request.artifact_sha256}"
     energy_values = {

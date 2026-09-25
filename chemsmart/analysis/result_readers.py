@@ -3773,8 +3773,33 @@ def _orca_native_evidence_paths(
     return (Path(str(record["geometry_file"])),)
 
 
+def _orca_printed_hessian(
+    accessor: Callable[[Any], Any],
+) -> Callable[[Any], Any]:
+    """Refuse a frequency quantity ORCA did not print, saying why.
+
+    A ScanTS with Freq prints the frequency table for its first Hessian
+    only; the output says so (``unprinted_frequency_table_reason``) rather
+    than handing over another Hessian's table (R10 Q31, CUHK 2154022).
+    """
+
+    def read(output: Any) -> Any:
+        reason = getattr(output, "unprinted_frequency_table_reason", None)
+        if reason:
+            raise MissingQuantityError(reason)
+        return accessor(output)
+
+    return read
+
+
 def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
     accessors = _text_output_accessors(mode_composition=True)
+    for selector in (
+        "vibrational_frequencies",
+        "vibrational_mode_atom_participation",
+        "vibrational_mode_degeneracy_group",
+    ):
+        accessors[selector] = _orca_printed_hessian(accessors[selector])
     accessors.update(
         {
             # A relaxed scan is a surface, so it reaches the typed layer as

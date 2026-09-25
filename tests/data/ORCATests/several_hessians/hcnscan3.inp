@@ -1,0 +1,15 @@
+! ScanTS Freq B3LYP/G def2-svp
+# Number of processors
+%pal nprocs 4 end
+# Memory per core
+%maxcore 1500
+%geom
+  Scan
+  B 2 1 = 2.1, 1.1, 11  # Scanning bond distance from 2.1 Angstrom to 1.1 Angstrom in 11 steps. 
+  end
+end
+* xyz 0 1
+C        0.0000000000    0.0000000000    0.0000000000
+N        1.1600000000    0.0000000000    0.0000000000
+H       -1.0500000000    0.3000000000    0.0000000000
+*

@@ -33,7 +33,6 @@ from chemsmart.jobs.settings import (
 from chemsmart.utils.utils import (
     deduplicate_string_keywords,
     get_list_from_string_range,
-    get_prepend_string_list_from_modred_free_format,
 )
 
 logger = logging.getLogger(__name__)
@@ -109,6 +108,37 @@ ORCA_OPT_CONVERGENCE_KEYWORDS = {
 }
 
 
+#: The stages ORCA's geometry optimiser runs in, whose route carries the
+#: optimiser's convergence preset.
+ORCA_OPTIMISING_JOBTYPES = ("opt", "modred", "scan", "ts")
+
+#: The optimiser's controls written only on an optimising stage's route.
+ORCA_OPTIMISER_ROUTE_FIELDS = ("opt_convergence",)
+
+#: The stages that compute and print the gradient at every step of their
+#: own, so a project's ``forces`` adds nothing to their input.
+ORCA_GRADIENT_DRIVEN_JOBTYPES = (*ORCA_OPTIMISING_JOBTYPES, "irc", "neb")
+
+
+def settings_not_written_for(jobtype):
+    """The settings the writer writes for no stage of *jobtype*.
+
+    A project's phase section feeds every stage, so an optimiser preset
+    stated beside the level of theory reaches a single point, a response
+    calculation or a reaction path too, none of which runs the optimiser
+    and whose route correctly carries none; and ``forces`` reaches the
+    stages that compute the gradient at every step anyway. The preview
+    asks this, the writer's own table, instead of demanding either there.
+    """
+
+    fields = ()
+    if jobtype not in ORCA_OPTIMISING_JOBTYPES:
+        fields += ORCA_OPTIMISER_ROUTE_FIELDS
+    if jobtype in ORCA_GRADIENT_DRIVEN_JOBTYPES:
+        fields += ("forces",)
+    return fields
+
+
 def _normalize_orca_opt_convergence(value):
     """Map a project's optimisation convergence word to ORCA's own."""
 
@@ -152,6 +182,32 @@ def _normalize_orca_scf_convergence(value):
             "'extremely tight'."
         )
     return normalized
+
+
+def _normalize_orca_scf_tol(value):
+    """An ORCA SCF preset word for the ``!`` line, or a refusal.
+
+    ``scf_tol`` is written as ``<word>SCF`` on the route (the command's
+    ``--scf-tol`` offers exactly those presets). A number was written the
+    same way -- ``scf_tol: 1e-10`` became ``1e-10SCF``, which is no ORCA
+    keyword (R10 Q31 census) -- because nothing checked the word. A preset
+    is kept as stated; anything else is refused with the typed setting
+    that states an SCF convergence.
+    """
+
+    if value is None:
+        return None
+    literal = str(value).strip()
+    word = literal.casefold()
+    word = word[:-3] if word.endswith("scf") else word
+    if word in {*ORCA_SCF_CONVERGENCE, "normal"}:
+        return literal
+    raise ValueError(
+        f"scf_tol takes an ORCA SCF preset word (one of "
+        f"{sorted({*ORCA_SCF_CONVERGENCE, 'normal'})}, written <word>SCF on "
+        f"the route), got {value!r}: ORCA has no route word for a numeric "
+        "tolerance. State the SCF convergence as scf_convergence."
+    )
 
 
 #: ORCA's words for cores and memory. CHEMSMART writes ``%pal nprocs``
@@ -1642,7 +1698,7 @@ class ORCAJobSettings(MolecularJobSettings):
         # ORCA-specific parameters
         self.aux_basis = aux_basis
         self.extrapolation_basis = extrapolation_basis
-        self.scf_tol = scf_tol
+        self.scf_tol = _normalize_orca_scf_tol(scf_tol)
         self.scf_algorithm = scf_algorithm
         self.scf_maxiter = scf_maxiter
         self.scf_convergence = _normalize_orca_scf_convergence(scf_convergence)
@@ -1658,7 +1714,16 @@ class ORCAJobSettings(MolecularJobSettings):
                 "geometry optimisation runs at least one step"
             )
         self.opt_convergence = _normalize_orca_opt_convergence(opt_convergence)
-        self.gbw = gbw
+        # ORCA writes its orbital file (.gbw) on every run and no input word
+        # stops it, so ``gbw: false`` could be accepted, advertised and never
+        # honoured (R10 Q31 census): it is refused instead.
+        if gbw is not None and gbw is not True:
+            raise ValueError(
+                f"gbw takes true only, got {gbw!r}: ORCA writes its .gbw "
+                "orbital file on every run and no ORCA input stops it, so "
+                "gbw: false cannot reach the program. Remove gbw."
+            )
+        self.gbw = True
         self.mdci_cutoff = _normalize_choice(
             mdci_cutoff, ORCA_MDCI_CUTOFF_KEYWORDS, "mdci_cutoff"
         )
@@ -2263,6 +2328,24 @@ class ORCAJobSettings(MolecularJobSettings):
         elif self.jobtype == "sp":
             route_string += ""
 
+        # The gradient at a fixed geometry is ORCA's EnGrad. ``forces`` was
+        # accepted, advertised and never written: every ORCA input lacked
+        # it, and the preview, reading the input back, was red on it
+        # (R10 Q31 census). A stage that runs the optimiser or walks a path
+        # computes and prints the gradient at every step of its own, so
+        # nothing is added there (``settings_not_written_for``); a response
+        # stage's gradient would be an excited state's, another request.
+        if self.forces and self.jobtype not in ORCA_GRADIENT_DRIVEN_JOBTYPES:
+            if self.jobtype != "sp":
+                raise ValueError(
+                    "forces asks ORCA for the ground-state gradient at a "
+                    "fixed geometry (EnGrad), which a single point computes "
+                    f"as its answer; an ORCA {self.jobtype} stage has no "
+                    "such request. State forces: true on an sp stage at "
+                    "the geometry whose gradient is wanted."
+                )
+            route_string += " EnGrad"
+
         # Numerical frequency mode takes precedence over analytic frequency.
         # The constructor already normalizes the common YAML spelling with
         # both booleans true, while this ordering also keeps direct mutation
@@ -2285,13 +2368,23 @@ class ORCAJobSettings(MolecularJobSettings):
         # same project field is used by NEB and ordinary ORCA jobs such as
         # IRC, so materialize it here instead of dropping it outside NEB.
         if self.semiempirical is not None:
+            # An auxiliary or extrapolation basis belongs to a basis-set
+            # method: a semiempirical route writes neither, so each was
+            # accepted and dropped (R10 Q31 census). Refused with the rest.
             if any(
                 value is not None
-                for value in (self.ab_initio, self.functional, self.basis)
+                for value in (
+                    self.ab_initio,
+                    self.functional,
+                    self.basis,
+                    self.aux_basis,
+                    self.extrapolation_basis,
+                )
             ):
                 raise ValueError(
                     "semiempirical ORCA methods cannot be combined with "
-                    "ab_initio, functional, or basis settings"
+                    "ab_initio, functional, basis, aux_basis or "
+                    "extrapolation_basis settings"
                 )
             level_of_theory = self.semiempirical
         else:
@@ -2346,11 +2439,9 @@ class ORCAJobSettings(MolecularJobSettings):
         # a job that optimises a geometry has one. "normal" is ORCA's
         # default and writes nothing, so a project may state it without
         # changing the input.
-        if self.opt_convergence is not None and self.jobtype in (
-            "opt",
-            "modred",
-            "scan",
-            "ts",
+        if (
+            self.opt_convergence is not None
+            and self.jobtype in ORCA_OPTIMISING_JOBTYPES
         ):
             preset = ORCA_OPT_CONVERGENCE_KEYWORDS[self.opt_convergence]
             if preset:
@@ -3141,6 +3232,107 @@ class ORCApKaJobSettings(ORCAJobSettings):
         return ref_acid_sp_settings, ref_cb_sp_settings
 
 
+#: How often an OptTS recomputes its exact Hessian when a project states
+#: nothing: ChemSmart's long-standing choice, written into every OptTS.
+#: A ScanTS is written with no recalculation at all: ORCA 6.1.1 carries
+#: the exact Hessian of one scan point into the next and then stops at
+#: the second point looking for a Cartesian Hessian file it never wrote
+#: (R10 Q31 oracle O1, CUHK Slurm 2154008).
+ORCA_OPTTS_RECALC_HESS = 5
+
+
+def orca_solvent_file_name(path):
+    """The name ORCA's ``%cosmors solventfilename`` takes for a solvent file.
+
+    ORCA opens ``<name>.cosmorsxyz``, so the writer writes the file's
+    basename without its extension; the reader reads that name back, and
+    the preview compares a stated path through this one function.
+    """
+
+    if path is None:
+        return None
+    basename = os.path.basename(str(path))
+    if basename.lower().endswith(".cosmorsxyz"):
+        return basename[: -len(".cosmorsxyz")]
+    return os.path.splitext(basename)[0]
+
+
+def orca_scan_block(coordinates, dist_start, dist_end, num_steps):
+    """The ``%geom Scan`` specification the ORCA writer reads.
+
+    ``{"coords", "dist_start", "dist_end", "num_steps"}``, one entry per
+    driven coordinate: 1-indexed atoms, the two endpoints as floats and a
+    point count as an integer. The command line gives each as words
+    (``"[[1,2]]"``, ``"0.9"``) and a project as YAML values, one number
+    standing for every coordinate. One owner, because the saddle search's
+    ScanTS built its own dictionary under another key
+    (``"coordinates"``, scalar endpoints) and the writer then failed on
+    every ScanTS the command was asked for (R10 Q20, R10 Q31).
+    """
+
+    import ast
+
+    def value(item):
+        return ast.literal_eval(item) if isinstance(item, str) else item
+
+    def listed(item):
+        item = value(item)
+        return list(item) if isinstance(item, (list, tuple)) else [item]
+
+    coords = value(coordinates)
+    if not isinstance(coords, (list, tuple)) or not coords:
+        raise ValueError(
+            f"A scan needs its coordinates as a list of 1-indexed atoms, got "
+            f"{coordinates!r}."
+        )
+    coords = [
+        list(item) if isinstance(item, tuple) else item for item in coords
+    ]
+    count = len(coords) if isinstance(coords[0], list) else 1
+    starts = [float(item) for item in listed(dist_start)]
+    ends = [float(item) for item in listed(dist_end)]
+    steps = [int(item) for item in listed(num_steps)]
+    starts, ends, steps = (
+        values * count if len(values) == 1 and count > 1 else values
+        for values in (starts, ends, steps)
+    )
+    if not len(starts) == len(ends) == len(steps) == count:
+        raise ValueError(
+            f"A scan of {count} coordinate(s) needs as many starts, ends and "
+            f"point counts; got {len(starts)}, {len(ends)} and {len(steps)}."
+        )
+    return {
+        "coords": coords,
+        "dist_start": starts,
+        "dist_end": ends,
+        "num_steps": steps,
+    }
+
+
+def _normalize_scan_block(block):
+    """A project's ScanTS specification in the writer's form, or None."""
+
+    if block is None:
+        return None
+    if not isinstance(block, dict):
+        raise ValueError(
+            "scants_modred takes coords (or coordinates), dist_start, "
+            f"dist_end and num_steps, got {block!r}."
+        )
+    coordinates = block.get("coords", block.get("coordinates"))
+    normalized = orca_scan_block(
+        coordinates,
+        block.get("dist_start"),
+        block.get("dist_end"),
+        block.get("num_steps"),
+    )
+    if block.get("constrained_coordinates") is not None:
+        normalized["constrained_coordinates"] = block[
+            "constrained_coordinates"
+        ]
+    return normalized
+
+
 class ORCATSJobSettings(ORCAJobSettings):
     """
     Settings for ORCA transition state calculations.
@@ -3156,7 +3348,9 @@ class ORCATSJobSettings(ORCAJobSettings):
         hybrid_hess_atoms (list[int] | None): 1‑based
         atom indices for hybrid Hessian region.
         numhess (bool): Use numerical Hessian.
-        recalc_hess (int): Frequency (in cycles) to recalculate Hessian.
+        recalc_hess (int | None): Frequency (in cycles) to recalculate
+            the Hessian; None when not stated, where an OptTS is written
+            with ``ORCA_OPTTS_RECALC_HESS`` and a ScanTS with none.
         trust_radius (float | None): Trust radius for optimization.
         tssearch_type (str): TS search method ('optts' or 'scants').
         scants_modred (list | dict | None):
@@ -3171,7 +3365,7 @@ class ORCATSJobSettings(ORCAJobSettings):
         hybrid_hess=False,
         hybrid_hess_atoms=None,
         numhess=False,
-        recalc_hess=5,
+        recalc_hess=None,
         trust_radius=None,
         tssearch_type="optts",
         scants_modred=None,
@@ -3207,9 +3401,8 @@ class ORCATSJobSettings(ORCAJobSettings):
         self.tssearch_type = (
             tssearch_type  # methods for TS search: OptTS, ScanTS
         )
-        self.scants_modred = (
-            scants_modred  # modred for scanTS (as in a scan job)
-        )
+        # modred for scanTS (as in a scan job), in the form the writer reads
+        self.scants_modred = _normalize_scan_block(scants_modred)
         self.full_scan = full_scan  # full scan or not;  do or not abort scan after highest point is reached
 
     @property
@@ -3383,123 +3576,6 @@ class ORCAIRCJobSettings(ORCAJobSettings):
                 r"freq", "", route_string, flags=re.IGNORECASE
             )
         return route_string
-
-    def _write_irc_block(self, f):
-        """Writes the IRC block options.
-
-        IRC block input example below:
-        ! IRC
-        %irc
-            MaxIter    20
-            PrintLevel 1
-            Direction  both # both - default
-                            # forward
-                            # backward
-                            # down
-        # Initial displacement
-            InitHess read # by default ORCA uses the Hessian
-            from AnFreq or NumFreq, or computes a new one
-                            # read - reads the Hessian that
-                            # is defined via Hess_Filename
-                            # calc_anfreq  - computes the analytic Hessian
-                            # calc_numfreq - computes the numeric Hessian
-            Hess_Filename "h2o.hess" # Hessian for initial
-            displacement, must be used together with InitHess = read
-            hessMode 0 # Hessian mode that is used
-            for the initial displacement. Default 0
-            Init_Displ DE      # DE (default) - energy difference
-                               # length       - step size
-            Scale_Init_Displ 0.1 # step size for initial
-            displacement from TS. Default 0.1 a.u.
-            DE_Init_Displ 2.0 # energy difference
-            that is expected for initial displacement
-                                 #  based on provided Hessian (Default: 2 mEh)
-        # Steps
-            Follow_CoordType cartesian # default and only option
-            Scale_Displ_SD 0.15 # Scaling
-            factor for scaling the 1st SD step
-            Adapt_Scale_Displ true # modify Scale_Displ_SD
-            when the step size becomes smaller or larger
-            SD_ParabolicFit true # Do a parabolic
-            fit for finding an optimal SD step length
-            Interpolate_only true # Only allow interpolation
-            for parabolic fit, not extrapolation
-            Do_SD_Corr        true  # Apply a correction to the 1st SD step
-            Scale_Displ_SD_Corr 0.333 # Scaling factor for
-            scaling the correction step to the SD step.
-                                       # It is multiplied by the length
-                                       # of the final 1st SD step
-            SD_Corr_ParabolicFit true # Do a parabolic
-            fit for finding an optimal correction
-                                       # step length
-        # Convergence thresholds - similar to LooseOpt
-            TolRMSG   5.e-4      # RMS gradient (a.u.)
-            TolMaxG   2.e-3      # Max. element of gradient (a.u.)
-        # Output options
-            Monitor_Internals # Up to three
-            internal coordinates can be defined
-                {B 0 1} # for which the values
-                are printed during the IRC run.
-                {B 1 5} # Possible are (B)onds,
-                (A)ngles, (D)ihedrals and (I)mpropers
-            end
-        end.
-        """
-        irc_settings_keys = ORCAIRCJobSettings().__dict__.keys()
-        parent_settings_keys = ORCAJobSettings().__dict__.keys()
-        irc_specific_keys = set(irc_settings_keys) - set(parent_settings_keys)
-
-        if not any(
-            getattr(self, key) is not None for key in irc_specific_keys
-        ):
-            return
-
-        # write irc block if any option value is not None:
-        f.write("%irc\n")
-        for key in irc_specific_keys:
-            value = getattr(self, key)
-            if value is None:
-                continue  # ignore the rest of the code and go to next in the for loop
-            # only write into IRC input if the value is not None
-            if key == "internal_modred":
-                pass  # internal_modred is not an option in ORCA IRC file
-            elif key == "inithess":
-                f.write(f"  {key} {value}\n")
-                if value.lower() == "read":  # if initial hessian is to be read
-                    assert (
-                        self.hess_filename is not None
-                    ), "No Hessian file is given!"
-                    assert os.path.exists(
-                        self.hess_filename
-                    ), f"Hessian file {self.hess_filename} is not found!"
-                    f.write(
-                        "  Hess_Filename "
-                        f'"{os.path.basename(self.hess_filename)}"'
-                        "  # Hessian file\n"
-                    )
-            elif (
-                key == "hess_filename"
-            ):  # already used/written, if initial hessian is to be read
-                pass
-            elif key == "monitor_internals":
-                if str(value).lower() == "true":
-                    f.write(f"  {key}\n")
-                    assert (
-                        self.internal_modred is not None
-                    ), 'No internal modred is specified for IRC job "monitor_intervals" option!'
-                    prepend_string_list = (
-                        get_prepend_string_list_from_modred_free_format(
-                            self.internal_modred, program="orca"
-                        )
-                    )
-                    for prepend_string in prepend_string_list:
-                        f.write(f"  {{ {prepend_string} }}\n")
-                    f.write("  end\n")
-                else:  # monitor_internals has other value (false), then don't write it in input
-                    pass
-            else:  # all other keys with given values
-                f.write(f"  {key} {value}\n")
-        f.write("end\n")
 
 
 class ORCAQMMMJobSettings(ORCAJobSettings):
