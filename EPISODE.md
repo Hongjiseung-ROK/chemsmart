@@ -168,6 +168,37 @@ harmonic receipts and the H2O2 scan so far.
   methanol -1.5 %, H2O2 +0.3 %. A ratio treatment q_RRHO * q_HR/q_HO(1D)
   would give ethane 229.01 and methanol 239.69 (sensitivity, not T1).
 
+## O1 -- FINAL READ (ORCA 2153801 COMPLETED in 1 h 42 min, 42 of 42 exit 0;
+Gaussian 2153802 34 of 42, the eight failures ethane held points)
+
+S(298.15 K, 1 bar), J/(K mol), host receipts (T0, T1) and the T2 prototype
+built from host functions (scratch q30/proto/analyse_o1_full.py):
+
+| | T0 ORCA / G16 | T1 ORCA / G16 | T2 ORCA / G16 | reference |
+|---|---|---|---|---|
+| H2O2 | 227.57 / 227.62 | 234.04 / 234.07 | 234.03 / 234.06 | 232.99..234.52 |
+| CH3OH | 238.52 / 238.41 | 239.84 / 239.79 | 239.87 / 239.83 | 239.87 |
+| C2H6 | 227.77 / 227.75 | 229.49 / 229.43 | 230.24 / -- | 229.16 |
+
+- P1: met for H2O2 and methanol; FAILED for ethane (harmonic misses by -1.4).
+- P2: met, both programs, all three (largest |dT1| 0.33).
+- P3: met: ORCA vs Gaussian T1 0.03 / 0.05 / 0.07; each program's frequency
+  result with the other's scan within 0.1 of both.
+- P4: falsifier fires for ethane in ORCA (T2 - T1 = +0.75, T2 +1.08 outside
+  the band). Mechanism measured: T2's perpendicular modes come from R10 Q27's
+  held-coordinate projection of one H-C-C-H dihedral's normal, which for a
+  methyl top also softens a CH3 rock (ORCA ethane eq: kept modes 723.5 /
+  829.2 / 903.6 cm^-1 against the rigid-top projection's 829.0 / 829.5 /
+  999.6; methanol 1125.9 against 1170.4; H2O2 946.3 against 946.2), so part
+  of the top's motion is counted among the "perpendicular" modes. Not
+  evidence that G_perp is needed; evidence that a single held dihedral is
+  not a methyl rotor's perpendicular space. T2 is not served.
+- P5: T1 Cp within 1.5 on all three in both programs (H2O2 41.50 / 41.48 is
+  0.90 / 0.92 below the interval; ethane 51.86 / 51.89 is 0.63 / 0.60 below).
+- The master's independent 1D-HR (own parser, fit, moment, eigenvalues) gives
+  ethane 229.43 from the Gaussian O1 logs, equal to T1 (reported by the
+  master, 2026-09-25).
+
 ## g1-h2o2 and g2-meoh -- READ (host records fetched read-only to scratch q30/goals-read)
 
 deepseek-v4-flash-0731; one observation each; code 016fae50 (digest b4cfaedb...,
