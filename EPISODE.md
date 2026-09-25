@@ -79,10 +79,41 @@ Oracle for the census: the program's own reading of the written input (the
 hub's writers on the commit that produced the record, replayed with HOME
 fenced), and each program's manual for what a token means.
 
+## Census C -- first reading (instrument corrected before counting)
+
+Instrument: scratch `q28/census/census.py` (reads `public-transcript-*.json`
+tool calls with `sections`, the loader's unknown-key refusals in their
+replies, and promoted `.chemsmart-agent/runs/*/projects/*.yaml`).
+Correction before any number below: the first version deduplicated by
+message, and one assistant message carries several parallel tool calls, so
+it undercounted; rows are now one per tool call and key.
+
+ax41 mirror (all four slices; deepseek-v4-flash-0731, read from each run's
+events): 897 transcripts, 660 distinct sessions, 1,667 authoring calls. 22
+authoring calls in 9 sessions carry a hatch or free-word key:
+FlipSpin 1,2 (ino2 Ni(II) dimer, site-specific flip) x8; TightOpt x4 (two
+keys); maxiter 500 x2; Hirshfeld x2 and `print[ P_Hirshfeld ]` x1 (the
+Fukui qualification); Gen x1 (beside a per-element basis dict); LooseOpt x1;
+Scan x1 (as an opt option); `guess: read` x2 (unknown key). No
+`input_string` or `route_to_be_written`. Loader unknown-key refusals (the
+model asked for a field that did not exist): inhess 11, inithess 10,
+constraints/scan coordinates 10, method 2, maxiter 2, flipspin 1, full_scan
+1, vpt3 1 -- every one has a typed form on the base tree.
+
+Mechanism (R10 Q15 g1, session 86028501, messages 61-69): the loader's
+unknown-key refusal lists every accepted key ("Keyword `joboption` is not in
+list of keywords dict_keys([... 'route_to_be_written', ... 'input_string',
+...])"), and the next assistant turn says "the loader's valid keywords
+include `additional_route_parameters` and `input_string`. The broken-symmetry
+guess must go through one of those" -- then writes `input_string`. The
+refusal taught the un-advertised hatch.
+
 ## Jobs issued
 
-(none yet)
+- 2026-09-25: census C, CUHK Slurm 2153719 (r10-q28-a), 1 core,
+  pre-registration ab5494235bd8; COMPLETED in 1 min (the undercounting
+  instrument; superseded by the re-run below, numbers not used).
 
 ## Status
 
-2026-09-25: base verified, code read, census pre-registered.
+2026-09-25: base verified, code read, census pre-registered; ax41 read.
