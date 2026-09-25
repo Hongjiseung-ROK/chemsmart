@@ -128,6 +128,55 @@ to impose a dihedral constraint off an exactly planar step, Q27 g1 CUHK 2153714
   CH3OH H3-O2-C1-H4 and C2H6 H3-C1-C2-H6 5..115 deg, 12 points.
 - held points (modred + freq): H2O2 -165..165 every 30 deg (12); CH3OH and
   C2H6 5..115 every 10 deg (12 each).
+- Issued: CUHK Slurm 2153801 (ORCA, slot a, 8 cores / 32 GB) and 2153802
+  (Gaussian, slot b, 16 cores / 40 GB), code 57d1ca22 (digest e4fe4adf...),
+  pre-registration digest 3695ad70b714.
+
+## Provenance added after pre-registration (not a band change)
+
+- NIST WebBook, H2O2 gas phase (read): S(gas, 1 bar) 232.95 J/K/mol, "Review
+  Chase, 1998 -- Data last reviewed in December, 1960": the JANAF H2O2 entry
+  predates the far-infrared torsional work (Hunt et al. 1965) that Gurvich's
+  1989 evaluation uses. Recorded beside the interval band, which stays as
+  registered.
+
+## PRE-REGISTRATION -- live goals g1-h2o2 and g2-meoh (written before issue)
+
+One observation each of deepseek-v4-flash-0731 (alibaba-token-plan), run in
+parallel in the two slots, on code that carries 40510c65 (analysis plane),
+76acb0fb (shared reachability), 6cef686a (Gaussian archive reader) and
+130e99cc (the rule on plan_thermochemistry).
+- Tasks (do not name the treatment): "What is the standard molar entropy of
+  hydrogen peroxide vapour / methanol vapour at 298.15 K?" at B3LYP-D3(BJ)/
+  def2-TZVP, ORCA and Gaussian both available, S at 1 bar in J/(K mol) "with
+  what the number rests on and how far you would trust it". TASK.md sha256
+  g1 f35084d1fdb71147..., g2 c998b173dc29f85c...; geometries h2o2.xyz
+  6dfeac65c22cf826... (H-O-O-H 115 deg), methanol.xyz 769169123d6a84e0...
+  (staggered), both unoptimised, comment lines neutral.
+- Envelope (make_goal.py): orca and gaussian cpu, 8 cores, 24 GB, node
+  5400 s, episode 14400 s, reserve 1800 s, 8 engine calls, 2 revisions,
+  local dispatch; granted_by claude-researcher-q30-owner-delegated (a
+  delegated approval, never a human decision).
+- S-host: (a) every harmonic receipt of these molecules names the torsion as
+  counted harmonically and the internal_rotors route; (b) every rotor receipt
+  states torsion, potential source and fit, wells and barriers, I(3,4),
+  sigma_int and the replaced mode; (c) a scan short of the rotor period (H2O2:
+  360 deg) is refused with gate thermochemistry.hindered_rotor_stands_on_its_scan
+  and a route.
+- S-agent (success): the delivered S stands on a rotor receipt and the
+  delivery names the treatment.
+- Partial: the harmonic S is delivered with the torsion's harmonic treatment
+  stated as a limitation (read, not acted on).
+- F-agent: a harmonic S delivered as the S with no word on the torsion.
+- Neutral: no scan planned and no torsion word; then check the affordance was
+  visible (plan_thermochemistry loaded, the rule sentence and the receipt's
+  torsion line in the transcript) before attributing it.
+- Physics bands for the delivered S: H2O2 [231.99, 235.52] (B-S); methanol
+  [238.87, 240.87]. Harmonic expectation from O1: H2O2 227.6, methanol 238.4-
+  238.5 (both outside). A delivered harmonic value inside a band would be a
+  finding to explain, not a success.
+- Not counted: zero provider turns or turn_deadline_exceeded (infrastructure).
+  A weak run is reported, never re-rolled.
 
 ## Status
 
@@ -135,3 +184,10 @@ to impose a dihedral constraint off an exactly planar step, Q27 g1 CUHK 2153714
   (validity-rules, constants-and-pka, orca-scan-irc-modred) and Q27's record
   read; cluster gate open.
 - step 1: census done; references read; O1 pre-registered (this file).
+- step 2: O1 issued (2153801, 2153802). Built while it ran: 40510c65 (kernel,
+  scan reader, analysis-plane route, harmonic receipts name their torsions),
+  76acb0fb (shared: reachability, gate registered), 6cef686a (Gaussian
+  archive read wherever it wraps: 3 of 122 archive-bearing logs had lost
+  their Hessian), 130e99cc (the rule on plan_thermochemistry). Gaussian
+  held points 15 and 25 deg of ethane stopped at NStep 38 (typed failures).
+- step 3: live goals g1-h2o2 and g2-meoh pre-registered above.
