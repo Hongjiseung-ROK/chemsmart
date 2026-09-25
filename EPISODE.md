@@ -226,6 +226,19 @@ geometry 1.18e-3 A, harmonic G +0.00056, torsion-projected G +0.00134 (restart
   dihedral leaves in the methyl group is intrinsic to the hold: 7.5e-4
   (default) and 4.6e-4 Eh/Bohr (tight) on the turn's surface.
 
+## The profile rotor through the host's own projection (repaired tree)
+
+Q30's T2 rebuilt with `_held_coordinate_projection` itself (scratchpad
+q33/census/t2_host.py) on Q30's O1 held points: S(T2) - S(T1) in J/(K mol)
+ORCA H2O2 -0.016, methanol -0.102, ethane -0.381 (12 of 12 points served
+each); Gaussian H2O2 -0.011, methanol -0.091 (12 of 12, the 115-deg point
+the base refused included). Equal to the scratch rigid-turn numbers above,
+so the host serves what was measured. Gaussian ethane: 3 points served, 1
+refused, 8 never converged (Q30): Gaussian's modred let the held dihedral
+drift (5.34 deg held at 5, 55.06 at 55), the reader refuses a hold that
+drifted beyond 0.01 deg, and those points then fall to the unheld branch
+and its Cartesian residual -- left (below).
+
 ## Status
 
 - step 0: brief read; base verified; AGENTS.md, CONDUCT.md, RSL README and the
@@ -253,3 +266,33 @@ geometry 1.18e-3 A, harmonic G +0.00056, torsion-projected G +0.00134 (restart
   and Q30's methanol held point goes free-energy surface none -> held_surface.
   No PySCF word changes. No archived delivery stood on a changed word.
 - r10-integration has not moved since the base (df78d69d): merge is a no-op.
+- Gates on 9c6d053a (code equal to 2bcdc763), pristine git-archive export:
+  full suite 23 failed, 4851 passed, 25 skipped, 3 xfailed; the 23 are the
+  round baseline's FAILED lines exactly, none under tests/agent (tests/agent
+  green within it). ruff, black --check, isort --check clean on the five
+  touched Python files; rsl.py check 0 failures (the kernel budget prompt is
+  not this episode's). Fixtures added (3), none deleted.
+
+## Left (found, not repaired)
+
+- Gaussian modred holds that drift: Q30's ethane held dihedral ended 0.34 deg
+  (5 deg point) and 0.06 deg (55 deg) from its value; the reader refuses a
+  hold beyond 0.01 deg (result_readers.py `_gaussian_held_coordinates`), so
+  those points fall to the unheld branch and its Cartesian residual.
+- The characterisation receipt records `stationarity: unmeasured` for a
+  structure its program's own check judged (execution.py, body built from the
+  host's gradient only); recording the reading there re-digests new receipts:
+  the master's call.
+- ORCA frequency-only results stay unmeasured (ORCA prints no check there,
+  and its .engrad pairs the previous cycle's gradient).
+- `reaction_coordinate_mode` in an approved DAG: in the R10 streams searched
+  (q21, q24, q27, q30 goals) the field appears only with value 0; no session
+  was seen needing it. Left as the Q27 frontier left it.
+- The run sensor's anomaly (tool_runtime.py `_gradient_anomaly`) still names
+  geomeTRIC's criterion for an xTB Hessian (an observation, not a verdict),
+  and HESS_STATIONARITY_GRADIENT_EH_PER_BOHR is still defined twice.
+
+## Status: ended -- milestone A claimed (the host's stationarity word and
+its held-coordinate projection agree with each program's own criterion and
+with the rotor treatment; validated by census, witnesses, oracle O1 and the
+profile rotor against the scan's)
