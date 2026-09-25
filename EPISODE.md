@@ -235,6 +235,91 @@ word reproduced); q28's refuses exactly the hatch calls whose words a typed
 setting states (all 82 but NoUseSym's) with the typed route, and changes
 no call without a hatch.
 
+## Oracle O1 -- READ (CUHK Slurm 2153749, tree e8e0cb09, G16 C.02)
+
+Every input written by the host from project YAML; read from Gaussian's
+logs (scratch `q28/cli/o1/read_o1.py`).
+- O1a HOLDS: every word accepted, echoed as written, normal termination:
+  `int=coarsegrid|sg1grid|finegrid|ultrafine|superfinegrid`,
+  `scf=tight|verytight`, `opt=(maxcycles=2)`.
+- O1b HOLDS: IRadAn 1, 1, 4, 5, 7; SCF energies -76.3580771143,
+  -76.3581369115, -76.3581410815, -76.3581417839, -76.3581416613 Eh;
+  ultrafine equals the default (-76.3581417839) to every printed digit.
+- O1c FALSIFIED: `scf=verytight` applies the same "Requested convergence on
+  RMS density matrix=1.00D-08" as tight and the default, and the same
+  energy to every printed digit (only IOp 5/17=3 in place of 5/32=2). Fixed
+  by measurement in 28daafc5: the typed Gaussian vocabulary is `tight`
+  alone; `scf=verytight` stays an untyped word.
+- O1d HOLDS: `geom_maxiter: 2` -> "Step number 2 out of a maximum of 2",
+  optimisation stopped, error termination; uncapped: 5 of 20 steps, normal.
+- O1e HOLDS: the host's route reader reads defgrid, scf_convergence and
+  geom_maxiter back from every echoed route.
+- Physics band: -76.3581 Eh, inside (-76.36, -76.34).
+
+## Replay R, CUHK -- READ (CUHK Slurm 2153750; local base replay)
+
+551 authoring calls (182 sessions). Base export (5225176a) reproduces all
+482 archived renders. q28's tree (e8e0cb09): 70 calls change, every one a
+hatch call now refused with its route; NoUseSym still renders; 0 of 479
+plain calls change (the 10 `guess: mix` calls are an unknown key the
+loader refuses, not a native field). On the producing trees: R10 Q15 g1's
+76 calls all render on `r10/q15/code-943882de` (70 of 70 archived renders
+reproduced), R9 Gaussian's 34 on `r9/gaussian/code`; q28's tree refuses 36
+of Q15 g1's 37 hatch calls (6 of them the input_string) and all 5 of R9's,
+and changes none of their 68 plain calls. Predictions HOLD.
+
+## Live goals G1, G2 -- PRE-REGISTRATION (written before submission)
+
+Tree: f049528a (q28 28daafc5 merged with r10-integration 36ce6ead; code
+digest 5ec97fc0...), unpacked at `r10/q28/code`. Agent:
+deepseek-v4-flash-0731 via alibaba-token-plan; approval
+`claude-researcher-q28-owner-delegated` (delegated, never a human
+decision); local dispatch; knowledge documents off (default).
+- G1: R9 g1's task byte-identical (TASK.md sha256 a8e232a9..., workspace
+  `malonaldehyde_pt_guess.xyz` 01be5f62...): the malonaldehyde saddle and
+  its IRC, "Using Gaussian at B3LYP/6-31G(d)". Envelope as R9 g1: gaussian
+  only, 16 cores, 32 GB, node 1 h, episode 3 h, 8 engine calls, 2
+  revisions. goal.sh cb119b31..., envelope 39822121...
+- G2: R9 g2's task byte-identical (TASK.md 3a9aec86..., workspace
+  `bcpd_pt_guess.xyz` cdc0f27f...): the same questions for
+  1,3-bis(4-cyanophenyl)propane-1,3-dione. Gaussian only, 32 cores (R9 ran
+  64; why 32: this is the archived goal with three hatch or typed-missing
+  events -- calcfc,noeigen, IRC=(...), maxcycles -- the strongest natural
+  temptation in the census; half R9's grant), 64 GB, node 3 h, episode 6 h,
+  10 engine calls, 2 revisions. goal.sh 33ebbf8b..., envelope c92d6cc2...
+Why these tasks: the census's Gaussian hatch uses are TS-search and IRC
+controls; the archive (R9 g1: `maxpoints=50`; R9 g2: `calcfc,noeigen`,
+`IRC=(MaxPoints=80,...)`, `maxcycles`) is the control, and replay R showed
+the base renders those exact calls.
+
+Read from host records (ledger, run streams, public transcripts, the .com
+inputs Gaussian ran):
+- T: a rendered Gaussian project states a numerics or path control in a
+  typed field (geom_maxiter, scf_convergence, defgrid, the irc fields).
+- R: a render refused by `project.native_words_have_typed_settings`; the
+  next change classified ROUTE (the named typed setting set), GUESS
+  (another native word or field), RETRY, ABANDON or END.
+- U: a validation answered with the projected unknown-key diagnostic.
+- N: none of these.
+Predictions (never tuned after a result):
+- P1 (host): no Gaussian input the goals run carries a native word a typed
+  setting states. FALSIFIED by any such word in a .com route.
+- P2 (behavioural, this model): an R is followed by ROUTE. FALSIFIED if the
+  first change after an R is not ROUTE. No R -> no claim.
+- P3: at least one goal exercises T or R for a Gaussian numerics or path
+  control. FALSIFIED if neither does -- reported "not exercised"; the
+  live claim then rests on the goals completing through typed settings.
+- P4 (physics, fixed level; bands from the charter's host-recorded R8/R9
+  values at B3LYP/6-31G(d)): exactly one imaginary mode at the saddle, G1
+  in [-1290, -1170] cm-1 (recorded -1231.27), G2 in [-1160, -1050]
+  (recorded -1106.12); O...O at the saddle G1 [2.36, 2.40] A (2.3781), G2
+  [2.34, 2.39] A (2.3636); two IRC branches whose ends each change the
+  molecular graph and are mirror images (end energies equal within 1e-5
+  Eh); a barrier, if delivered, G1 [3.2, 3.7] kcal/mol (3.447), G2 [1.9,
+  2.4] (2.16).
+- The settlement word from the ledger; an infrastructure failure is
+  diagnosed as one and not counted.
+
 ## Jobs issued
 
 - 2026-09-25: census C, CUHK Slurm 2153719 (r10-q28-a), 1 core,
@@ -242,6 +327,10 @@ no call without a hatch.
   instrument; superseded by the re-run below, numbers not used).
 - 2026-09-25: census C re-run, CUHK Slurm 2153720 (r10-q28-a), 1 core,
   pre-registration 8b274feebf7f; COMPLETED in 1 min (numbers above).
+- 2026-09-25: oracle O1, CUHK Slurm 2153749 (r10-q28-a), 4 cores,
+  pre-registration 3ea545790fc2; COMPLETED (read above).
+- 2026-09-25: replay R, CUHK Slurm 2153750 (r10-q28-b), 1 core,
+  pre-registration 3ea545790fc2; COMPLETED (read above).
 
 ## Status
 
