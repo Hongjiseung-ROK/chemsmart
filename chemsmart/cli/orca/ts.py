@@ -68,8 +68,9 @@ logger = logging.getLogger(__name__)
     type=int,
     default=None,
     help="Number of steps to recalculate Hessian. Unset leaves the "
-    "project's own value, which is what the block below preserves; the "
-    "settings class supplies 5 when no project declares one.",
+    "project's own value, which is what the block below preserves; an "
+    "OptTS is written with 5 when neither states one, and a ScanTS with "
+    "none (ORCA 6.1.1 stops a ScanTS that recalculates it).",
 )
 @click.option(
     "-t",
@@ -120,8 +121,8 @@ def ts(
     # nobody passed. po3-r17 (2026-09-11) declared recalc_hess 999 in
     # project YAML to bound a 12 h envelope, the written input carried
     # 5, the preview went red on "expected 999, observed 5", and the
-    # window ended with no calculation. ORCATSJobSettings still
-    # supplies 5 when no project declares one.
+    # window ended with no calculation. An OptTS is still written with 5
+    # when no project declares one (ORCA_OPTTS_RECALC_HESS).
     recalc_hess=None,
     trust_radius=None,
     tssearch_type=None,

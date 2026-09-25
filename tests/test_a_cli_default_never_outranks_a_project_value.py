@@ -32,12 +32,16 @@ import pytest
 
 
 @pytest.mark.capability("program_jobtype:orca:cpu:ts")
-def test_a_project_recalc_hess_reaches_the_job(tmp_path):
+def test_a_project_recalc_hess_reaches_the_job(
+    tmp_path, orca_jobrunner_no_scratch
+):
     """The live loss, driven through the real command.
 
     Both halves matter: the project's declared value must survive, and a
-    project that declares nothing must still get the settings class's own
-    5, so restoring project authority changes no existing behaviour.
+    project that declares nothing must still have its OptTS written with
+    Recalc_Hess 5, so restoring project authority changes no existing
+    input. (The 5 is the writer's for an OptTS since R10 Q31: a ScanTS is
+    written with no recalculation, which ORCA 6.1.1 cannot run.)
     """
 
     from unittest.mock import MagicMock, patch
@@ -88,7 +92,23 @@ def test_a_project_recalc_hess_reaches_the_job(tmp_path):
     assert declared.geom_maxiter == 300
 
     silent = run("silent", {})
-    assert silent.recalc_hess == 5, (
-        "a project that declares nothing must still receive the settings "
-        f"class's own default, not {silent.recalc_hess}"
+    assert silent.recalc_hess is None, (
+        "a project that declares nothing states no recalculation, not "
+        f"{silent.recalc_hess}"
     )
+
+    from chemsmart.io.molecules.structure import Molecule
+    from chemsmart.jobs.orca.ts import ORCATSJob
+    from chemsmart.jobs.orca.writer import ORCAInputWriter
+
+    job = ORCATSJob(
+        molecule=Molecule.from_filepath(str(molecule)),
+        settings=silent,
+        label="silent_ts",
+        jobrunner=orca_jobrunner_no_scratch,
+    )
+    ORCAInputWriter(job=job).write(target_directory=str(tmp_path))
+    written = (tmp_path / "silent_ts.inp").read_text(encoding="utf-8")
+    assert (
+        "Recalc_Hess 5" in written
+    ), "a silent project's OptTS must still be written with Recalc_Hess 5"

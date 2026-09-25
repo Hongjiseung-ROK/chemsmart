@@ -3232,6 +3232,15 @@ class ORCApKaJobSettings(ORCAJobSettings):
         return ref_acid_sp_settings, ref_cb_sp_settings
 
 
+#: How often an OptTS recomputes its exact Hessian when a project states
+#: nothing: ChemSmart's long-standing choice, written into every OptTS.
+#: A ScanTS is written with no recalculation at all: ORCA 6.1.1 carries
+#: the exact Hessian of one scan point into the next and then stops at
+#: the second point looking for a Cartesian Hessian file it never wrote
+#: (R10 Q31 oracle O1, CUHK Slurm 2154008).
+ORCA_OPTTS_RECALC_HESS = 5
+
+
 def orca_solvent_file_name(path):
     """The name ORCA's ``%cosmors solventfilename`` takes for a solvent file.
 
@@ -3339,7 +3348,9 @@ class ORCATSJobSettings(ORCAJobSettings):
         hybrid_hess_atoms (list[int] | None): 1‑based
         atom indices for hybrid Hessian region.
         numhess (bool): Use numerical Hessian.
-        recalc_hess (int): Frequency (in cycles) to recalculate Hessian.
+        recalc_hess (int | None): Frequency (in cycles) to recalculate
+            the Hessian; None when not stated, where an OptTS is written
+            with ``ORCA_OPTTS_RECALC_HESS`` and a ScanTS with none.
         trust_radius (float | None): Trust radius for optimization.
         tssearch_type (str): TS search method ('optts' or 'scants').
         scants_modred (list | dict | None):
@@ -3354,7 +3365,7 @@ class ORCATSJobSettings(ORCAJobSettings):
         hybrid_hess=False,
         hybrid_hess_atoms=None,
         numhess=False,
-        recalc_hess=5,
+        recalc_hess=None,
         trust_radius=None,
         tssearch_type="optts",
         scants_modred=None,

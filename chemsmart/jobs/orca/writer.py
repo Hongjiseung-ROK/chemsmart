@@ -1040,12 +1040,36 @@ class ORCAInputWriter(InputWriter):
         scants = str(self.settings.tssearch_type or "").lower() == "scants"
         if hessian is None and not scants:
             f.write("  Calc_Hess True  # calc initial Hessian\n")
-        f.write(
-            f"  NumHess {self.settings.numhess}  # Request numerical Hessian (if analytical not available)\n"
-        )
-        f.write(
-            f"  Recalc_Hess {self.settings.recalc_hess}   # Recalculate the Hessian every 5 step\n"
-        )
+        if scants:
+            # ORCA 6.1.1 carries a recalculated exact Hessian from one scan
+            # point into the next and stops at the second point looking for
+            # a Cartesian Hessian file it never wrote (R10 Q31 oracle O1,
+            # CUHK Slurm 2154008), so a ScanTS is written without one and
+            # a stated recalculation is refused rather than dropped.
+            if self.settings.recalc_hess is not None:
+                raise ValueError(
+                    f"recalc_hess ({self.settings.recalc_hess}) cannot reach "
+                    "an ORCA ScanTS: ORCA 6.1.1 stops the scan at its second "
+                    "point when the Hessian is recalculated during it. Remove "
+                    "recalc_hess for a ScanTS, or search from a guess with "
+                    "tssearch_type: optts, where it is written."
+                )
+            if self.settings.numhess:
+                f.write("  NumHess True  # Request numerical Hessian\n")
+        else:
+            from chemsmart.jobs.orca.settings import ORCA_OPTTS_RECALC_HESS
+
+            recalc = (
+                ORCA_OPTTS_RECALC_HESS
+                if self.settings.recalc_hess is None
+                else self.settings.recalc_hess
+            )
+            f.write(
+                f"  NumHess {self.settings.numhess}  # Request numerical Hessian (if analytical not available)\n"
+            )
+            f.write(
+                f"  Recalc_Hess {recalc}   # Recalculate the Hessian every {recalc} step\n"
+            )
 
         # trust radius update
         if self.settings.trust_radius is not None:
