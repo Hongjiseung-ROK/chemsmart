@@ -804,7 +804,16 @@ class Thermochemistry:
                 f"Got {freq_cutoff} cm^-1."
             )
 
-        if self.jobtype == "ts":
+        # A mode the session named as the reaction coordinate is removed
+        # whatever the program's job label says. The branch below used to
+        # be reached by the label alone, so a saddle an ``opt`` had landed
+        # on kept its named mode as the 100 cm^-1 cutoff while the receipt
+        # said the mode was "excluded from the vibrational partition
+        # function": ORCA's trans H2O2 saddle (R10 Q21 g1-hooh opt180,
+        # CUHK 2153623) carried ZPE 0.026027 Eh = its five real modes
+        # plus 50 cm^-1, a free energy 0.43 kcal/mol below the same saddle
+        # found by OptTS (Q24 g2r: dG(trans) -0.079 against 0.345).
+        if self.jobtype == "ts" or self.reaction_coordinate_mode:
             # Valid TS: exactly one genuine imaginary frequency.
             # Remove it from thermochemistry.  Any remaining negative is
             # near-zero noise by construction -- a genuine second imaginary
@@ -812,7 +821,11 @@ class Thermochemistry:
             # replaced by the cutoff, because the partition functions take the
             # logarithm of 1 - exp(-theta/T) and a negative frequency makes
             # that undefined.
-            if len(genuine_imaginary_indices) == 1:
+            if len(genuine_imaginary_indices) == 1 and (
+                not self.reaction_coordinate_mode
+                or self.reaction_coordinate_mode - 1
+                == genuine_imaginary_indices[0]
+            ):
                 reaction_coordinate_index = genuine_imaginary_indices[0]
                 return [
                     freq_cutoff if freq < 0.0 else freq
