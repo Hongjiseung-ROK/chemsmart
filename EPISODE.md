@@ -204,6 +204,26 @@ arm's ROUTE count does not exceed the control arm's. A control arm that
 takes the route as often as the repaired arm is reported as it is: the
 model knew the route without being told.
 
+## G1 -- READ (job 2153709, host records)
+
+Code digest dcdd750a verified on the node. Settled
+`achieved_with_observations` in one cycle (anomaly
+spin.s2_deviation_ge_0.2 on the broken-symmetry singlet, as expected for
+that state). NOT EXERCISED: 0 preview_failed; the model wrote one project
+per state and method (broken-symmetry singlet, restricted singlet,
+triplet, at B3LYP and CAM-B3LYP), so no refusal was met; 5 ORCA single
+points, 5 engine calls, 123 s engine wall. Physics against O1, from the
+engine outputs (ORCA B3LYP/G def2-TZVP defgrid2): BS singlet
+-230.955634048 Eh (<S**2> 0.962), triplet -230.951313017 (2.007);
+delivered `st_gap_vertical` +2.711 kcal/mol (singlet lower) -- PASS (O1
++2.56 at def2-SVP); the projected value (about +5.2) was not delivered.
+Also delivered: `gap-rks-b3lyp` -20.75 (the restricted singlet, computed
+and named as the comparison), and `gap-camb3lyp` -34.36 kcal/mol, whose
+CAM-B3LYP singlet ran HFTyp RHF with no GuessMix: the restricted-singlet
+trap, used as the "functional spread" uncertainty estimator. No host
+sensor flagged it (no stability analysis ran on that singlet). Found and
+left: outside this episode's radius.
+
 ## CF -- READ (job 2153710, 12 of 12 samples, no INFRA)
 
 Both tree digests verified on the node (control 812e923b, repaired
