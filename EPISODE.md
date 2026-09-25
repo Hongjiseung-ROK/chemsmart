@@ -282,6 +282,36 @@ calls of 12. Settled `achieved`.
   the 90-deg free energy would be signed unreachable_from_evidence over
   evidence the host now derives it from (scratch q27/proto/probe_refusal.py).
 
+## The master's condition -- one function, and the refusal it made stale
+
+Ruling (existing doctrine, verify-when-signing): the refusal verification
+signed "absent" over a held result the host now derives. ebf36450 adds
+`free_energy_surface(program, output)` (stationary_point | held_surface |
+none; a held result is held_surface exactly when the derivation's own
+projection checks pass with the coordinates it held). The derivation's
+refusal names the route only then, and `results_for_selector` /
+`refusal_read_against_results` read the result through it: a held surface
+is "derivable", not verified, and the reason names `projected_coordinates`.
+The expression reading asks a different question (is this number a
+state's) and keeps 5411601f.
+- Witnesses: g1's held-90 result (new fixture) and Q21's held test with its
+  sidecar -- red on e638d793 (pristine export), green here; the unheld
+  controls (ORCA presaddle-esterc4 unconverged OptTS; PySCF
+  water_stretched_hess) and Q21's held-without-Hessian half verified on
+  both.
+- Replay of Q21's archived refusal (g1-hooh, CUHK 2153623; HOME fenced
+  in-process): the final settle step reproduces the archived word byte for
+  byte on e638d793 and on ebf36450 (returned_to_human, "a reader is the
+  missing producer") -- the planning-path settlement re-reads only refusals
+  its session verified, and that one was unverified on d32eeeef. The
+  verification act on the refusal's own inputs over the goal's four
+  archived registered results: e638d793 verified=True ("found it absent");
+  ebf36450 verified=False, naming projected_coordinates [[3, 1, 2, 4]]
+  (g-rel-90-deg and barrier-trans alike). (A first attempt found no
+  results: the replay tool symlinks cycle-N, and the ORCA scan's rglob
+  does not enter a symlinked directory; the workspace was copied.)
+- r10-integration 36ce6ead merged at 339ffe8b (clean).
+
 ## Gates
 
 - ae3b0c09, pristine export: full suite 23 failed, 4770 passed; the
@@ -293,6 +323,10 @@ calls of 12. Settled `achieved`.
   baseline, none under tests/agent; ruff, black --check, isort --check
   clean on the 12 Python files the episode touched; rsl.py check 0
   failures.
+- 339ffe8b (ebf36450 + r10-integration 36ce6ead), pristine export: full
+  suite 23 failed, 4784 passed, the failing set equal to the round
+  baseline, none under tests/agent; ruff, black --check, isort --check
+  clean on the 13 Python files the episode touched.
 
 ## Status
 
