@@ -352,10 +352,41 @@ re-rolled.
   on the repaired arm, which point is bound (the ridge-side 2.325 A point
   of the cycle-2 scan, or another) and what the session says it is.
 
+## Replay 2 -- READ (CUHK Slurm 2154049; G1's archive unchanged)
+
+- q32-c4: all 42 turns served and aligned; the park row is written with the
+  reason exactly as pre-registered ("the Agent made no execution-boundary
+  decision on workflow hexatriene-rclosure-r4; the session was told once
+  that the decision was pending and ended on text, calling neither
+  select_execution_wave nor continue_execution_reasoning, and the host reads
+  no decision from text"), ready ts-opt-freq, decision record equal to the
+  archive's, `revision_admitted` checks equal.
+- r2-c4: not faithful -- the stub executor still said "completed" for cycle
+  3's run (the real one had failed), and on G1's tree that settled the goal
+  `achieved` beside "no completion gate certified this delivery" before any
+  cycle-4 turn. Found by this replay, it is the stub's word, not the
+  archive's: the harness now returns the archived run's own status
+  (`workflow_state` of its run_recorded row) with the archived analysis
+  status. The q32-c4 recovery row likewise shows the stub's status.
+
+## Replay 3 -- PRE-REGISTRATION (written before submission)
+
+G1's cycle 4 on both trees with the stub executor returning the archived
+run's status ("failed") and analysis status ("completed"). Expected on
+r2: cycle 3's recovery row equals the archived one (terminal states
+scan-bracket-r3 failed_nonconverged_scan_step), the notice digest
+9d6af724..., and the archived park row. On q32: the same recovery row, the
+notice naming both calls, and the park row with the extended reason. Then
+one stub sample per matched arm (no provider call): each must end its
+session with a terminal state, record its probe turns, and raise no error;
+otherwise no real matched turn is taken.
+
 ## Jobs issued
 
 - 2026-09-25: replay 1, CUHK Slurm 2154046 (r10-q32-a), 4 cores, 2 h
   limit, pre-registration b5cd1a1bebf6, code fccd4d89 (digest b9392764...).
+- 2026-09-25: replay 2, CUHK Slurm 2154049 (r10-q32-a), pre-registration
+  fb0160375028, code fccd4d89.
 
 ## Status
 
