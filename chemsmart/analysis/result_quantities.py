@@ -439,8 +439,10 @@ def thermochemistry_route_hint(selectors) -> str:
         "an explicitly bound temperature, pressure, and standard state; "
         "plan one on such a calculation instead of selecting these from the "
         "log. A structure held or driven along a coordinate (modred, scan) "
-        "is not a stationary point and has no free energy: relax it without "
-        "the constraint first."
+        "is not a stationary point: for its free energy as one, relax it "
+        "without the constraint first; for the free energy of the surface "
+        "at the held value, derive on the held (modred) result with "
+        "projected_coordinates naming the coordinates it held."
     )
 
 
@@ -1249,6 +1251,13 @@ class ThermochemistryRequestV1:
     #: through ``entropy_method`` and the two cutoffs. Zero means the
     #: structure is claimed as a minimum and the ordinary check applies.
     reaction_coordinate_mode: int = 0
+    #: Internal coordinates to remove from the Hessian before the partition
+    #: functions are formed, each as the 1-based atoms ``modred`` takes (two
+    #: for a bond, three for an angle, four for a dihedral).  Naming them is
+    #: the request for the free energy of the surface on which they keep
+    #: their values -- a point of a free-energy profile along them -- rather
+    #: than of a stationary point; see ``derive_result_thermochemistry``.
+    projected_coordinates: tuple[tuple[int, ...], ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.thermochemistry-request.v1":
@@ -1260,6 +1269,17 @@ class ThermochemistryRequestV1:
         if int(self.reaction_coordinate_mode) < 0:
             raise QuantityContractError(
                 "reaction_coordinate_mode is a 1-based mode index"
+            )
+        object.__setattr__(
+            self,
+            "projected_coordinates",
+            normalized_projected_coordinates(self.projected_coordinates),
+        )
+        if self.projected_coordinates and int(self.reaction_coordinate_mode):
+            raise QuantityContractError(
+                "name a reaction coordinate or project held coordinates, "
+                "not both: projecting the coordinate a saddle moves along "
+                "removes the mode reaction_coordinate_mode would name"
             )
         normalized_program = str(self.program).strip().lower()
         object.__setattr__(self, "program", normalized_program)
@@ -2299,11 +2319,581 @@ def geometry_of_selector(
     return geometries.get(reader.structural_state(str(selector)))
 
 
+#: How far, in cm^-1, the host's own harmonic analysis of the Hessian it
+#: read may sit from the frequencies the program printed before the host
+#: says the matrix is not the one those modes came from.  Measured on the
+#: archived H2O2 results: ORCA's ``.hess`` 0.005 (the log prints two
+#: decimals), Gaussian's archive entry 0.009 (its masses are printed to
+#: five decimals), PySCF's ``results/hessian`` 0.0000.
+HESSIAN_REPRODUCTION_TOLERANCE_CM1 = 0.5
+
+#: The one line of a receipt's ``assumptions`` that names the coordinates a
+#: derivation projected, in the canonical form ``projected_coordinates``
+#: normalises to.  Written by ``_held_coordinate_projection`` and read back
+#: by ``projected_coordinates_of``, the only two places that know it.
+PROJECTED_COORDINATES_STATEMENT = "projected coordinates (one-based atoms): "
+
+
+def projected_coordinates_of(
+    assumptions: Sequence[str],
+) -> tuple[tuple[int, ...], ...]:
+    """The coordinates a thermochemistry receipt projected; () if none."""
+
+    for line in assumptions or ():
+        text = str(line)
+        if text.startswith(PROJECTED_COORDINATES_STATEMENT):
+            return normalized_projected_coordinates(
+                json.loads(text[len(PROJECTED_COORDINATES_STATEMENT) :])
+            )
+    return ()
+
+
+#: What a held coordinate is called in a sentence, by atom count.
+_COORDINATE_UNITS = {
+    2: ("bond", "A"),
+    3: ("angle", "deg"),
+    4: ("dihedral", "deg"),
+}
+
+
+def normalized_projected_coordinates(
+    value: Any,
+) -> tuple[tuple[int, ...], ...]:
+    """Coordinates to project, as sorted canonical tuples of 1-based atoms.
+
+    Each is two atoms (a bond), three (an angle, vertex in the middle) or
+    four (a dihedral about the middle pair), the rows ``modred`` takes.  A
+    coordinate and its reverse are one coordinate; naming one twice is
+    refused, because a direction cannot be removed twice.
+    """
+
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, (list, tuple)):
+        raise QuantityContractError(
+            "projected_coordinates is a list of coordinates, each a list "
+            "of 2 to 4 one-based atom indices"
+        )
+    coordinates = []
+    for item in value:
+        if isinstance(item, (str, bytes)) or not isinstance(
+            item, (list, tuple)
+        ):
+            raise QuantityContractError(
+                "each projected coordinate is a list of 2 to 4 one-based "
+                f"atom indices, not {item!r}"
+            )
+        atoms = []
+        for index in item:
+            if isinstance(index, bool) or float(index) != int(float(index)):
+                raise QuantityContractError(
+                    f"atom index {index!r} is not an integer"
+                )
+            atoms.append(int(float(index)))
+        if len(atoms) not in _COORDINATE_UNITS:
+            raise QuantityContractError(
+                f"a projected coordinate names 2, 3 or 4 atoms, not {atoms}"
+            )
+        if min(atoms) < 1 or len(set(atoms)) != len(atoms):
+            raise QuantityContractError(
+                f"projected coordinate {atoms} must name distinct one-based "
+                "atoms"
+            )
+        coordinates.append(_canonical_coordinate(atoms))
+    if len(set(coordinates)) != len(coordinates):
+        raise QuantityContractError(
+            "projected_coordinates names one coordinate twice"
+        )
+    return tuple(sorted(coordinates))
+
+
+def _canonical_coordinate(atoms: Sequence[int]) -> tuple[int, ...]:
+    atoms = tuple(int(index) for index in atoms)
+    if len(atoms) == 2:
+        return tuple(sorted(atoms))
+    if len(atoms) == 3:
+        return (min(atoms[0], atoms[2]), atoms[1], max(atoms[0], atoms[2]))
+    return min(atoms, tuple(reversed(atoms)))
+
+
+def _coordinate_words(
+    atoms: Sequence[int], symbols: Sequence[str], positions_bohr: Any
+) -> str:
+    """``dihedral H3-O1-O2-H4 at 90.00 deg``: one-based, measured."""
+
+    from chemsmart.analysis.thermochemistry import internal_coordinate_value
+
+    kind, unit = _COORDINATE_UNITS[len(atoms)]
+    value = internal_coordinate_value(
+        positions_bohr, [index - 1 for index in atoms]
+    )
+    if unit == "A":
+        value *= 0.529177210903
+    else:
+        value = math.degrees(value)
+    label = "-".join(f"{symbols[index - 1]}{index}" for index in atoms)
+    return f"{kind} {label} at {value:.2f} {unit}"
+
+
+def _held_by_result(reader: Any, output: Any) -> tuple[tuple[int, ...], ...]:
+    """The coordinates this result itself held, canonical and one-based."""
+
+    held = set()
+    for selector in (
+        "constrained_bond_atoms",
+        "constrained_angle_atoms",
+        "constrained_dihedral_atoms",
+    ):
+        for row in _reader_answer(reader, output, selector) or ():
+            held.add(
+                _canonical_coordinate(
+                    [int(round(float(index))) + 1 for index in row]
+                )
+            )
+    return tuple(sorted(held))
+
+
+@dataclass(frozen=True)
+class _HeldCoordinateProjection:
+    frequencies_cm1: tuple[float, ...]
+    statements: tuple[str, ...]
+
+
+def _projection_refusal(artifact_id: str, diagnosis: str) -> Exception:
+    return QuantityExtractionError(
+        "[thermochemistry.free_energy_needs_a_stationary_point] A free "
+        "energy along held coordinates is the free energy of the surface "
+        "on which they keep their values, and it exists where the "
+        "structure is a minimum of that surface. Diagnosis: result "
+        f"{artifact_id!r}: {diagnosis}"
+    )
+
+
+def _held_coordinate_projection(
+    *,
+    program: str,
+    artifact_id: str,
+    named: tuple[tuple[int, ...], ...],
+    reader: Any,
+    output: Any,
+    stationarity: StructureStationarityV1,
+    entropy_method: str = "rrho",
+    entropy_cutoff_cm1: float | None = None,
+) -> _HeldCoordinateProjection:
+    """The spectrum of the surface the named coordinates are held on.
+
+    Every fact is the result's own, read through its reader: the
+    coordinates it held and whether its constrained search converged, the
+    Cartesian Hessian at the structure its modes belong to (which must
+    reproduce the program's printed spectrum before anything is removed
+    from it), and the gradient where the result records one at that
+    structure.  Refused, naming the numbers, when the named coordinates
+    are not the ones the result held, when the structure is not
+    stationary on their surface, when the Hessian cannot be read or is not
+    the printed spectrum's, and when the structure is a saddle of the
+    surface.
+    """
+
+    import numpy as np
+
+    from chemsmart.agent.terminal_states import (
+        HESS_STATIONARITY_GRADIENT_EH_PER_BOHR,
+    )
+    from chemsmart.analysis.quantity_expressions import (
+        ONE_GEOMETRY_ANGSTROM,
+        geometry_difference,
+        interatomic_distances,
+    )
+    from chemsmart.analysis.thermochemistry import (
+        NEAR_ZERO_FREQUENCY_TOLERANCE_CM,
+        internal_coordinate_gradient,
+        projected_harmonic_frequencies,
+    )
+
+    job = f"{program} {stationarity.jobtype}".strip()
+    held = _held_by_result(reader, output)
+    if held and set(named) != set(held):
+        raise _projection_refusal(
+            artifact_id,
+            f"it held {[list(item) for item in held]} (one-based atoms) and "
+            f"the request names {[list(item) for item in named]}. The "
+            "structure is stationary only on the surface of what it held, "
+            "and its energy still slopes along the held coordinates, so a "
+            "free energy along any other set describes a surface it is not "
+            "stationary on. Route: name exactly the coordinates it held.",
+        )
+    record = reader.cartesian_hessian_for_output(output)
+    if record is None:
+        raise _projection_refusal(
+            artifact_id,
+            f"the {program} reader serves no Cartesian Hessian for "
+            "this result (an ORCA Freq run keeps it as the .hess sidecar "
+            "beside its output, a Gaussian Freq job in its archive entry, a "
+            "PySCF hess stage in results/hessian), and a coordinate can "
+            "only be removed from a Hessian the host holds. Route: a "
+            "frequency calculation on this structure with a program whose "
+            "Hessian the host reads.",
+        )
+    atoms = len(record.symbols)
+    if any(max(item) > atoms for item in named):
+        raise _projection_refusal(
+            artifact_id,
+            f"{[list(item) for item in named]} names an atom beyond this "
+            f"structure's {atoms}",
+        )
+    printed = sorted(
+        float(value)
+        for value in (
+            _reader_answer(reader, output, "vibrational_frequencies") or ()
+        )
+        if float(value) != 0.0
+    )
+    rigid = projected_harmonic_frequencies(
+        record.hessian, record.positions_bohr, record.masses_amu
+    )
+    if rigid.external != 6:
+        raise _projection_refusal(
+            artifact_id,
+            "the structure is a linear rotor; a free energy along a held "
+            "coordinate of a linear rotor is not served",
+        )
+    reproduced = sorted(rigid.frequencies_cm1)
+    deviation = (
+        max(abs(first - second) for first, second in zip(reproduced, printed))
+        if len(printed) == len(reproduced) and printed
+        else None
+    )
+    if deviation is None or deviation > HESSIAN_REPRODUCTION_TOLERANCE_CM1:
+        raise _projection_refusal(
+            artifact_id,
+            f"the Hessian read from {record.source} does not reproduce the "
+            f"{program} printed spectrum ("
+            + (
+                f"{len(reproduced)} modes against {len(printed)}"
+                if deviation is None
+                else f"largest difference {deviation:.3g} cm^-1"
+            )
+            + "), so it is not the matrix those modes came from",
+        )
+    read_structure = interatomic_distances(
+        record.positions_bohr * 0.529177210903
+    )
+    printed_structure = interatomic_distances(
+        _reader_answer(reader, output, "positions")
+    )
+    apart = geometry_difference(read_structure, printed_structure)
+    if apart is None or apart > ONE_GEOMETRY_ANGSTROM:
+        raise _projection_refusal(
+            artifact_id,
+            f"the Hessian read from {record.source} belongs to a structure "
+            + (
+                "the host could not compare with"
+                if apart is None
+                else f"{apart:.3g} A from"
+            )
+            + " the one this result's modes belong to",
+        )
+    directions = [
+        internal_coordinate_gradient(
+            record.positions_bohr, [index - 1 for index in item]
+        )
+        for item in named
+    ]
+    words = [
+        _coordinate_words(item, record.symbols, record.positions_bohr)
+        for item in named
+    ]
+    criterion = float(HESS_STATIONARITY_GRADIENT_EH_PER_BOHR)
+    if record.gradient is not None:
+        basis = np.array([direction.ravel() for direction in directions]).T
+        gradient = np.asarray(record.gradient, dtype=float).ravel()
+        slopes, *_ = np.linalg.lstsq(basis, gradient, rcond=None)
+        residual = float(np.max(np.abs(gradient - basis @ slopes)))
+        if residual > criterion:
+            raise _projection_refusal(
+                artifact_id,
+                "the gradient left at this structure after the named "
+                f"coordinates are removed is {residual:.3g} Eh/Bohr, above "
+                f"the optimiser's criterion {criterion:g}, so the structure "
+                "is not a stationary point of their surface. Route: hold "
+                "those coordinates in a constrained optimisation (modred) "
+                "and derive on its converged result.",
+            )
+        slope_words = "; ".join(
+            f"dE/d({word.split(' at ')[0]}) = {slope:.3g} Eh per "
+            + ("Bohr" if len(item) == 2 else "radian")
+            for word, item, slope in zip(words, named, slopes)
+        )
+        surface = (
+            "a stationary point of the held surface: the gradient left "
+            f"after removing the held coordinates is at most {residual:.2g} "
+            f"Eh/Bohr, at or below the optimiser's criterion {criterion:g}; "
+            f"the energy slopes along them ({slope_words}), which the "
+            "projection removes"
+        )
+    elif held:
+        converged = _reader_answer(reader, output, "converged")
+        if converged is not None and not bool(converged):
+            raise _projection_refusal(
+                artifact_id,
+                f"this {job} search printed the program's own marker that "
+                "it did not converge, so the structure is not a stationary "
+                "point even of the surface it held. Route: continue the "
+                "constrained search from the structure it reached.",
+            )
+        surface = (
+            "a stationary point of the held surface: the "
+            f"{job} search that held these coordinates "
+            + (
+                "printed the program's own convergence marker"
+                if converged
+                else "states no convergence marker, so this is unmeasured"
+            )
+            + "; not a stationary point of the full surface, whose slope "
+            "along the held coordinates the projection removes"
+        )
+    elif stationarity.stationarity == "not_stationary":
+        raise _projection_refusal(
+            artifact_id,
+            f"it is {stationarity.sentence()}, and it held none of the "
+            "named coordinates, so nothing says it is stationary on their "
+            "surface either. Route: hold them in a constrained optimisation "
+            "(modred) and derive on its converged result.",
+        )
+    else:
+        surface = (
+            f"{stationarity.sentence()}; the named coordinates are removed "
+            "at that stationary point (a minimum's value is a profile's "
+            "reference, a saddle's is its transition-state free energy when "
+            "its imaginary mode is the removed coordinate)"
+        )
+    spectrum = projected_harmonic_frequencies(
+        record.hessian, record.positions_bohr, record.masses_amu, directions
+    )
+    imaginary = [
+        value
+        for value in spectrum.frequencies_cm1
+        if value < -abs(NEAR_ZERO_FREQUENCY_TOLERANCE_CM)
+    ]
+    if imaginary:
+        raise _projection_refusal(
+            artifact_id,
+            "with the held coordinates removed the structure still has "
+            f"{len(imaginary)} imaginary mode(s) "
+            f"({', '.join(f'{value:.1f}' for value in imaginary)} cm^-1): "
+            "it is a saddle of the held surface, not a minimum of it",
+        )
+    total = 3 * atoms - spectrum.external
+    projection = (
+        "held-coordinate projection: "
+        + "; ".join(words)
+        + " (one-based atoms), removed from the mass-weighted Cartesian "
+        f"Hessian together with the {spectrum.external} translations and "
+        f"rotations; {spectrum.kept} of {total} vibrational modes kept "
+        f"(3N-{spectrum.external + spectrum.internal}). The held "
+        "coordinate carries no partition function: this is the free energy "
+        "of the dividing surface at its held value, the generalized free "
+        "energy of variational transition-state theory, which at a saddle "
+        "whose imaginary mode is that coordinate is the transition-state "
+        "free energy with that mode removed"
+    )
+    kind = (
+        "rectilinear projection: the held coordinate's mass-weighted "
+        "normal is the direction removed (Baboul & Schlegel, J. Chem. "
+        "Phys. 107, 9413 (1997), Eq. 4, with that normal where they take "
+        "the path tangent), so the curvature of the held surface is not "
+        "included"
+    )
+    source = (
+        f"Hessian read from {record.source}"
+        + (f" (sha256 {record.source_sha256})" if record.source_sha256 else "")
+        + ": its translation-rotation analysis reproduces the "
+        f"{program} printed frequencies to {deviation:.2g} cm^-1 "
+        f"with {record.mass_convention}, which the kept modes use too"
+    )
+    if entropy_method == "grimme":
+        kept_modes = (
+            "kept modes near and below "
+            f"{entropy_cutoff_cm1:g} cm^-1 have their entropy "
+            "interpolated toward a free rotor's (Grimme)"
+        )
+    elif entropy_method == "truhlar":
+        kept_modes = (
+            f"kept modes below {entropy_cutoff_cm1:g} cm^-1 are "
+            "raised to it for the entropy (Truhlar)"
+        )
+    else:
+        kept_modes = "every kept mode is a harmonic oscillator"
+    rotor = (
+        "rotor treatment: the held coordinate is removed, not treated as a "
+        "rotor; the molecule rotates as a rigid rotor at this structure; "
+        f"{kept_modes}; no kept mode is treated as a hindered internal rotor"
+    )
+    return _HeldCoordinateProjection(
+        frequencies_cm1=tuple(spectrum.frequencies_cm1),
+        statements=(
+            PROJECTED_COORDINATES_STATEMENT
+            + json.dumps([list(item) for item in named]),
+            projection,
+            kind,
+            source,
+            surface,
+            rotor,
+        ),
+    )
+
+
+#: What a result can have a free energy of.
+FREE_ENERGY_SURFACES = ("stationary_point", "held_surface", "none")
+
+
+@dataclass(frozen=True)
+class FreeEnergySurfaceV1:
+    """Whether a result has a free energy, and of which surface.
+
+    ``stationary_point``: the structure is one, or nothing shows it is not
+    (``stationarity`` says which); the ordinary derivation applies.
+    ``held_surface``: the structure is not a stationary point because it
+    held ``held_coordinates``, and the host derives the free energy of the
+    surface they are held on (``projected_coordinates``) from this result.
+    ``none``: shown not to be a stationary point of any surface the host
+    can derive a free energy on; ``reason`` says what was read.
+    """
+
+    surface: str
+    stationarity: StructureStationarityV1
+    held_coordinates: tuple[tuple[int, ...], ...] = ()
+    reason: str = ""
+
+    def __post_init__(self) -> None:
+        if self.surface not in FREE_ENERGY_SURFACES:
+            raise QuantityContractError(
+                f"surface is one of {list(FREE_ENERGY_SURFACES)}"
+            )
+
+    def route(self) -> str:
+        """The request that derives it, for a held surface; else ''."""
+
+        if self.surface != "held_surface":
+            return ""
+        return (
+            "derive_thermochemistry with projected_coordinates "
+            f"{[list(item) for item in self.held_coordinates]} (the "
+            "one-based atoms it held)"
+        )
+
+
+def free_energy_surface(
+    program: str, output: Any, *, artifact_id: str = "result"
+) -> FreeEnergySurfaceV1:
+    """Is there a free energy at this result, and of which surface.
+
+    One function, because three organs ask it and they had drifted apart:
+    the derivation, which with ``projected_coordinates`` derives the free
+    energy of a held surface; the check that verifies a session's refusal
+    of a free energy, which went on signing "absent" over such a result
+    (R10 Q27, the held 90-deg H2O2 of goal g1, CUHK 2153714: verified while
+    the same host derived 0.346 kcal/mol from it); and the refusal's own
+    route.  A held result has a held-surface free energy exactly when the
+    derivation would give one: the same checks run here with the
+    coordinates the result itself held.
+    """
+
+    normalized = str(program).strip().lower()
+    stationarity = structure_stationarity(normalized, output)
+    if stationarity.stationarity != "not_stationary":
+        return FreeEnergySurfaceV1(
+            surface="stationary_point", stationarity=stationarity
+        )
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(normalized)
+    held = _held_by_result(reader, output)
+    if not held:
+        return FreeEnergySurfaceV1(
+            surface="none",
+            stationarity=stationarity,
+            reason=stationarity.sentence(),
+        )
+    try:
+        _held_coordinate_projection(
+            program=normalized,
+            artifact_id=artifact_id,
+            named=held,
+            reader=reader,
+            output=output,
+            stationarity=stationarity,
+        )
+    except QuantityContractError as exc:
+        return FreeEnergySurfaceV1(
+            surface="none",
+            stationarity=stationarity,
+            held_coordinates=held,
+            reason=f"{stationarity.sentence()}; and no free energy of the "
+            f"surface it held is derivable: {exc}",
+        )
+    return FreeEnergySurfaceV1(
+        surface="held_surface",
+        stationarity=stationarity,
+        held_coordinates=held,
+        reason=stationarity.sentence(),
+    )
+
+
+def _modes_the_program_removed(engine: Any) -> str:
+    """A sentence when the printed spectrum is short of the structure's modes.
+
+    A harmonic partition function counts every vibration a structure has --
+    3N-6, or 3N-5 for a linear rotor -- unless the host removed one itself
+    and says which (``projected_coordinates``).  A program can remove one
+    before it prints: Gaussian's ``freq=projected`` drops the direction of
+    the gradient, which at H2O2 held at 0 or 180 deg (a symmetric saddle,
+    gradient orthogonal to the torsion) is a stretch-bend mixture, not the
+    held torsion, and Gaussian's own free energy there came out 5.4 and 1.7
+    kcal/mol below the saddles' (R10 Q27 oracle O1b, CUHK 2153717); a
+    Gaussian optimisation with frozen atoms prints the modes of the others
+    only (12 of a 14-atom structure's 36 in an archived fixture).  Such a
+    spectrum is used as printed, and the receipt says what it lacks.
+    """
+
+    frequencies = engine.vibrational_frequencies
+    if frequencies is None or engine.molecule.is_monoatomic:
+        return ""
+    atoms = int(engine.molecule.num_atoms)
+    expected = 3 * atoms - (5 if engine.is_linear_rotor else 6)
+    printed = len(frequencies)
+    if engine.quasi_linear_padded_mode_cm1 is not None:
+        printed += 1
+    if printed >= expected:
+        return ""
+    return (
+        f"the program printed {printed} vibrational mode(s) where this "
+        f"{atoms}-atom structure has {expected}: it removed "
+        f"{expected - printed} direction(s) itself before its own analysis "
+        "(Gaussian's freq=projected removes the direction of the gradient; "
+        "frozen atoms take their own motions out of the analysis), so this "
+        "free energy counts only the printed modes and lacks "
+        "motion(s) the host neither chose nor can name; removing a named "
+        "held coordinate is projected_coordinates"
+    )
+
+
 def _stationarity_refusal(
-    stationarity: StructureStationarityV1, artifact_id: str
+    surface: FreeEnergySurfaceV1, artifact_id: str
 ) -> QuantityExtractionError:
     """The routed refusal of a free energy at a non-stationary structure."""
 
+    stationarity = surface.stationarity
+    held_route = ""
+    if surface.surface == "held_surface":
+        held_route = (
+            " For the free energy of the structure at the value it held -- a "
+            "point of a free-energy profile along the held coordinate -- "
+            f"call {surface.route()}: the host removes them from the "
+            "Hessian and derives the free energy of the 3N-7 modes of the "
+            "surface they are held on, the generalized free energy of "
+            "variational transition-state theory."
+        )
     return QuantityExtractionError(
         "[thermochemistry.free_energy_needs_a_stationary_point] A free "
         "energy, an enthalpy or a zero-point energy from harmonic modes is "
@@ -2314,15 +2904,14 @@ def _stationarity_refusal(
         "electronic energy, its frequencies and every other number stay "
         "readable and deliverable as what they are -- the energy and the "
         "curvature at a structure that is not stationary (a held or driven "
-        "coordinate's energies are points on a constrained surface, and a "
-        "free energy along a path needs the path direction projected out "
-        "of the Hessian, which this derivation does not do). For a free "
-        "energy, reach a stationary point of the same surface -- relax "
-        "without the constraint (opt for a minimum, ts for a saddle; a "
-        "structure held at a symmetric point often converges in a few "
-        "steps) or continue the search from the structure this one "
-        "reached -- and derive thermochemistry on that result. Cost: one "
-        "engine call to reach a stationary point."
+        "coordinate's energies are points on a constrained surface)."
+        + held_route
+        + " For the free energy of a stationary point, reach a stationary "
+        "point of the same surface -- relax without the constraint (opt for a minimum, "
+        "ts for a saddle; a structure held at a symmetric point often "
+        "converges in a few steps) or continue the search from the "
+        "structure this one reached -- and derive thermochemistry on that "
+        "result. Cost: one engine call to reach a stationary point."
     )
 
 
@@ -2381,14 +2970,45 @@ def derive_result_thermochemistry(
     reader = reader_for(request.program)
     reached = reader.open_output(artifact)
     stationarity = structure_stationarity(request.program, reached)
+    # A free energy along held coordinates is asked for by naming them:
+    # the host removes them from the Hessian and the free energy is that
+    # of the surface they are held on, which the structure must be a
+    # minimum of (R10 Q27).  Without the request the stationary-point rule
+    # below is untouched.
+    projection = (
+        _held_coordinate_projection(
+            program=request.program,
+            artifact_id=request.artifact_id,
+            named=request.projected_coordinates,
+            reader=reader,
+            output=reached,
+            stationarity=stationarity,
+            entropy_method=request.entropy_method,
+            entropy_cutoff_cm1=request.entropy_cutoff_cm1,
+        )
+        if request.projected_coordinates
+        else None
+    )
     # A result that printed no modes at all has nothing to derive from,
     # and says so below in its own words; the stationarity refusal is for
-    # a structure whose modes exist and describe no stationary point.
-    if stationarity.stationarity == "not_stationary" and _reader_answer(
-        reader, reached, "vibrational_frequencies"
+    # a structure whose modes exist and describe no stationary point. Its
+    # route is the one ``free_energy_surface`` -- the function the refusal
+    # verification also reads -- says this result has.
+    if (
+        projection is None
+        and stationarity.stationarity == "not_stationary"
+        and _reader_answer(reader, reached, "vibrational_frequencies")
     ):
-        raise _stationarity_refusal(stationarity, request.artifact_id)
+        raise _stationarity_refusal(
+            free_energy_surface(
+                request.program, reached, artifact_id=request.artifact_id
+            ),
+            request.artifact_id,
+        )
     engine = Thermochemistry(
+        projected_frequencies=(
+            None if projection is None else projection.frequencies_cm1
+        ),
         filename=str(artifact),
         temperature=request.temperature_k,
         concentration=request.concentration_mol_l,
@@ -2435,6 +3055,9 @@ def derive_result_thermochemistry(
             "trusted result program differs from the requested thermochemistry "
             f"program: expected {request.program!r}, observed {engine.program!r}"
         )
+    missing_modes = (
+        _modes_the_program_removed(engine) if projection is None else ""
+    )
     # `check_frequencies` keys on the program job label: one imaginary
     # mode is a correct transition state for a `ts` job and a refusal
     # for the identical structure labelled `opt`. The label is the
@@ -2639,14 +3262,21 @@ def derive_result_thermochemistry(
         raise QuantityExtractionError(
             "result artifact changed during thermochemistry derivation"
         )
-    assumptions = _thermochemistry_assumptions(
-        request, engine.convention_statements
-    ) + (
-        # What the free energy stands on, with the number or the marker
-        # that says so. Inside ``assumptions`` (already inside the digest
-        # and the recorded record) for the reason the reaction-coordinate
-        # selection is: a receipt minted before this line keeps verifying.
-        stationarity.sentence(),
+    assumptions = (
+        _thermochemistry_assumptions(request, engine.convention_statements)
+        + (
+            # What the free energy stands on, with the number or the marker
+            # that says so. Inside ``assumptions`` (already inside the digest
+            # and the recorded record) for the reason the reaction-coordinate
+            # selection is: a receipt minted before this line keeps verifying.
+            # A projected free energy stands on the surface it was projected
+            # onto, and says which coordinates, how many modes and which rotor
+            # treatment, in the same place.
+            (stationarity.sentence(),)
+            if projection is None
+            else projection.statements
+        )
+        + ((missing_modes,) if missing_modes else ())
     )
     body = {
         "schema_version": "chemsmart.thermochemistry-receipt.v1",

@@ -316,6 +316,7 @@ from chemsmart.analysis.result_quantities import (
     canonical_extraction_receipt_body,
     canonical_thermochemistry_quantity,
     make_quantity_value,
+    projected_coordinates_of,
     quantity_extraction_receipt_from_record,
     thermochemistry_receipt_from_record,
 )
@@ -909,14 +910,21 @@ def results_for_selector(
     selector: str,
     jobtype: str,
     programs: Sequence[str],
-) -> tuple[tuple[str, ...], tuple[str, ...], tuple[tuple[str, str], ...]]:
+) -> tuple[
+    tuple[str, ...],
+    tuple[str, ...],
+    tuple[tuple[str, str], ...],
+    tuple[str, ...],
+]:
     """What the registered results say about one selector.
 
     Returns what was served (``artifact: value``), what was read and found
-    absent (``artifact: reason``), and the results of the named job type
+    absent (``artifact: reason``), the results of the named job type
     whose reader does not serve the selector at all (``(artifact_id,
-    path)``). Only results of the named job type count when one is named:
-    an optimisation's energy is not a transition state's.
+    path)``), and the results the host derives it from rather than reads
+    it (``artifact: route`` -- a free energy of the surface a result held).
+    Only results of the named job type count when one is named: an
+    optimisation's energy is not a transition state's.
     """
 
     from chemsmart.analysis.result_readers import (
@@ -932,6 +940,7 @@ def results_for_selector(
     served: list[str] = []
     absent: list[str] = []
     unread: list[tuple[str, str]] = []
+    derivable: list[str] = []
     for artifact_id, artifact in sorted(artifacts.items()):
         match = readers.get(str(getattr(artifact, "kind", "")))
         if match is None:
@@ -957,21 +966,37 @@ def results_for_selector(
             # a "Final Gibbs free energy" after a constrained optimum) is
             # no producer a reader is missing (R10 Q21 g1-hooh, CUHK
             # 2153623: a verified refusal read as unverified over it).
+            #
+            # Whether it has one at all is the question the derivation
+            # answers, so it is asked of the one function the derivation
+            # asks (``free_energy_surface``): a held result the host
+            # derives the free energy of the held surface from is not
+            # absent -- the verification signed "absent" over the held
+            # 90-deg H2O2 of R10 Q27 goal g1 (CUHK 2153714) while the same
+            # host derived 0.346 kcal/mol from it.
             from chemsmart.analysis.result_quantities import (
                 exists_only_at_a_stationary_point,
-                structure_stationarity,
+                free_energy_surface,
             )
 
             if exists_only_at_a_stationary_point(selector):
                 try:
-                    reading = structure_stationarity(program, output)
+                    surface = free_energy_surface(
+                        program, output, artifact_id=str(artifact_id)
+                    )
                 except Exception:  # noqa: BLE001 - unread when unreadable
-                    reading = None
-                if reading is not None and (
-                    reading.stationarity == "not_stationary"
-                ):
+                    surface = None
+                if surface is not None and surface.surface == "held_surface":
+                    derivable.append(
+                        f"{artifact_id} ({program} {result_jobtype}): "
+                        f"{surface.stationarity.sentence()}; the host derives "
+                        "the free energy of the surface it held through "
+                        f"{surface.route()}"
+                    )
+                    continue
+                if surface is not None and surface.surface == "none":
                     absent.append(
-                        f"{artifact_id}: {reading.sentence()}, so it has no "
+                        f"{artifact_id}: {surface.reason}, so it has no "
                         f"{selector} whatever its output prints"
                     )
                     continue
@@ -989,7 +1014,7 @@ def results_for_selector(
             f"{artifact_id} ({program} {result_jobtype}): "
             + _brief_reading(value, unit)
         )
-    return tuple(served), tuple(absent), tuple(unread)
+    return tuple(served), tuple(absent), tuple(unread), tuple(derivable)
 
 
 def refusal_read_against_results(
@@ -1028,9 +1053,20 @@ def refusal_read_against_results(
     served: tuple[str, ...] = ()
     absent: tuple[str, ...] = ()
     unread: tuple[tuple[str, str], ...] = ()
+    derivable: tuple[str, ...] = ()
     if selector:
-        served, absent, unread = results_for_selector(
+        served, absent, unread, derivable = results_for_selector(
             artifacts, selector, jobtype, programs
+        )
+    if derivable:
+        return False, (
+            basis
+            + f"; the host derives {selector!r} from the registered results "
+            "-- " + "; ".join(derivable) + " -- so the evidence holds the "
+            "free energy of the surface a result held and the refusal is "
+            "not verified (the free energy of a stationary point is refused "
+            "there; which of the two the question asks for is the session's "
+            "to say)"
         )
     if served:
         return False, (
@@ -9078,6 +9114,10 @@ class CommandCompiledToolHostV1:
             alpha=raw_node.get("alpha", 4),
             use_weighted_mass=raw_node.get("use_weighted_mass", False),
             frequency_scale_factor=raw_node.get("frequency_scale_factor", 1.0),
+            projected_coordinates=tuple(
+                tuple(item)
+                for item in raw_node.get("projected_coordinates", ()) or ()
+            ),
             validation_rules=tuple(
                 sorted(
                     (
@@ -10619,6 +10659,11 @@ class CommandCompiledToolHostV1:
                             rel_tol=0.0,
                             abs_tol=1.0e-12,
                         )
+                        # A free energy with held coordinates removed is
+                        # the free energy of another surface: it performs
+                        # only the node that asked for those coordinates.
+                        or projected_coordinates_of(receipt.assumptions)
+                        != tuple(getattr(node, "projected_coordinates", ()))
                     ):
                         continue
                     quantities = {
@@ -14348,6 +14393,19 @@ class CommandCompiledToolHostV1:
                     f"{standard_state} | {entropy_model} | "
                     f"`{node.frequency_scale_factor:g}` |"
                 )
+            # A stage that removes held coordinates derives the free energy
+            # of another surface than a stationary point's, which the
+            # reviewer must see beside the conditions it will be read under.
+            for node in conditions:
+                projected = tuple(getattr(node, "projected_coordinates", ()))
+                if projected:
+                    lines.append(
+                        f"- `{node.node_id}` removes the held coordinate(s) "
+                        f"{[list(item) for item in projected]} (one-based "
+                        "atoms) from the Hessian: the free energy of the "
+                        "surface they are held on, 3N-6 less one mode per "
+                        "coordinate, which the receipt states"
+                    )
         constant_names: list[str] = []
         for node in toolchain.analysis_nodes:
             if node.analysis_kind != "quantity_expression":
@@ -19224,6 +19282,10 @@ class CommandCompiledToolHostV1:
                 frequency_scale_factor=float(
                     values.get("frequency_scale_factor", 1.0)
                 ),
+                projected_coordinates=tuple(
+                    tuple(item)
+                    for item in values.get("projected_coordinates", ()) or ()
+                ),
             )
         except ValueError as exc:
             # The thermochemistry kernel refuses scientifically meaningless
@@ -19604,6 +19666,15 @@ class CommandCompiledToolHostV1:
                     pass
             cache[key] = (species, not_stationary, geometries)
         species, not_stationary, geometries = cache[key]
+        if extraction is None and projected_coordinates_of(
+            getattr(receipt, "assumptions", ())
+        ):
+            # A free energy the host derived with the held coordinates
+            # removed stands on the surface they are held on, where the
+            # structure is stationary; the full surface's "not stationary"
+            # describes another number (R10 Q27 g1, CUHK 2153714: the
+            # delivered G(90 deg) was annotated "describes no state").
+            not_stationary = ""
         # The geometry a number belongs to is the structural state its own
         # selector declares; a derived thermochemistry quantity belongs to
         # the structure its modes were computed at.

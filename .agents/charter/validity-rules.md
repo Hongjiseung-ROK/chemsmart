@@ -143,7 +143,26 @@ A free energy at a structure shown not to be stationary is refused
 (gate `thermochemistry.free_energy_needs_a_stationary_point`) with a
 route, and every free-energy receipt states what it stands on. The gate
 would have refused an archived delivery: ax41 po3-r19 claimed dG++ =
-23.194 kcal/mol from an ORCA saddle search that never converged. The
-physics the refusal points to, a free energy along a held coordinate
-(projected Hessian or hindered rotor), is not yet served, and both
-live sessions that met the refusal said so.
+23.194 kcal/mol from an ORCA saddle search that never converged.
+
+A free energy along a held coordinate is served (R10 Q27):
+`projected_coordinates` removes each held coordinate's mass-weighted
+normal from the Hessian the result's own reader serves (ORCA `.hess`,
+Gaussian archive, PySCF `results/hessian`). Before that, the host checks:
+- that the Hessian reproduces the printed spectrum;
+- that the structure is stationary on the held surface;
+- that no imaginary mode is left.
+
+The receipt names the coordinate, the modes kept and the rotor treatment.
+The normal is removed, not the gradient. At a symmetric held point,
+Gaussian's own `freq=projected` removed a real mode and kept the
+imaginary torsion, and printed a free energy 5.4 kcal/mol low (0 deg)
+and 1.7 kcal/mol low (180 deg). So a held-coordinate request is never
+translated into it.
+
+One function, `free_energy_surface`, says whether a result has a free
+energy and of which surface; the derivation and the verification of a
+refusal both ask it. A refusal over a held result whose Hessian the host
+can read is not verified, and it names the route. A structure shown not
+to be stationary, holding nothing, stays refused and verified. A hindered
+rotor is not served.

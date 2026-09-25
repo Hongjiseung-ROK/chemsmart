@@ -2145,6 +2145,23 @@ def _legacy_tool_definitions(
                         "characterised saddle; omit for a minimum."
                     ),
                 },
+                "projected_coordinates": {
+                    **_PROJECTED_COORDINATES_SCHEMA,
+                    "description": (
+                        "Held coordinates to remove from the Hessian, each "
+                        "as the one-based atoms modred took (2 bond, 3 "
+                        "angle, 4 dihedral): the free energy of the surface "
+                        "they are held on -- a point of a free-energy "
+                        "profile along them, such as a torsion a modred "
+                        "held at 90 deg -- instead of a stationary point's. "
+                        "The result must have held exactly these "
+                        "coordinates, or be a stationary point (removing "
+                        "one there gives a profile's reference). The "
+                        "receipt states the coordinates, how many modes it "
+                        "kept and the rotor treatment. Omit for a "
+                        "stationary point."
+                    ),
+                },
             },
             ("program", "artifact_id", "temperature_k", "pressure_atm"),
         ),
@@ -3206,6 +3223,21 @@ def _unit_string(lead: str) -> dict:
     }
 
 
+#: Held coordinates as the one-based atom rows ``modred`` takes; the host
+#: normalises and checks them (``normalized_projected_coordinates``).
+_PROJECTED_COORDINATES_SCHEMA = {
+    "type": "array",
+    "minItems": 1,
+    "maxItems": 8,
+    "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 4,
+        "items": {"type": "integer", "minimum": 1},
+    },
+}
+
+
 def _nullable_positive_number() -> dict:
     """A positive number, or an explicit null where the concept does not apply.
 
@@ -4025,6 +4057,16 @@ def _analysis_intent_node_schema_full(
                 "description": (
                     "Thermochemistry-only positive multiplicative frequency "
                     "scale; omitted means 1.0."
+                ),
+            },
+            "projected_coordinates": {
+                **_PROJECTED_COORDINATES_SCHEMA,
+                "description": (
+                    "Thermochemistry-only: the held coordinates to remove "
+                    "from the Hessian, as the one-based atoms modred takes "
+                    "-- the free energy of the surface they are held on "
+                    "(a modred result holding exactly these), not a "
+                    "stationary point's. Omit for a stationary point."
                 ),
             },
             "support_state": {

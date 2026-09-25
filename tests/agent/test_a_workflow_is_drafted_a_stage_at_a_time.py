@@ -461,6 +461,7 @@ _FORBIDDEN_PROBE = {
     "alpha": 3,
     "use_weighted_mass": True,
     "frequency_scale_factor": 0.99,
+    "projected_coordinates": [[3, 1, 2, 4]],
     "expression_nodes": [
         {"node_id": "e", "operation": "ref", "reference": "x"}
     ],
