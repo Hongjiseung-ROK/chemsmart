@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
     "-i/",
     "--inhess/--no-inhess",
     type=bool,
-    default=False,
-    help="Option to read in Hessian file.",
+    default=None,
+    help="Option to read in Hessian file. Default: the project's inhess.",
 )
 @click.option(
     "-f",
@@ -47,8 +47,8 @@ logger = logging.getLogger(__name__)
     "-h/",
     "--hybrid-hess/--no-hybrid-hess",
     type=bool,
-    default=False,
-    help="Option to use hybrid Hessian.",
+    default=None,
+    help="Option to use hybrid Hessian. Default: the project's hybrid_hess.",
 )
 @click.option(
     "-a",
@@ -60,8 +60,8 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--numhess/--no-numhess",
     type=bool,
-    default=False,
-    help="Option to use numerical Hessian.",
+    default=None,
+    help="Option to use numerical Hessian. Default: the project's numhess.",
 )
 @click.option(
     "-s",
@@ -83,15 +83,19 @@ logger = logging.getLogger(__name__)
     "-ts",
     "--tssearch-type",
     type=str,
-    default="optts",
-    help='Type of TS search to perform. Options are ["optts", "scants"]',
+    # None, not "optts": the handler below reads "did the user type it",
+    # so the old default replaced a project's scants with OptTS on every
+    # run (R10 Q31 census).
+    default=None,
+    help='Type of TS search to perform. Options are ["optts", "scants"]. '
+    "Default: the project's tssearch_type, else optts.",
 )
 @click.option(
     "-fs/",
     "--full-scan/--no-full-scan",
     type=bool,
-    default=False,
-    help="Option to perform a full scan.",
+    default=None,
+    help="Option to perform a full scan. Default: the project's full_scan.",
 )
 @click.pass_context
 def ts(
@@ -106,11 +110,11 @@ def ts(
     dist_start=None,
     dist_end=None,
     num_steps=None,
-    inhess=False,
+    inhess=None,
     inhess_filename=None,
-    hybrid_hess=False,
+    hybrid_hess=None,
     hybrid_hess_atoms=None,
-    numhess=False,
+    numhess=None,
     # None, like every sibling in this signature: the guard below reads
     # "did the user type it", and a non-None default made that guard
     # always true, so the project's own value was overwritten by a flag
@@ -122,7 +126,7 @@ def ts(
     recalc_hess=None,
     trust_radius=None,
     tssearch_type=None,
-    full_scan=False,
+    full_scan=None,
     skip_completed=True,
     **kwargs,
 ):
@@ -169,21 +173,21 @@ def ts(
     # update ts_settings if any attribute is specified in cli options
     # note: only update value if user explicitly specifies a value for
     # the attribute to preserve project defaults
-    if inhess is True:
+    if inhess is not None:
         ts_settings.inhess = inhess
-        logger.debug("Enabled reading Hessian from file")
+        logger.debug(f"Set reading Hessian from file: {inhess}")
     if inhess_filename is not None:
         ts_settings.inhess_filename = inhess_filename
         logger.debug(f"Set Hessian filename: {inhess_filename}")
-    if hybrid_hess is True:
+    if hybrid_hess is not None:
         ts_settings.hybrid_hess = hybrid_hess
-        logger.debug("Enabled hybrid Hessian calculation")
+        logger.debug(f"Set hybrid Hessian calculation: {hybrid_hess}")
     if hybrid_hess_atoms is not None:
         ts_settings.hybrid_hess_atoms = hybrid_hess_atoms
         logger.debug(f"Set hybrid Hessian atoms: {hybrid_hess_atoms}")
-    if numhess is True:
+    if numhess is not None:
         ts_settings.numhess = numhess
-        logger.debug("Enabled numerical Hessian calculation")
+        logger.debug(f"Set numerical Hessian calculation: {numhess}")
     if recalc_hess is not None:
         ts_settings.recalc_hess = recalc_hess
         logger.debug(f"Set Hessian recalculation interval: {recalc_hess}")
@@ -247,9 +251,9 @@ def ts(
         label = label.replace("ts", "optts")
         logger.debug("Using OptTS approach")
 
-    if full_scan is True:
+    if full_scan is not None:
         ts_settings.full_scan = full_scan
-        logger.debug("Enabled full coordinate scan")
+        logger.debug(f"Set full coordinate scan: {full_scan}")
 
     logger.debug(f"Final job label: {label}")
 
