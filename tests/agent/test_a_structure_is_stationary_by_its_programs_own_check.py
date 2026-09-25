@@ -322,3 +322,36 @@ def test_a_search_that_ended_is_not_said_to_have_been_handed_its_geometry():
     assert reading.stationarity == "not_stationary"
     assert "its optimisation's last check" in reading.sentence()
     assert "handed" not in reading.sentence()
+
+
+def test_a_held_surface_is_judged_by_the_program_that_held_it():
+    """Gaussian's check on the held surface converged; the Cartesian
+    residual beside the held torsion (7.5e-4) is measured and stated."""
+
+    projected = _derive(
+        "gaussian-methanol-held-115", projected_coordinates=(METHANOL_HELD,)
+    )
+    said = " ".join(projected.assumptions)
+    assert "stationary point of the held surface by the check of" in said
+    assert "maximum force 0.000433 (threshold 0.00045)" in said
+    assert "the gradient left after removing the held coordinates" in said
+
+
+def test_an_orca_held_surface_keeps_its_programs_verdict():
+    """A control: ORCA converged this held H2O2 with its RMS gradient row
+    above tolerance (1.4e-4 of 1e-4), by rules its table does not print, so
+    the verdict is ORCA's own and not its rows'."""
+
+    projected = _derive("orca-held-90", projected_coordinates=((3, 1, 2, 4),))
+    assert "5 of 6 vibrational modes kept" in " ".join(projected.assumptions)
+
+
+def test_a_torsion_removed_at_a_minimum_its_program_converged():
+    """Gaussian's ethane minimum: largest Cartesian component 8.1e-4."""
+
+    projected = _derive(
+        "gaussian-ethane", projected_coordinates=(ETHANE_TORSION,)
+    )
+    said = " ".join(projected.assumptions)
+    assert "stationary point: the gaussian opt search's own" in said
+    assert "17 of 18 vibrational modes kept" in said

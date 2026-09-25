@@ -2868,43 +2868,65 @@ def _held_coordinate_projection(
         for item in named
     ]
     criterion = float(HESS_STATIONARITY_GRADIENT_EH_PER_BOHR)
+    measured = None
     if record.gradient is not None:
         basis = np.array([direction.ravel() for direction in directions]).T
         gradient = np.asarray(record.gradient, dtype=float).ravel()
         slopes, *_ = np.linalg.lstsq(basis, gradient, rcond=None)
         residual = float(np.max(np.abs(gradient - basis @ slopes)))
-        if residual > criterion:
-            raise _projection_refusal(
-                artifact_id,
-                "the gradient left at this structure after the named "
-                f"coordinates are removed is {residual:.3g} Eh/Bohr, above "
-                f"the optimiser's criterion {criterion:g}, so the structure "
-                "is not a stationary point of their surface. Route: hold "
-                "those coordinates in a constrained optimisation (modred) "
-                "and derive on its converged result.",
-            )
         slope_words = "; ".join(
             f"dE/d({word.split(' at ')[0]}) = {slope:.3g} Eh per "
             + ("Bohr" if len(item) == 2 else "radian")
             for word, item, slope in zip(words, named, slopes)
         )
-        surface = (
-            "a stationary point of the held surface: the gradient left "
-            f"after removing the held coordinates is at most {residual:.2g} "
-            f"Eh/Bohr, at or below the optimiser's criterion {criterion:g}; "
-            f"the energy slopes along them ({slope_words}), which the "
-            "projection removes"
+        measured = (
+            "the gradient left after removing the held coordinates is at "
+            f"most {residual:.2g} Eh/Bohr in Cartesian components; the energy "
+            f"slopes along them ({slope_words}), which the projection removes"
         )
-    elif held:
-        converged = _reader_answer(reader, output, "converged")
-        if converged is not None and not bool(converged):
+    # The program that held the coordinates judged the rest of the
+    # structure by its own criterion, on the surface it held: Gaussian
+    # leaves a frozen coordinate out of its forces, ORCA projects its
+    # constraints out of its gradient.  That check, not a Cartesian
+    # threshold from another optimiser, says whether the structure is
+    # stationary there: a Gaussian-converged methanol held at 115 deg (max
+    # internal force 4.3e-4 of 4.5e-4) was refused at a Cartesian residual
+    # of 7.5e-4 against geomeTRIC's 4.5e-4, while the host's own Hessian
+    # predicts it lies 1e-6 Eh from the held surface's stationary point
+    # (R10 Q30 oracle O1; R10 Q33).
+    check = reader.convergence_check_for_output(output) if held else None
+    converged = _reader_answer(reader, output, "converged") if held else None
+    if held and converged is not None and not bool(converged):
+        raise _projection_refusal(
+            artifact_id,
+            f"this {job} search printed the program's own marker that "
+            "it did not converge, so the structure is not a stationary "
+            "point even of the surface it held. Route: continue the "
+            "constrained search from the structure it reached.",
+        )
+    if check is not None:
+        if not check.stationary:
             raise _projection_refusal(
                 artifact_id,
-                f"this {job} search printed the program's own marker that "
-                "it did not converge, so the structure is not a stationary "
-                "point even of the surface it held. Route: continue the "
-                "constrained search from the structure it reached.",
+                f"the {job} search that held these coordinates judged the "
+                f"rest of the structure with its own check ({check.source}; "
+                f"{check.criterion}) and it gives {check.words()}"
+                + (f"; {check.verdict()}" if check.verdict() else "")
+                + ", so the structure is not a stationary point even of the "
+                "surface it held. Route: continue the constrained search "
+                "from the structure it reached.",
             )
+        surface = (
+            "a stationary point of the held surface by the check of the "
+            f"program that held it: the {job} search's own convergence "
+            f"check ({check.source}; {check.criterion}) gives "
+            f"{check.words()}"
+            + (f"; {check.verdict()}" if check.verdict() else "")
+            + (f"; {measured}" if measured else "")
+            + "; not a stationary point of the full surface, whose slope "
+            "along the held coordinates the projection removes"
+        )
+    elif held and measured is None:
         surface = (
             "a stationary point of the held surface: the "
             f"{job} search that held these coordinates "
@@ -2915,6 +2937,37 @@ def _held_coordinate_projection(
             )
             + "; not a stationary point of the full surface, whose slope "
             "along the held coordinates the projection removes"
+        )
+    elif not held and stationarity.stationarity == "stationary":
+        # Stationary on the full surface by whatever judged it -- the
+        # program's own check, or a gradient the host measured -- is
+        # stationary on any surface through the structure: removing a
+        # direction only removes gradient.  A Cartesian threshold from
+        # another optimiser is not asked again here (R10 Q33: Gaussian's
+        # converged ethane, largest Cartesian component 8.1e-4, was refused
+        # the torsion's removal at its own minimum).
+        surface = (
+            f"{stationarity.sentence()}; the named coordinates are removed "
+            "at that stationary point (a minimum's value is a profile's "
+            "reference, a saddle's is its transition-state free energy when "
+            "its imaginary mode is the removed coordinate)"
+            + (f"; {measured}" if measured else "")
+        )
+    elif measured is not None:
+        if residual > criterion:
+            raise _projection_refusal(
+                artifact_id,
+                "the gradient left at this structure after the named "
+                f"coordinates are removed is {residual:.3g} Eh/Bohr, above "
+                f"the optimiser's criterion {criterion:g}, so the structure "
+                "is not a stationary point of their surface. Route: hold "
+                "those coordinates in a constrained optimisation (modred) "
+                "and derive on its converged result.",
+            )
+        surface = (
+            f"a stationary point of the held surface: {measured}, at or "
+            f"below the optimiser's criterion {criterion:g} (geomeTRIC "
+            "convergence_gmax)"
         )
     elif stationarity.stationarity == "not_stationary":
         raise _projection_refusal(
