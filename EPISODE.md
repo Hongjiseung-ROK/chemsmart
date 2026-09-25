@@ -238,3 +238,13 @@ b96e63ee (Q28's native-word refusals, Q29's tool-argument repairs) at
   submitted by slot_submit with pre-registration digest 0fae4605baec. O1
   Gaussian (2153802) COMPLETED in 1 h 00 min: 34 of 42 commands exit 0, the
   eight failures all ethane held points (15-45 and 75-105 deg, NStep 38).
+- Gates on b9ccc476 (r10-integration b96e63ee merged at 651f5d61), pristine
+  export: full suite 23 failed, 4823 passed, 25 skipped, 3 xfailed; the
+  failing set equals the round baseline (Q27's 23), none under tests/agent;
+  ruff, black --check, isort --check clean on the 12 Python files the
+  episode touched; rsl.py check 0 failures. Witnesses shown red on a
+  pristine export of 40510c65 (the two reachability tests, the two archive
+  wraps, the half-turn refusal whose gate id 76acb0fb registered) and on
+  76acb0fb (the archive wraps), green after.
+- Waiting on: g1 2153889 (running), g2 2153890 (queued), O1 ORCA 2153801
+  (running; its methanol and ethane scans give P2/P3 for ORCA).
