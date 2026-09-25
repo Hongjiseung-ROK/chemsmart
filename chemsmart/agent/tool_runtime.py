@@ -2614,8 +2614,14 @@ def compile_time_observations(
             observations.append(reason)
     # The broken-symmetry request, and a singlet mixing guess made without
     # it: the translation each program's own settings module states, so
-    # the reply and the review name the mechanism the input carries.
+    # the reply and the review name the mechanism the input carries --
+    # unless the writer refuses the request for this state, which it does
+    # with the sentence its settings raise. Stating the translation there
+    # told a triplet node "ORCA runs ... on the singlet" beside a writer
+    # that had refused to write it (R10 Q26 census, all three programs).
     import importlib
+
+    from chemsmart.jobs.settings import broken_symmetry_refusal
 
     try:
         describe = getattr(
@@ -2625,7 +2631,12 @@ def compile_time_observations(
         )
     except ImportError:
         describe = None
-    if callable(describe):
+    refused = broken_symmetry_refusal(
+        resolved.get("broken_symmetry") is True, multiplicity
+    )
+    if refused:
+        observations.append(refused)
+    elif callable(describe):
         sentence = describe(dict(resolved), multiplicity=multiplicity)
         if sentence:
             observations.append(sentence)

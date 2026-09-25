@@ -335,6 +335,10 @@ def test_the_refusal_reaches_the_reply_the_frontier_and_the_review(
     assert json.loads(previewed)["result"]["status"] == "previewed"
     assert reply["status"] == "preview_failed"
     assert sentence in reply["refusal"], reply.get("refusal")
+    # No host word states the translation the writer just refused.
+    assert not any(
+        line.startswith("broken_symmetry: ") for line in reply["observations"]
+    ), reply["observations"]
 
     frontier = json.loads(script.read("inspect_workflow_frontier")[-1])
     rows = frontier["result"]["approval_readiness"]["nodes"]
