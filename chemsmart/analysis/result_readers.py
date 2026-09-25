@@ -22,7 +22,7 @@ import math
 import re
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 from chemsmart.io.molecules.perception import (
     BOND_PERCEPTION_POLICY_ID,
@@ -1304,7 +1304,15 @@ def _orca_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:
 
 
 def _gaussian_archive_sections(output: Any) -> list[str] | None:
-    """The last archive entry of a Gaussian log, split at its ``\\\\``."""
+    """The last archive entry of a Gaussian log, split at its ``\\\\``.
+
+    Gaussian wraps the entry at a fixed width wherever the characters fall,
+    the closing ``\\\\@`` included, so the lines are joined before the end
+    is looked for: searched in the raw text, an entry wrapped between its
+    last backslash and the ``@`` read as no entry, and the Hessian of 3 of
+    122 archive-bearing Gaussian logs in this repository and R10 Q30's
+    oracle (a frozen-atom optimisation; ethane held at 5 deg) was absent.
+    """
 
     text = getattr(output, "content_lines_string", None)
     if not text:
@@ -1312,14 +1320,14 @@ def _gaussian_archive_sections(output: Any) -> list[str] | None:
     start = text.rfind(" 1\\1\\")
     if start < 0:
         return None
-    end = text.find("\\\\@", start)
-    if end < 0:
-        return None
     joined = "".join(
         line[1:] if line.startswith(" ") else line
-        for line in text[start : end + 3].splitlines()
+        for line in text[start:].splitlines()
     )
-    return joined.split("\\\\")
+    end = joined.find("\\\\@")
+    if end < 0:
+        return None
+    return joined[: end + 3].split("\\\\")
 
 
 def _gaussian_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:
@@ -1442,6 +1450,137 @@ def _pyscf_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:
         source="the result's results/hessian",
         mass_convention="isotope-averaged standard atomic weights",
         gradient=gradient,
+    )
+
+
+@dataclass(frozen=True)
+class TorsionalScanV1:
+    """A relaxed scan of one dihedral, as the program that drove it ran it.
+
+    ``atoms`` are the driven dihedral's one-based atoms in the program's
+    own order; ``values_deg`` the dihedral at each converged point and
+    ``energies_eh`` its energy (the program's total, dispersion included
+    where the method has it).  ``measured`` says whether each value was
+    measured in the structure the program wrote for that point
+    (``positions_angstrom``) or is the target the program was asked to
+    hold, used only where no structure was kept.  ``planned_points`` is
+    how many points the scan declared, ``source`` where the rows were read.
+    """
+
+    atoms: tuple[int, ...]
+    values_deg: tuple[float, ...]
+    energies_eh: tuple[float, ...]
+    symbols: tuple[str, ...]
+    source: str
+    measured: bool
+    planned_points: int | None = None
+    positions_angstrom: tuple[Any, ...] | None = None
+
+
+def _dihedral_degrees(positions: Any, atoms: Sequence[int]) -> float:
+    """One-based ``atoms``' dihedral in degrees, (-180, 180]."""
+
+    from chemsmart.analysis.thermochemistry import internal_coordinate_value
+
+    return math.degrees(
+        internal_coordinate_value(positions, [int(i) - 1 for i in atoms])
+    )
+
+
+def _read_xyz_rows(path: Path) -> tuple[list[str], Any] | None:
+    import numpy as np
+
+    try:
+        lines = Path(path).read_text(errors="replace").splitlines()
+        count = int(lines[0].split()[0])
+        rows = [line.split() for line in lines[2 : 2 + count]]
+        return (
+            [row[0] for row in rows],
+            np.array([[float(value) for value in row[1:4]] for row in rows]),
+        )
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def _orca_torsional_scan(output: Any) -> TorsionalScanV1 | None:
+    """ORCA's relaxed surface scan of one dihedral.
+
+    The surface is ORCA's own 'Actual Energy' table (``scan_profile``) and
+    each point's structure the ``<stem>.NNN.xyz`` ORCA writes for it
+    (``scan_point_records``); the dihedral is measured in that structure.
+    """
+
+    coordinate = getattr(output, "scan_coordinate", None)
+    if not coordinate or coordinate.get("kind") != "dihedral":
+        return None
+    records = tuple(getattr(output, "scan_point_records", ()) or ())
+    if not records:
+        return None
+    symbols = [str(item) for item in _orca_symbols(output)]
+    atoms = tuple(int(item) for item in coordinate["atoms"])
+    values, energies, structures = [], [], []
+    measured = True
+    for record in records:
+        energies.append(float(record["energy"]))
+        read = (
+            _read_xyz_rows(Path(record["geometry_file"]))
+            if record.get("geometry_file")
+            else None
+        )
+        if read is None or read[0] != symbols:
+            measured = False
+            structures.append(None)
+            values.append(float(record["coordinate"]))
+            continue
+        structures.append(read[1])
+        values.append(_dihedral_degrees(read[1], atoms))
+    return TorsionalScanV1(
+        atoms=atoms,
+        values_deg=tuple(values),
+        energies_eh=tuple(energies),
+        symbols=tuple(symbols),
+        source="ORCA's relaxed-surface-scan table and its per-point .xyz files",
+        measured=measured,
+        planned_points=int(coordinate.get("points") or 0) or None,
+        positions_angstrom=(
+            tuple(structures)
+            if all(s is not None for s in structures)
+            else None
+        ),
+    )
+
+
+def _gaussian_torsional_scan(output: Any) -> TorsionalScanV1 | None:
+    """Gaussian's relaxed scan of one dihedral (``opt=modredundant`` ``S``).
+
+    Gaussian prints no surface table; the points are the structures the log
+    marks as converged scan points, each with its own energy, and the
+    dihedral is measured in each (``scan_profile``).
+    """
+
+    import numpy as np
+
+    coordinate = getattr(output, "scan_coordinate", None)
+    if not coordinate or coordinate.get("kind") != "dihedral":
+        return None
+    profile = getattr(output, "scan_profile", None)
+    structures = getattr(output, "all_structures", None)
+    if not profile or not structures or len(profile) != len(structures):
+        return None
+    symbols = [str(item) for item in structures[0].chemical_symbols]
+    atoms = tuple(int(item) for item in coordinate["atoms"])
+    positions = [
+        np.asarray(item.positions, dtype=float) for item in structures
+    ]
+    return TorsionalScanV1(
+        atoms=atoms,
+        values_deg=tuple(_dihedral_degrees(x, atoms) for x in positions),
+        energies_eh=tuple(float(row["energy"]) for row in profile),
+        symbols=tuple(symbols),
+        source="the structures Gaussian's log marks as converged scan points",
+        measured=True,
+        planned_points=int(coordinate.get("points") or 0) or None,
+        positions_angstrom=tuple(positions),
     )
 
 
@@ -1750,6 +1889,26 @@ class ResultReaderV1:
     resolve_cartesian_hessian: (
         Callable[[Any], CartesianHessianV1 | None] | None
     ) = None
+    #: The relaxed scan of one dihedral this result ran
+    #: (:class:`TorsionalScanV1`), for the hindered-rotor treatment that
+    #: takes a torsion's potential from it.  Not a selector: it is a table
+    #: of structures and energies a partition function is built from.
+    #: ``None`` means this reader cannot serve one for this result.
+    resolve_torsional_scan: Callable[[Any], TorsionalScanV1 | None] | None = (
+        None
+    )
+
+    def torsional_scan_for_output(self, output: Any) -> TorsionalScanV1 | None:
+        """The dihedral scan this result ran, or None when unservable."""
+
+        if self.resolve_torsional_scan is None:
+            return None
+        try:
+            return self.resolve_torsional_scan(output)
+        except (
+            Exception
+        ):  # noqa: BLE001 - a reader that cannot say says nothing
+            return None
 
     def cartesian_hessian_for_output(
         self, output: Any
@@ -6853,6 +7012,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         open_output=_orca_output,
         accessors=_orca_accessors(),
         resolve_cartesian_hessian=_orca_cartesian_hessian,
+        resolve_torsional_scan=_orca_torsional_scan,
         # An ORCA IRC's product structure is a sidecar beside the log, as
         # xTB's reached optimisation frame is: the geometry handoff seals
         # that file's digest, and extraction carries its bytes on the
@@ -7456,6 +7616,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         open_output=_gaussian_output,
         accessors=_gaussian_accessors(),
         resolve_cartesian_hessian=_gaussian_cartesian_hessian,
+        resolve_torsional_scan=_gaussian_torsional_scan,
         # Gaussian prints the SMD-CDS term in kcal/mol to two decimals.
         source_units={"solvation_nonelectrostatic_energy": "kcal/mol"},
         # A held coordinate keeps its unit and its atoms as ORCA's do: one

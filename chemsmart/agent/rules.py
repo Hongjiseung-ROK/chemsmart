@@ -324,6 +324,15 @@ CODE_GATES: tuple[tuple[str, str], ...] = (
         "own non-convergence -- has none, and every derived free energy "
         "states what it stands on, unmeasured included",
     ),
+    (
+        "thermochemistry.hindered_rotor_stands_on_its_scan",
+        "a hindered rotor's levels stand on a relaxed scan of the same "
+        "molecule in the same atom order and state, driven about the "
+        "rotor's own bond over one full period of the rotor, fitted by one "
+        "smooth periodic potential whose lowest well is the frequency "
+        "result's own structure; two Agent-planned H2O2 scans covered half "
+        "of H2O2's 360-deg period (R10 Q7 g2, Q27 g1)",
+    ),
 )
 
 
@@ -1637,6 +1646,27 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "archived ORCA results G(held 0/180) - G(saddle) = +0.0014/-0.0004 "
         "kcal/mol and G(held 90) - G(eq) = 0.346 (activation convention) "
         "or 0.672 kcal/mol (profile convention)",
+    ),
+    _r(
+        "thermochemistry.a_low_torsion_is_a_hindered_rotor",
+        "tool:plan_thermochemistry",
+        "T1",
+        "A low torsion is not a harmonic oscillator: a harmonic receipt "
+        "names each torsion it counted as one and the mode it was. To count "
+        "one as a one-dimensional hindered rotor, plan a relaxed scan stage "
+        "of a dihedral about its bond over one full period of the rotor -- "
+        "360 deg when its wells are mirror images, as H2O2's are; 120 deg "
+        "for a methyl group -- from the structure's own value and offset "
+        "from a planar 0 or 180 deg point, at the level of the frequency "
+        "result; bind the scan's output as an input of this node and name "
+        "the torsion with that input in internal_rotors. The receipt states "
+        "the potential, the reduced moment, the symmetry numbers and the "
+        "mode the rotor replaced; say which treatment the number you "
+        "deliver stands on.",
+        "R10 Q30 oracle O1 (CUHK 2153801/2153802, B3LYP-D3(BJ)/def2-TZVP, "
+        "298.15 K, 1 bar): the harmonic S of H2O2, methanol and ethane "
+        "missed JANAF/Gurvich by -5.4, -1.5 and -1.4 J/(K mol); the rotor "
+        "on methanol's scan gave 239.79 against 239.87",
     ),
     # R10 Q2 one name, one physics: end
     # R10 Q3 knowledge: append rules below this line

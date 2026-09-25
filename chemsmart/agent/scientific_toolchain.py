@@ -78,6 +78,7 @@ ANALYSIS_INTENT_KIND_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
             "use_weighted_mass",
             "frequency_scale_factor",
             "projected_coordinates",
+            "internal_rotors",
         ),
         "quantity_expression": (
             "expression_nodes",
@@ -390,6 +391,93 @@ class RegisteredResultInputIntentV1:
 
 
 @dataclass(frozen=True)
+class PlannedInternalRotorV1:
+    """A torsion a thermochemistry stage counts as a hindered rotor.
+
+    ``torsion`` is the dihedral a-b-c-d as the one-based atoms ``scan`` and
+    ``modred`` take (the rotor turns about b-c).  Its potential is the
+    relaxed scan bound as this node's input ``scan_input_id`` -- the
+    program output of a scan stage in the same plan -- or the registered
+    result ``scan_artifact_id``; exactly one of the two.
+    """
+
+    torsion: tuple[int, ...]
+    scan_input_id: str = ""
+    scan_artifact_id: str = ""
+
+    def __post_init__(self) -> None:
+        atoms = []
+        for index in tuple(self.torsion or ()):
+            if isinstance(index, bool) or float(index) != int(float(index)):
+                raise ScientificToolchainContractError(
+                    f"rotor atom index {index!r} is not an integer"
+                )
+            atoms.append(int(float(index)))
+        if len(atoms) != 4 or min(atoms) < 1 or len(set(atoms)) != 4:
+            raise ScientificToolchainContractError(
+                "an internal rotor names its torsion as four distinct "
+                f"one-based atoms a-b-c-d (it turns about b-c), not {atoms}"
+            )
+        object.__setattr__(self, "torsion", tuple(atoms))
+        named = bool(str(self.scan_input_id).strip()) + bool(
+            str(self.scan_artifact_id).strip()
+        )
+        if named != 1:
+            raise ScientificToolchainContractError(
+                "an internal rotor names its relaxed scan once: "
+                "scan_input_id (a scan stage's program output bound as an "
+                "input of this node) or scan_artifact_id (a registered "
+                "result), not both and not neither"
+            )
+        if self.scan_input_id:
+            _identifier(self.scan_input_id, "internal rotor scan_input_id")
+        if self.scan_artifact_id:
+            _identifier(
+                self.scan_artifact_id, "internal rotor scan_artifact_id"
+            )
+
+
+def _planned_internal_rotors(
+    value: Any, node_id: str
+) -> tuple[PlannedInternalRotorV1, ...]:
+    rotors = []
+    for item in tuple(value or ()):
+        if isinstance(item, PlannedInternalRotorV1):
+            rotors.append(item)
+        elif isinstance(item, Mapping):
+            unknown = sorted(
+                set(item) - {"torsion", "scan_input_id", "scan_artifact_id"}
+            )
+            if unknown:
+                raise ScientificToolchainContractError(
+                    f"analysis node {node_id!r}: internal rotor fields "
+                    f"{unknown} are not part of a planned rotor"
+                )
+            rotors.append(
+                PlannedInternalRotorV1(
+                    torsion=tuple(item.get("torsion") or ()),
+                    scan_input_id=str(item.get("scan_input_id", "") or ""),
+                    scan_artifact_id=str(
+                        item.get("scan_artifact_id", "") or ""
+                    ),
+                )
+            )
+        else:
+            raise ScientificToolchainContractError(
+                f"analysis node {node_id!r}: each internal rotor is an "
+                f"object, not {item!r}"
+            )
+    bonds = [tuple(sorted(rotor.torsion[1:3])) for rotor in rotors]
+    if len(set(bonds)) != len(bonds):
+        raise ScientificToolchainContractError(
+            f"analysis node {node_id!r} names one bond's torsion twice"
+        )
+    return tuple(
+        sorted(rotors, key=lambda rotor: tuple(sorted(rotor.torsion[1:3])))
+    )
+
+
+@dataclass(frozen=True)
 class AnalysisSelectorIntentV1:
     """Program-neutral quantity requested from a future result artifact."""
 
@@ -516,9 +604,18 @@ class AnalysisNodeIntentV1:
     #: free energy of the surface they are held on (R10 Q27).  It travels
     #: the approved DAG to the executor, which forwards it.
     projected_coordinates: tuple[tuple[int, ...], ...] = ()
+    #: Torsions a thermochemistry stage counts as one-dimensional hindered
+    #: rotors, each with the relaxed scan whose energies are its potential
+    #: (R10 Q30); the executor forwards them with the scans' artifacts.
+    internal_rotors: tuple[PlannedInternalRotorV1, ...] = ()
 
     def __post_init__(self) -> None:
         _identifier(self.node_id, "analysis node_id")
+        object.__setattr__(
+            self,
+            "internal_rotors",
+            _planned_internal_rotors(self.internal_rotors, self.node_id),
+        )
         if int(self.reaction_coordinate_mode or 0) < 0:
             raise ContractError(
                 "reaction_coordinate_mode is a 1-based mode index"
@@ -694,9 +791,41 @@ class AnalysisNodeIntentV1:
                     "result extraction needs one result input and selectors"
                 )
         elif self.analysis_kind == "thermochemistry":
-            if self.support_state == "planned" and len(self.inputs) != 1:
+            scan_inputs = {
+                rotor.scan_input_id
+                for rotor in self.internal_rotors
+                if rotor.scan_input_id
+            }
+            unknown_scans = sorted(
+                scan_inputs - {item.input_id for item in self.inputs}
+            )
+            if unknown_scans:
+                raise ScientificToolchainContractError(
+                    f"thermochemistry node {self.node_id!r} names rotor scan "
+                    f"input(s) {unknown_scans} it does not bind; bind each "
+                    "scan stage's program output as an input of this node "
+                    "under that input_id"
+                )
+            if self.internal_rotors and self.projected_coordinates:
+                raise ScientificToolchainContractError(
+                    f"thermochemistry node {self.node_id!r}: internal_rotors "
+                    "treats a minimum's torsions as hindered rotors and is "
+                    "not served together with projected_coordinates (a "
+                    "held surface); plan them as two stages"
+                )
+            results = [
+                item
+                for item in self.inputs
+                if item.input_id not in scan_inputs
+            ]
+            if self.support_state == "planned" and len(results) != 1:
                 raise ScientificToolchainContractError(
                     "planned thermochemistry needs exactly one result input"
+                    + (
+                        " besides its rotors' scans"
+                        if self.internal_rotors
+                        else ""
+                    )
                 )
             if self.selectors:
                 raise ScientificToolchainContractError(
@@ -897,6 +1026,7 @@ class AnalysisNodeIntentV1:
             or self.use_weighted_mass is not False
             or self.frequency_scale_factor != 1.0
             or self.projected_coordinates
+            or self.internal_rotors
         ):
             raise ScientificToolchainContractError(
                 "thermochemistry controls apply only to thermochemistry"
@@ -1465,6 +1595,7 @@ def build_scientific_toolchain_plan(
             use_weighted_mass=node.use_weighted_mass,
             frequency_scale_factor=node.frequency_scale_factor,
             projected_coordinates=node.projected_coordinates,
+            internal_rotors=node.internal_rotors,
         )
         normalized_analyses.append(normalized)
         dependencies[node.node_id].update(effective_dependencies)

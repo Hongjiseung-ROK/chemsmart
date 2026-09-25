@@ -1057,20 +1057,59 @@ class ApprovedWorkflowExecutor:
                         "a thermochemistry stage requires explicit "
                         "temperature and pressure"
                     )
+                # A rotor's scan is an input of this node beside the
+                # frequency result it is a torsion of (R10 Q30); the result
+                # is the one input no rotor names.
+                rotors = tuple(getattr(node, "internal_rotors", ()) or ())
+                scan_inputs = {
+                    rotor.scan_input_id
+                    for rotor in rotors
+                    if rotor.scan_input_id
+                }
+
+                def _input_artifact(item: Any) -> Any:
+                    if isinstance(item, RegisteredResultInputIntentV1):
+                        return _registered_artifact(item.artifact_id)
+                    if item.producer_node_id in calculation_ids:
+                        return _producer_artifact(item.producer_node_id)
+                    return None
+
                 sources = []
                 for item in node.inputs:
-                    if isinstance(item, RegisteredResultInputIntentV1):
-                        sources.append(_registered_artifact(item.artifact_id))
-                    elif item.producer_node_id in calculation_ids:
-                        sources.append(
-                            _producer_artifact(item.producer_node_id)
-                        )
+                    if item.input_id in scan_inputs:
+                        continue
+                    resolved = _input_artifact(item)
+                    if resolved is not None:
+                        sources.append(resolved)
                 if len(sources) != 1:
                     raise ContractError(
                         "thermochemistry requires exactly one result "
                         f"artifact; resolved {len(sources)}"
                     )
                 artifact = sources[0]
+                rotor_arguments = []
+                for rotor in rotors:
+                    if rotor.scan_input_id:
+                        bound = next(
+                            item
+                            for item in node.inputs
+                            if item.input_id == rotor.scan_input_id
+                        )
+                        scan = _input_artifact(bound)
+                    else:
+                        scan = _registered_artifact(rotor.scan_artifact_id)
+                    if scan is None:
+                        raise ContractError(
+                            f"rotor scan {rotor.scan_input_id!r} of "
+                            f"{node.node_id!r} resolves to no result artifact"
+                        )
+                    rotor_arguments.append(
+                        {
+                            "torsion": list(rotor.torsion),
+                            "scan_artifact_id": scan.artifact_id,
+                            "scan_program": program_by_kind[scan.kind],
+                        }
+                    )
                 arguments: dict[str, Any] = {
                     "program": program_by_kind[artifact.kind],
                     "artifact_id": artifact.artifact_id,
@@ -1089,6 +1128,8 @@ class ApprovedWorkflowExecutor:
                     arguments["projected_coordinates"] = [
                         list(item) for item in node.projected_coordinates
                     ]
+                if rotor_arguments:
+                    arguments["internal_rotors"] = rotor_arguments
                 if node.concentration_mol_l is not None:
                     arguments["concentration_mol_l"] = node.concentration_mol_l
                 if node.entropy_cutoff_cm1 is not None:

@@ -164,5 +164,21 @@ One function, `free_energy_surface`, says whether a result has a free
 energy and of which surface; the derivation and the verification of a
 refusal both ask it. A refusal over a held result whose Hessian the host
 can read is not verified, and it names the route. A structure shown not
-to be stationary, holding nothing, stays refused and verified. A hindered
-rotor is not served.
+to be stationary, holding nothing, stays refused and verified.
+
+A torsion is served as a one-dimensional hindered rotor (R10 Q30).
+`internal_rotors` names the torsion and a relaxed scan over one full
+period of the rotor. The receipt states:
+- the potential and its fit;
+- the reduced moment;
+- σ_int;
+- the mode the rotor replaced.
+
+Every harmonic receipt now names the torsions it counted as oscillators,
+with the route. On H2O2, methanol and ethane the rotor meets the
+reference standard entropies where the harmonic oscillator misses them,
+in ORCA and Gaussian alike (CUHK 2153801, 2153802). A held-point
+projection is not a rotor for a symmetric top. Removing one H-C-C-H
+dihedral's normal also softened ethane's CH3 rock, 999.6 -> 723.5 cm-1,
+so the free-energy-profile variant is not served. The same limit applies
+to `projected_coordinates` on such a dihedral.
