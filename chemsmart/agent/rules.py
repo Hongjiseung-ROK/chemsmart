@@ -1649,16 +1649,17 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "thermochemistry.a_low_torsion_is_a_hindered_rotor",
-        "tool:derive_thermochemistry",
+        "tool:plan_thermochemistry",
         "T1",
         "A low torsion is not a harmonic oscillator: a harmonic receipt "
         "names each torsion it counted as one and the mode it was. To count "
-        "one as a one-dimensional hindered rotor, relax-scan a dihedral "
-        "about its bond over one full period of the rotor -- 360 deg when "
-        "its wells are mirror images, as H2O2's are; 120 deg for a methyl "
-        "group -- from the structure's own value and offset from a planar 0 "
-        "or 180 deg point, at the level of the frequency result, and name "
-        "the torsion and that scan in internal_rotors. The receipt states "
+        "one as a one-dimensional hindered rotor, plan a relaxed scan stage "
+        "of a dihedral about its bond over one full period of the rotor -- "
+        "360 deg when its wells are mirror images, as H2O2's are; 120 deg "
+        "for a methyl group -- from the structure's own value and offset "
+        "from a planar 0 or 180 deg point, at the level of the frequency "
+        "result; bind the scan's output as an input of this node and name "
+        "the torsion with that input in internal_rotors. The receipt states "
         "the potential, the reduced moment, the symmetry numbers and the "
         "mode the rotor replaced; say which treatment the number you "
         "deliver stands on.",
