@@ -287,6 +287,12 @@ calls of 12. Settled `achieved`.
 - ae3b0c09, pristine export: full suite 23 failed, 4770 passed; the
   failing set equals the round baseline (q24 gate-full-failed.txt); none
   under tests/agent.
+- r10-integration (00997a11: Q26's merge, an RSL verify, a claims entry)
+  merged at d2dee812 with no conflict. d2dee812, pristine export: full
+  suite 23 failed, 4775 passed, the failing set equal to the round
+  baseline, none under tests/agent; ruff, black --check, isort --check
+  clean on the 12 Python files the episode touched; rsl.py check 0
+  failures.
 
 ## Status
 
@@ -301,6 +307,9 @@ calls of 12. Settled `achieved`.
   (scientific_toolchain.py normalised AnalysisNodeIntentV1 rebuild); even
   forwarded, the runtime admits it only over a characterisation minted in
   the same session, which an executor walk never has.
+- step 5: O1, O1b and g1 read (above); ab59c347, ae3b0c09, 5411601f from
+  what they showed; r10-integration merged (d2dee812); gates met.
+- Milestone A claimed; handing back.
 - step 3: oracle O1 and live goal g1 pre-registered above.
 - step 4 (issued): code 83b9bfbd packed (426 files, tree digest
   2f50f12e77c52d0c..., 0 AppleDouble), unpacked at r10/q27/code.
