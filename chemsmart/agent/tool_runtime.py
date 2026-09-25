@@ -195,7 +195,11 @@ from chemsmart.agent.preflight import (
     evaluate_program_node_preflight,
     validator_receipt_from_safe_preview,
 )
-from chemsmart.agent.preview import SafePreviewReceiptV1, execute_safe_preview
+from chemsmart.agent.preview import (
+    SafePreviewReceiptV1,
+    execute_safe_preview,
+    preview_refusal,
+)
 from chemsmart.agent.program_verifiers import build_preview_expectation
 from chemsmart.agent.projects import (
     ProjectDocumentV1,
@@ -11121,6 +11125,7 @@ class CommandCompiledToolHostV1:
             turn_id, {"invocation_sha256": invocation.invocation_sha256}
         )
         preview_status = preview["safe_preview"].status
+        refusal = preview_refusal(preview["safe_preview"])
         preflight = None
         if preview_status == "previewed" and not preview["critical_findings"]:
             # Preparation already holds every host-owned input needed by the
@@ -11201,10 +11206,22 @@ class CommandCompiledToolHostV1:
             # po3-r18 cycle 2's model-visible transcript contains zero
             # occurrences of `RIJCOSX` and zero of `aborting the run`.
             + self._probe_observations_for(node.node_id),
+            # Why no input was written, in ChemSmart's own words. Only the
+            # class reached the session, beside findings computed over the
+            # file a refused writer left, so "inspect the findings" sent
+            # it to fields that were never the problem (R10 Q26 census:
+            # 8 of 13 refusals).
+            **({"refusal": refusal} if refusal else {}),
             "next_action": (
                 "inspect the workflow frontier"
                 if preview_status == "previewed"
-                else "inspect the generated-input validation findings"
+                else (
+                    "read refusal: no input was written, and the sentence "
+                    "says why; the same node and project compile to the "
+                    "same refusal"
+                    if refusal
+                    else "inspect the generated-input validation findings"
+                )
             ),
         }
 
@@ -11790,6 +11807,8 @@ class CommandCompiledToolHostV1:
                 blocking.append(node_id)
                 blocking_reason = self._result_file_structure_reason(
                     plan, node_id
+                ) or self._node_preview_refusal(
+                    node_id, plan_sha256=plan.plan_sha256
                 )
             nodes.append(
                 {
@@ -11963,6 +11982,29 @@ class CommandCompiledToolHostV1:
             if receipt.invocation_sha256 == invocation_sha256
         ]
         return matches[-1] if matches else None
+
+    def _node_preview_refusal(
+        self, node_id: str, *, plan_sha256: str = ""
+    ) -> str:
+        """Why this node's latest command wrote no input, or "".
+
+        The frontier and the review ask this, and the compile reply renders
+        the receipt it just made through the same ``preview_refusal``, so
+        the three say one sentence. The review used to say "compiled, not
+        previewed" and route to compiling again, and the frontier "repair
+        using the findings", for a node whose writer had refused it with a
+        route in its own words (R10 Q26 census).
+        """
+
+        try:
+            invocation, _context = self._latest_invocation_for_node(
+                node_id, plan_sha256=plan_sha256
+            )
+        except ContractError:
+            return ""
+        return preview_refusal(
+            self._resolve_safe_preview(invocation.invocation_sha256)
+        )
 
     def _synthesize_command(self, turn_id: str, values: dict) -> Any:
         capability = self._get(
@@ -16878,13 +16920,24 @@ class CommandCompiledToolHostV1:
             # R10 Q15 g1 (CUHK 2152875) its first cycle: one amended scan
             # node was never materialized again, the refusal reached the
             # re-wake verbatim, and nothing in it said which node.
-            held = {
-                item.node_id: {
-                    "grounded": "grounded, not compiled",
-                    "compiled": "compiled, not previewed",
-                }.get(item.state, item.state)
-                for item in materialized.nodes
-            }
+            # A compiled node whose command raised is not "not previewed":
+            # it was refused, and the review says why in the words the
+            # compile reply and the frontier use.
+            def held_as(item: Any) -> str:
+                if item.state == "grounded":
+                    return "grounded, not compiled"
+                if item.state != "compiled":
+                    return item.state
+                refusal = self._node_preview_refusal(
+                    item.node_id, plan_sha256=plan.plan_sha256
+                )
+                return (
+                    f"compiled, and {refusal}"
+                    if refusal
+                    else "compiled, not previewed"
+                )
+
+            held = {item.node_id: held_as(item) for item in materialized.nodes}
             missing = ", ".join(
                 f"{node_id} "
                 f"({held.get(node_id, 'not materialized for the current plan')})"

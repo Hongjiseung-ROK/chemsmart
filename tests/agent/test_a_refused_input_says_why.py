@@ -26,6 +26,8 @@ import json
 
 import pytest
 
+from chemsmart.jobs.settings import broken_symmetry_refusal
+
 pytestmark = pytest.mark.capability(
     "tool:compile_command",
     "tool:inspect_workflow_frontier",
@@ -318,6 +320,30 @@ def _session(monkeypatch, tmp_path, program):
     return script, result
 
 
+@pytest.mark.parametrize("program", ["orca", "gaussian"])
+def test_the_refusal_reaches_the_reply_the_frontier_and_the_review(
+    monkeypatch, tmp_path, program
+):
+    """The program's own sentence, in all three places the session reads."""
+
+    script, result = _session(monkeypatch, tmp_path, program)
+    sentence = broken_symmetry_refusal(True, 3)
+    assert sentence
+
+    refused, previewed = script.read("compile_command")
+    reply = json.loads(refused)["result"]
+    assert json.loads(previewed)["result"]["status"] == "previewed"
+    assert reply["status"] == "preview_failed"
+    assert sentence in reply["refusal"], reply.get("refusal")
+
+    frontier = json.loads(script.read("inspect_workflow_frontier")[-1])
+    rows = frontier["result"]["approval_readiness"]["nodes"]
+    blocking = next(row for row in rows if row["node_id"] == "o2-bs")
+    assert sentence in blocking["blocking_reason"], blocking
+    # The review's word is the same sentence, not "compiled, not previewed".
+    assert sentence in result.final_text, result.final_text
+
+
 def test_a_refused_writer_leaves_nothing_for_the_read_back_to_misread(
     monkeypatch, tmp_path
 ):
@@ -336,3 +362,24 @@ def test_a_refused_writer_leaves_nothing_for_the_read_back_to_misread(
         for finding in reply["preview"]["critical_findings"]
         if finding["rule_id"] == "preview.semantic.mismatch"
     ], reply["preview"]["critical_findings"]
+
+
+def test_a_refusal_carries_no_host_path_and_no_key():
+    """The gate on what a refusal may say: the program's words, with each
+    host path replaced by its role and nothing shaped like a key."""
+
+    from chemsmart.agent.preview import public_refusal_message
+
+    workspace = "/private/var/folders/xx/T/tmpabc123"
+    said = public_refusal_message(
+        f"Cannot read {workspace}/job/mol.xyz or /Users/someone/.chemsmart/"
+        "server/local.yaml with key sk-sp-abcdef0123456789; B3LYP/G and "
+        "wB97X-D3(BJ)/def2-SVP are method words, def2/J a basis",
+        roles={workspace: "<preview-workspace>"},
+    )
+    assert "/private/var" not in said and "/Users/" not in said, said
+    assert "<preview-workspace>/job/mol.xyz" in said, said
+    assert "sk-sp-abcdef" not in said, said
+    for words in ("B3LYP/G", "wB97X-D3(BJ)/def2-SVP", "def2/J"):
+        assert words in said, said
+    assert len(public_refusal_message("x" * 5000, roles={})) <= 800
