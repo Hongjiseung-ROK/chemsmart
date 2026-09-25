@@ -210,6 +210,10 @@ model knew the route without being told.
   pre-registration d0f3d7336465; COMPLETED (results above).
 - 2026-09-25: replay R1, CUHK Slurm 2153704 (r10-q26-a), 2 cores,
   pre-registration d0f3d7336465; COMPLETED (results above).
+- 2026-09-25: G1, CUHK Slurm 2153709 (r10-q26-a), 16 cores;
+  CF, CUHK Slurm 2153710 (r10-q26-b), 4 cores;
+  G2, CUHK Slurm 2153711 (r10-q26-b, queued behind CF);
+  all three pre-registration e6226e5bbffd (commit 8c17ca95).
 
 ## Status
 
