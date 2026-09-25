@@ -848,6 +848,26 @@ Product consequence: none. `CHEMSMART_AGENT_INSPECTION_VALUES` stays off
 by default (it was never on); whether to keep the tested research switch
 or delete it is the master's call.
 
+Headline numbers (H, per rubric and oracle, both graders identical):
+computed correctly in S 31 of 33 conclusion packets, P 33 of 33, U 10 of
+11 -- the misses are the two empty packets of the host-crash goals and one
+S packet.
+
+### Defect found and left (outside my radius)
+
+A session ends when a provider turn's tool arguments carry a non-finite
+number: `_decode_tool_call` parses arguments with `json.loads`
+(chemsmart/agent/loop.py:1458), which accepts `NaN` and `Infinity`, and
+the `tool_started` row hashes them with `canonical_sha256` (loop.py:975),
+which refuses them (chemsmart/agent/_contracts.py:131); the refusal is
+not turned into a tool error the model can read, so the session ends and
+the goal settles returned_to_human ("canonical records cannot contain NaN
+or infinity"). Two of 77 sealed goals (t10-S2, t10-U1) ended this way,
+each right after its second provider turn and before any tool of that
+turn started. The cause is inferred from that code path and the streams'
+last events; the response itself is not on record (no transcript was
+written), so this is not a replay.
+
 ## Status
 
 - 2026-09-24: brief read; base verified; read CONDUCT.md, the RSL README
@@ -879,3 +899,21 @@ or delete it is the master's call.
   values as labelled. hc1 read (all mechanics pass); packet builder
   repaired; the last local development goal (dE-P-1) finishing.
 - ARMS FROZEN (this commit): the sealed tasks may be released.
+- 2026-09-25: re-pinned on a7bc02e0 (cfe1fd66) before any sealed session;
+  77 sealed goals in four jobs (2153435, 2153436; then 2153652, 2153653
+  after the STOP on a recovered throttle, under the master's ruling and
+  correction); packets built and the mapping digest committed (88ac0895)
+  before any grade existed; both graders' CSV digests verified, unblinded
+  with the committed mapping, the pre-registered analysis run and
+  committed (9f7f8e20).
+- Gates at 9c3f0126 (r10-integration 00997a11 merged, no conflicts; it
+  contains 9297d6ba and Q25's fence 481692be): full suite from a pristine
+  `git archive` export: 23 failed, 4767 passed, 25 skipped, 3 xfailed --
+  the failing set identical, test by test, to the one at 0501decc (the
+  round baseline); no failure in tests/agent. ruff, black, isort clean on
+  the two touched files. Export deleted after the gate.
+- CLOSED, no milestone: an honest null for the lever on this model. The
+  research switch stays off by default. The side branch q17-arm-unserved
+  (84223707) is arm U's evidence, not for merging. Sealed material stays
+  only under this worktree's git-ignored `sealed/` and, for the mapping,
+  `r10/q17/private/` on CUHK.
