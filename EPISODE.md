@@ -89,7 +89,9 @@ message, and one assistant message carries several parallel tool calls, so
 it undercounted; rows are now one per tool call and key.
 
 ax41 mirror (all four slices; deepseek-v4-flash-0731, read from each run's
-events): 897 transcripts, 660 distinct sessions, 1,667 authoring calls. 22
+events): 897 transcripts, 660 distinct sessions, 1,237 distinct authoring
+calls (CORRECTED: the first summary summed 1,667 over transcripts the
+mirror's slices duplicate; the hatch rows were deduplicated and stand). 22
 authoring calls in 9 sessions carry a hatch or free-word key:
 FlipSpin 1,2 (ino2 Ni(II) dimer, site-specific flip) x8; TightOpt x4 (two
 keys); maxiter 500 x2; Hirshfeld x2 and `print[ P_Hirshfeld ]` x1 (the
@@ -156,6 +158,82 @@ Verdicts (deepseek-v4-flash-0731 throughout):
 - C3 HOLDS: `input_string` in one goal (Q15 g1, 6 calls, replacing the
   whole input with 22 bytes -- R10 Q26 replay 2153704); `route_to_be_written`
   never.
+
+Denominator, pooled: 842 sessions, 1,788 distinct authoring calls (ax41
+1,237, CUHK R8-R10 551); 104 carry a hatch key (5.8%), in 16 sessions.
+
+## The change (committed: 9fc6dd05, c05bd23e, e8e0cb09)
+
+- Where an Agent authors a project (`render_project_yaml`), each program's
+  table (`native_words` in its settings module) refuses a native word a
+  typed setting states, naming that setting, and refuses outright the fields
+  that replace or append what the host writes (`AGENT_REFUSED_FIELDS`:
+  input_string, route_to_be_written, gen_genecp_file; Gaussian
+  append_additional_info; ORCA scf_tol). A word no typed setting carries
+  renders, verbatim and displayed. A person's project keeps every field.
+- Gaussian gains `scf_convergence` (tight, verytight), `defgrid` (its own
+  grid words; previously accepted and dropped) and `geom_maxiter`
+  (opt=(maxcycles=N)), written and read back through one table.
+- The registry stops offering the refused fields and declares Gaussian's
+  grid and SCF words; the loader's unknown-key refusal is answered with the
+  offered settings instead of the full key list that taught input_string.
+
+## Replay R, ax41 (local, provider-free, HOME fenced; scratch
+`q28/census/{extract_calls,replay_render,compare_replay}.py`)
+
+All 1,237 distinct ax41 authoring calls rendered by the host's
+`render_project_yaml` on a pristine export of 5225176a (the base code) and
+on 9fc6dd05: 15 outcomes change, every one a hatch call now refused by
+`project.native_words_have_typed_settings` with its route (TightOpt x2,
+LooseOpt, maxiter 500 x2, Gen, FlipSpin 1,2 x8, `print[ P_Hirshfeld ]`);
+the 2 bare `Hirshfeld` calls still render; 0 of the 1,220 calls without a
+hatch change (1,183 rendered on both, 37 refused on both by other gates).
+Archive vs base: 1,176 archived renders reproduce; 15 plain calls the
+archive rendered are refused by the base's later gates (identical on both
+trees; not this change). The producing ax41 commits are not on this host,
+so the producing-tree replay is done for CUHK (below).
+
+## Oracle O1 -- PRE-REGISTRATION (written before submission)
+
+A CLI job (no Agent) on q28's tree e8e0cb09 (code digest c19745bd...),
+Gaussian 16 C.02 on CUHK, 4 cores / 8 GB, `r10/q28/cli/o1/job.sh` (sha256
+da5bc55f...): water B3LYP/def2-SVP single points at a fixed geometry with
+no numerics setting, with each of the five `defgrid` words and each of the
+two `scf_convergence` words; and an optimisation of a distorted water (O-H
+1.10 A, 130 degrees) with no cap and with `geom_maxiter: 2`. Every input
+written by the host from project YAML (`chemsmart run`), none by hand.
+
+Predictions (never tuned after a result), read from Gaussian's own logs:
+- O1a: every word the writer writes is accepted: each single point ends in
+  normal termination and the route Gaussian echoes carries the word as
+  written (`int=<grid>`, `scf=<word>`, `opt=(maxcycles=2)`). FALSIFIED if
+  Gaussian refuses any.
+- O1b: the grid words change the grid: the SCF energies of coarsegrid,
+  sg1grid, finegrid and superfinegrid differ from ultrafine's (by 1e-7 to
+  1e-4 Eh), and ultrafine equals the no-setting run to every printed digit
+  (G16's default grid is UltraFine). A different default is recorded as
+  that, and falsifies the claim that writing nothing means ultrafine.
+- O1c: the SCF words set the threshold Gaussian prints ("Requested
+  convergence on RMS density matrix="): tight 1.00D-08, verytight a smaller
+  value; energies agree to 1e-6 Eh.
+- O1d: `geom_maxiter: 2` stops Gaussian's optimiser after 2 steps (its own
+  "Number of steps exceeded" message) while the uncapped run converges in
+  more than 2.
+- O1e: the host's route reader reads every written word back into its
+  typed field (checked locally on the returned inputs and logs).
+- Physics band: water B3LYP/def2-SVP at this geometry, -76.36 < E < -76.34
+  Eh.
+
+## Replay R, CUHK -- PRE-REGISTRATION
+
+Slot job `r10/q28/replay/replay.sh` (1 core): extracts every R8-R10
+authoring call (the census's named roots and exclusions) and renders each
+on R10 Q15's producing tree (`r10/q15/code-943882de`), R9 Gaussian's
+(`r9/gaussian/code`) and q28's (`r10/q28/code`, e8e0cb09). Predictions:
+the producing trees render every hatch call their goals made (the archive's
+word reproduced); q28's refuses exactly the hatch calls whose words a typed
+setting states (all 82 but NoUseSym's) with the typed route, and changes
+no call without a hatch.
 
 ## Jobs issued
 
