@@ -514,10 +514,11 @@ def _validate_gaussian_link_input(
 
 #: What a Gaussian reaction path is, as the ``irc(...)`` leaf spells it.
 #: ``recalc_step`` is written as ``recalc`` and ``maxcycles`` as
-#: ``maxcycle``; ``direction`` is a bare flag. ``stepsize`` is written only
-#: when a predictor is, and ``flat_irc`` is never written at all -- it only
-#: moves the defaults of the other three -- so neither is checkable from an
-#: input and both are verified by the loader that applied them instead.
+#: ``maxcycle``; ``direction`` is a bare flag. ``stepsize`` is written
+#: whenever the project states it (it was written only beside a predictor,
+#: and a stated step was dropped; R10 Q28), and ``flat_irc`` is never
+#: written at all -- it only moves the defaults of the others -- so it is
+#: verified by the loader that applied it instead.
 _GAUSSIAN_IRC_ROUTE_FIELDS = (
     "direction",
     "flat_irc",
@@ -563,7 +564,7 @@ def _gaussian_irc_route_findings(path, expected_settings):
         findings.append(
             _mismatch("direction", direction, tuple(sorted(flags)), path.name)
         )
-    for field in ("maxpoints", "maxcycles", "recalc_step"):
+    for field in ("maxpoints", "maxcycles", "recalc_step", "stepsize"):
         expected = expected_settings.get(field)
         if expected is None:
             continue

@@ -165,21 +165,19 @@ class TestRouteString:
         assert r2a.additional_opt_options_in_route == "recalcfc=5"
         assert r2a.additional_route_parameters is None
 
+        # The optimiser's cycle cap reads back as the typed setting that
+        # writes it, geom_maxiter, and not a second time among the options.
         s2b = "# opt=(recalcfc=5,MaxStep=3,MaxCycles=128) freq mn15 def2svp"
         r2b = GaussianRoute(s2b)
         assert r2b.jobtype == "opt"
-        assert (
-            r2b.additional_opt_options_in_route
-            == "recalcfc=5,maxstep=3,maxcycles=128"
-        )
+        assert r2b.additional_opt_options_in_route == "recalcfc=5,maxstep=3"
+        assert r2b.geom_maxiter == 128
 
         s2c = "# opt=(ts,calcfc,noeigentest,recalcfc=5,MaxStep=3,MaxCycles=128) freq mn15 def2svp"
         r2c = GaussianRoute(s2c)
         assert r2c.jobtype == "ts"
-        assert (
-            r2c.additional_opt_options_in_route
-            == "recalcfc=5,maxstep=3,maxcycles=128"
-        )
+        assert r2c.additional_opt_options_in_route == "recalcfc=5,maxstep=3"
+        assert r2c.geom_maxiter == 128
 
     def test_read_additional_route_parameters(self):
         s3a = "# opt=(recalcfc=5) freq=numer pbepbe/def2svp nosymm guess=mix"
@@ -456,7 +454,9 @@ class TestGaussian16Input:
             )
         )
         assert g16_pbc_1d.additional_opt_options_in_route is None
-        assert g16_pbc_1d.additional_route_parameters == "scf=tight"
+        # scf=tight is the typed SCF convergence, read back under its name.
+        assert g16_pbc_1d.additional_route_parameters is None
+        assert g16_pbc_1d.route_object.scf_convergence == "tight"
         assert g16_pbc_1d.jobtype == "sp"
         assert g16_pbc_1d.modred is None
         assert g16_pbc_1d.functional == "pbe"

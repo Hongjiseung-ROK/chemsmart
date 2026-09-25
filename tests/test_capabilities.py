@@ -183,6 +183,10 @@ def test_declared_capabilities_preserve_project_ownership_contract():
         settable = set()
         for class_name in class_names:
             settable.update(getattr(module, class_name).default().__dict__)
+        # A field the Agent's project tool refuses whenever it is set (a
+        # whole input or route, free lines, a file path) is a person's to
+        # set and is not offered to an Agent (R10 Q28).
+        settable.difference_update(getattr(module, "AGENT_REFUSED_FIELDS", ()))
         advertised = set(PROJECT_OWNED_PARAMETERS[program])
         assert {
             name

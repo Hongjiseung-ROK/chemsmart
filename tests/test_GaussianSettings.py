@@ -898,7 +898,9 @@ class TestGaussianPBCJob:
         assert settings.jobtype == "sp"
         assert settings.functional.lower() == "pbe"
         assert settings.basis.lower() == "6-31g(d,p)/auto"
-        assert settings.additional_route_parameters.lower() == "scf=tight"
+        # scf=tight is the typed SCF convergence, read back under its name.
+        assert settings.additional_route_parameters is None
+        assert settings.scf_convergence == "tight"
 
 
 class TestGaussianpKaJobSettings:

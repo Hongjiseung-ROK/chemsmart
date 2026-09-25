@@ -57,9 +57,16 @@ def test_settable_scientific_fields_are_declared(program, import_path):
     import importlib
 
     module_name, class_name = import_path.split(":")
-    settings_class = getattr(importlib.import_module(module_name), class_name)
+    module = importlib.import_module(module_name)
+    settings_class = getattr(module, class_name)
     declared = set(PROGRAM_CAPABILITIES[program].project_owned_parameters)
-    settable = _settings_fields(settings_class) - _NEVER_PROJECT_OWNED
+    # A field the Agent's project tool refuses whenever it is set is a
+    # person's to set and is not offered to an Agent; the settings module
+    # declares which (AGENT_REFUSED_FIELDS), beside the table that refuses.
+    agent_refused = set(getattr(module, "AGENT_REFUSED_FIELDS", ()))
+    settable = (
+        _settings_fields(settings_class) - _NEVER_PROJECT_OWNED - agent_refused
+    )
     undeclared = sorted(settable - declared)
     assert not undeclared, (
         f"{program} settings expose {undeclared} but "

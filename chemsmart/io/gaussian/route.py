@@ -465,6 +465,76 @@ class GaussianRoute:
         """
         return gaussian_route_broken_symmetry(self.route_string)
 
+    @staticmethod
+    def _keyword_options(token, keywords):
+        """The options of a route word naming one of *keywords*, or None.
+
+        ``scf=tight`` gives ``["tight"]``, ``int=(grid=ultrafine)`` gives
+        ``["grid=ultrafine"]``; a word naming another keyword gives None.
+        """
+
+        match = re.fullmatch(
+            r"([a-z]+)\s*=?\s*\(?([^()]*)\)?", str(token).strip().lower()
+        )
+        if match is None or match.group(1) not in keywords:
+            return None
+        return [part.strip() for part in match.group(2).split(",") if part]
+
+    def _typed_numerics_token(self, field):
+        """The route word the typed ``field`` reads back from, or None.
+
+        Only the form the writer writes is a typed request: the keyword
+        with the one word from the writer's own table
+        (``chemsmart.jobs.gaussian.settings``), so a route word carrying
+        more options stays what it was, a route parameter.
+        """
+
+        from chemsmart.jobs.gaussian.settings import (
+            GAUSSIAN_INTEGRATION_GRIDS,
+            GAUSSIAN_SCF_CONVERGENCE,
+        )
+
+        keywords, vocabulary = {
+            "scf_convergence": ({"scf"}, GAUSSIAN_SCF_CONVERGENCE),
+            "defgrid": ({"int", "integral"}, GAUSSIAN_INTEGRATION_GRIDS),
+        }[field]
+        for token in self.route_inputs:
+            options = self._keyword_options(token, keywords)
+            if options is None or len(options) != 1:
+                continue
+            word = options[0]
+            if field == "defgrid" and word.startswith("grid="):
+                word = word.split("=", 1)[1].strip()
+            if word in vocabulary:
+                return token, word
+        return None
+
+    @property
+    def scf_convergence(self):
+        """The typed SCF convergence the route states (``scf=tight``)."""
+
+        found = self._typed_numerics_token("scf_convergence")
+        return found[1] if found else None
+
+    @property
+    def defgrid(self):
+        """The typed integration grid the route states (``int=ultrafine``)."""
+
+        found = self._typed_numerics_token("defgrid")
+        return found[1] if found else None
+
+    @property
+    def geom_maxiter(self):
+        """The optimiser cycle cap inside ``opt=(...)``, or None."""
+
+        for token in self.route_inputs:
+            options = self._keyword_options(token, {"opt"})
+            for option in options or ():
+                match = re.fullmatch(r"maxcycles?\s*=\s*(\d+)", option)
+                if match:
+                    return int(match.group(1))
+        return None
+
     def get_dieze_tag(self):
         """
         Extract the job priority tag from route string.
@@ -720,6 +790,16 @@ class GaussianRoute:
         Extract additional route parameters.
         """
         broken_symmetry = self.broken_symmetry
+        # A word a typed setting reads back is that setting's, not a route
+        # parameter's: read as both, it would be written twice.
+        typed = {
+            found[0]
+            for found in (
+                self._typed_numerics_token("scf_convergence"),
+                self._typed_numerics_token("defgrid"),
+            )
+            if found
+        }
         additional_route = [
             each_input
             for each_input in self.route_inputs
@@ -727,6 +807,7 @@ class GaussianRoute:
                 route_parameter in each_input
                 for route_parameter in GAUSSIAN_ADDITIONAL_ROUTE_PARAMETERS
             )
+            and each_input not in typed
             # The mixing guess of a broken-symmetry route belongs to that
             # request, which reads back under its own name.
             and not (
@@ -759,6 +840,12 @@ class GaussianRoute:
                         # # add `no/eigentest` only for ts jobs
                         # <-- `eigentest` already included in writing
                         # in GaussianSettings.write_gaussian_input()
+                        # The cycle cap reads back as geom_maxiter, the
+                        # typed setting that writes it.
+                        if re.fullmatch(
+                            r"maxcycles?\s*=\s*\d+", opt_option.strip()
+                        ):
+                            continue
                         if any(
                             option in opt_option
                             for option in GAUSSIAN_ADDITIONAL_OPT_OPTIONS

@@ -125,7 +125,9 @@ def link(
             "direction": direction,  # Will be set based on jobtype
             "maxpoints": maxpoints if maxpoints is not None else 512,
             "maxcycles": maxcycles if maxcycles is not None else 128,
-            "stepsize": stepsize if stepsize is not None else 20,
+            # None: Gaussian's own step, or 20 on a predictor route, which
+            # is what this job has always written.
+            "stepsize": stepsize,
             "flat_irc": flat_irc if flat_irc is not None else False,
         }
         link_kwargs.update(irc_params)
