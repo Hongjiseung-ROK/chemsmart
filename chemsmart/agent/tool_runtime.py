@@ -4874,8 +4874,14 @@ class CommandCompiledToolHostV1:
             from chemsmart.agent.rules import rules_by_id
 
             ready = ", ".join(decision.ready_node_ids)
+            # The notice names the calls that answer it. Told only to
+            # "choose", R10 Q20 G1's cycle-4 session wrote its wave as text
+            # and the goal parked with its budget unspent (CUHK 2153658).
+            # Nothing the session writes is read as the decision.
             text = (
                 rules_by_id()["wake.execution_wave_decision_pending"].text
+                + " "
+                + rules_by_id()["wake.execution_decision_is_a_call"].text
                 + " Workflow "
                 + decision.workflow_id
                 + " currently reports ready: "
