@@ -224,6 +224,30 @@ trap, used as the "functional spread" uncertainty estimator. No host
 sensor flagged it (no stability analysis ran on that singlet). Found and
 left: outside this episode's radius.
 
+## G2 -- READ (job 2153711, host records)
+
+Settled `achieved_with_observations` (two spin.s2_deviation_ge_0.2
+anomalies, one per broken-symmetry singlet); NOT EXERCISED (0
+preview_failed in both session streams; one project per state and
+method). ORCA def2-TZVP: B3LYP/G BS singlet and triplet equal G1's to every
+printed digit; BHandHLYP BS singlet -230.809911554 Eh (<S**2> 1.035),
+triplet -230.806455975 (2.009), +2.17 kcal/mol. Delivered
+`st-gap-vertical` +2.711 kcal/mol -- PASS; no restricted-singlet claim.
+Live-goal exercise over the episode: 0 of 2 goals (both kept separate
+projects per state, as Q18 g1 did).
+
+## CF-G -- READ (job 2153715, 12 of 12 samples, no INFRA)
+
+Tree digests verified. ROUTE 6 of 6 in both arms; read by hand, the same
+route in every sample. The control texts read the five false findings as
+symptoms, not causes ("the generated native input is empty (0 bytes), so
+basis/functional/broken_symmetry read as missing"), and diagnose by
+difference (the singlet node on the same project previewed green). The
+falsifier FIRED again: for this refusal the misleading findings did not
+mislead deepseek-v4-flash-0731, and the sentence did not change its next
+move. Over CF and CF-G: 24 matched samples, ROUTE 12 of 12 per arm; every
+repaired-arm text restates the refusal's content.
+
 ## CF -- READ (job 2153710, 12 of 12 samples, no INFRA)
 
 Both tree digests verified on the node (control 812e923b, repaired
@@ -276,7 +300,10 @@ control's.
 - 2026-09-25: G1, CUHK Slurm 2153709 (r10-q26-a), 16 cores;
   CF, CUHK Slurm 2153710 (r10-q26-b), 4 cores;
   G2, CUHK Slurm 2153711 (r10-q26-b, queued behind CF);
-  all three pre-registration e6226e5bbffd (commit 8c17ca95).
+  all three pre-registration e6226e5bbffd (commit 8c17ca95); all
+  COMPLETED (reads above).
+- 2026-09-25: CF-G, CUHK Slurm 2153715 (r10-q26-a), 4 cores,
+  pre-registration f4ec218b845d (commit 1eb1b42b); COMPLETED.
 
 ## Status
 
@@ -286,3 +313,10 @@ control's.
   red only under my own scratch fence, which pinned Path.home and so
   overrode that test's HOME; the fence was corrected.) Next: submit G1 and
   CF, then G2.
+- 2026-09-25: all jobs read. Reachability established (census 8 of 13
+  lost -> 12 of 13 in the program's own words; witness; 12 of 12 live
+  repaired-arm sessions carried and restated the sentence). Behavioural
+  premise falsified for the refusal tested: 24 matched real-model samples
+  took the route with or without the sentence; both live goals avoided the
+  refusal. Milestone A claimed for reachability, with that result stated.
+  Handing back; branch clean, r10-integration (9297d6ba) merged.
