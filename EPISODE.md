@@ -204,6 +204,86 @@ the prose-act class narrows to G1's case.
   `turn_deadline_exceeded` is infrastructure, reported, never counted, never
   re-rolled.
 
+## Repairs committed (base merged with r10-integration df78d69d as 85619913)
+
+- af4721ca shared: ORCA `scan_points_converged` reads each converged step
+  (held value, final-evaluation energy and structure, point file when
+  present); the table readers keep their meaning. Checked over every
+  archived ORCA scan (62 unique outputs, CUHK + ax41): 36 of 36 completed
+  scans' steps equal ORCA's own table (5e-6 in the held value, 5e-8 Eh);
+  25 truncated scans hold 176 converged points; every converged step's file
+  equals the printed coordinates. Witness red on the base (AttributeError).
+- 451f5435 shared: `bind_scan_point_geometry` carries a converged step of a
+  scan that stopped early and says what it is (constrained minimum, not a
+  saddle; source normal termination, recorded ending, steps started,
+  planned, converged); refuses an unconverged step naming the steps that
+  converged; `inspect_run` lists the partial surface; REPAIR_MENU
+  (timeout_terminated, failed_nonconverged_scan_step, failed_native) names
+  the routes that serve a scan; rule recovery.scan_points_that_converged on
+  the tool. Witness red on the base ("records no scan surface").
+- 1b388d75 wake: the pending-decision notice names select_execution_wave and
+  continue_execution_reasoning (rule wake.execution_decision_is_a_call) and
+  says no text is read as a decision; the park reason adds, from the
+  session's own stream, that it was told once and ended on text. Witness red
+  on the base (no call named).
+- fccd4d89 shared: the `bind_reached_geometry` refusal G1's cycle 3 met
+  twice now names the route a scan has (inspect_run,
+  bind_scan_point_geometry). Witness red on 1b388d75.
+- tests/agent on a pristine export of 1b388d75: 3289 passed, 20 skipped, 2
+  xfailed, exit 0.
+
+## R-control -- READ (provider-free, 602 archived goal sessions)
+
+The park-reason predicate (told once, no decision call after, last turn
+text) fires on exactly 6 sessions -- G1 cycle 4 and the 5 R8 sessions --
+and on none of the 59 that answered the notice with the call. The notice's
+own predicate is unchanged (`_wave_decision_pending`), so a session that
+called the tool is never told.
+
+## R-replay -- a local attempt failed to be faithful (2026-09-25)
+
+Replaying G1 cycle 4 on c0896a07 on the Mac diverged before the notice:
+the replayed session made 0 previews and ended `planned`, and cycle 3's
+derived outcome lost its terminal states, because the run evidence names
+`/lustre/...` paths and the previews need CUHK's program environment. A
+replay that does not reproduce the archive is not evidence; the replay
+runs on CUHK, in place, read-only (replay 1 below).
+
+## Replay 1 -- PRE-REGISTRATION (written before submission)
+
+A slot job (4 cores, 24 GB, 2 h; provider-free: archived transcripts; no
+engine call -- only ORCA's input-check probe and the CLI's `--fake`
+previews) runs `tools/replay_cycle.py` (R10 Q16's harness extended: the
+host's own review resolution runs; HOME fenced before import) over G1's
+archive in place, writing only under `r10/q32/replay/`:
+- r2-c4: cycle 4 on the tree G1 ran (`r10/q20/r2/code`, c0896a07).
+  Expected: the replayed notice's text equals the archived one and its
+  event `content_sha256` is 9d6af724...; the ledger's
+  `execution_wave_decision_pending` row equals the archived one (ready
+  ts-opt-freq, reason "the Agent made no execution-boundary decision on
+  workflow hexatriene-rclosure-r4"). FALSIFIER of the replay: any
+  difference -- then no q32 replay result is believed.
+- q32-c4: cycle 4 on fccd4d89 with the same archived turns. Expected: the
+  notice names both calls and the workflow; the park row equal except its
+  reason, which gains "; the session was told once that the decision was
+  pending and ended on text, calling neither select_execution_wave nor
+  continue_execution_reasoning, and the host reads no decision from text".
+- r2-c3 / q32-c3: cycle 3 with the archived assistant turn at transcript
+  message 21 (the two refused `bind_reached_geometry` calls) replaced by
+  scripted calls -- host reachability in the real woken context, never
+  model behaviour: bind_reached_geometry, inspect_run and
+  bind_scan_point_geometry(point 10) on `orca-result-99fd69768f6248ea` (the
+  cycle-2 scan), then the binding again once its schema is loaded. Expected
+  on r2: the old refusal, no partial surface, "records no scan surface".
+  Expected on q32: the refusal names the scan route; inspect_run lists
+  steps 1-10 (step 10 at 2.325 A, -233.464021633484 Eh); point 10 binds
+  with `source_normal_termination` false and
+  `source_recorded_terminal_state` "timeout_terminated" read from the
+  workspace's own run evidence; the woken session's repair_menu for
+  timeout_terminated names bind_scan_point_geometry.
+- G1's archived ledger and workspace record hash identically before and
+  after the job.
+
 ## Jobs issued
 
 (none yet)
