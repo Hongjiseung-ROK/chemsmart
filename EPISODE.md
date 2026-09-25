@@ -132,6 +132,42 @@ to impose a dihedral constraint off an exactly planar step, Q27 g1 CUHK 2153714
   (Gaussian, slot b, 16 cores / 40 GB), code 57d1ca22 (digest e4fe4adf...),
   pre-registration digest 3695ad70b714.
 
+## O1 -- READ SO FAR (host receipts; 298.15 K, 1 bar; S and Cp in J/(K mol))
+
+Read through derive_result_thermochemistry on the fetched outputs (scratch
+q30/proto/analyse_o1*.py). Gaussian complete but ethane's held points; ORCA
+harmonic receipts and the H2O2 scan so far.
+- T0 harmonic S: H2O2 227.62 (G) / 227.57 (O); methanol 238.41 / 238.52;
+  ethane 227.75 / 227.77 -- below the band by 5.4, 1.4-1.5, 1.4. P1 holds for
+  H2O2 and methanol and FAILS for ethane: the harmonic misses ethane too
+  (the control was wrong; East-Radom's 1.8 per rotor was the better prior).
+- T1 1D-HR S: H2O2 234.07 (G) / 234.04 (O) [JANAF +1.08, Gurvich -0.45:
+  inside the interval band]; methanol 239.79 (G) [-0.08]; ethane 229.43 (G)
+  [+0.27]. P2 met so far. P3: H2O2 ORCA vs Gaussian 0.03; harmonic pairs
+  within 0.11. Cross-program (ORCA frequencies + Gaussian scan): 234.06,
+  239.78, 229.41.
+- Cp T1: H2O2 41.48 (-0.92 below [42.40, 43.12]), methanol 43.81 (-0.29),
+  ethane 51.89 (-0.60): P5 met. Cp T0: 42.51 (inside), 45.25 (+1.15), 50.53
+  (-1.96).
+- P4 (T2, G_perp): H2O2 234.06 (T2-T1 -0.01), methanol 239.83 (+0.04): the
+  projected free-energy profile moves S by < 0.1 here. Gaussian's modred at a
+  single held H-C-C-H of ethane oscillated between staggered and eclipsed
+  energies (-79.86784 / -79.86500 Eh) and stopped at NStep 38 at 15, 25, 35,
+  45 deg: one held dihedral does not hold a methyl top; the continuous
+  relaxed scan converged every point. One methanol held point (115 deg) is
+  refused by Q27's gate at a 7.5e-4 Eh/Bohr Cartesian residual that
+  Gaussian's own criterion accepted; T2 used the same projection directly.
+- P6: methanol I(3,4) 0.6183 (-2.6 % from East-Radom's 0.6348); either end
+  equal to 1e-16. P7: barriers (kcal/mol) H2O2 trans 0.870 (G) / 0.901 (O)
+  vs 1.09 spectroscopic, cis 7.81 vs 7.03; methanol 1.076 vs 1.067; ethane
+  2.699 vs 2.93. Spectroscopic H2O2 barriers change the rotor S by -0.15.
+- Systematic found: for a methyl rotor the relaxed single-dihedral scan
+  lets the top deform (ethane's methyl turns 8.9 deg per 10 deg driven near
+  the minimum), so the rotor's harmonic limit with the rigid-top moment is
+  289.7 against the 307.3 cm^-1 mode (-5.7 %, about +0.4 J/(K mol) in S);
+  methanol -1.5 %, H2O2 +0.3 %. A ratio treatment q_RRHO * q_HR/q_HO(1D)
+  would give ethane 229.01 and methanol 239.69 (sensitivity, not T1).
+
 ## Provenance added after pre-registration (not a band change)
 
 - NIST WebBook, H2O2 gas phase (read): S(gas, 1 bar) 232.95 J/K/mol, "Review
