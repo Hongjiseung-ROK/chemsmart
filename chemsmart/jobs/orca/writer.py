@@ -27,6 +27,16 @@ from chemsmart.utils.utils import (
 
 logger = logging.getLogger(__name__)
 
+#: The ORCA ``%irc`` switches a project can state, and ORCA's name for
+#: each. ORCA's own default is true for all five.
+_ORCA_IRC_SWITCHES = {
+    "adapt_scale_displ": "Adapt_Scale_Displ",
+    "sd_parabolicfit": "SD_ParabolicFit",
+    "interpolate_only": "Interpolate_only",
+    "do_sd_corr": "Do_SD_Corr",
+    "sd_corr_parabolicfit": "SD_Corr_ParabolicFit",
+}
+
 
 def _initial_hessian_to_read(settings):
     """The Hessian file a TS search or an IRC starts from, or None.
@@ -1137,11 +1147,18 @@ class ORCAInputWriter(InputWriter):
             end
         end.
         """
-        irc_settings_keys = self.settings.__dict__.keys()
         from chemsmart.jobs.orca.settings import ORCAJobSettings
 
-        parent_settings_keys = ORCAJobSettings().__dict__.keys()
-        irc_specific_keys = set(irc_settings_keys) - set(parent_settings_keys)
+        parent_settings_keys = set(ORCAJobSettings().__dict__)
+        # In the order the settings class declares them. A set's order
+        # changes from one process to the next, so the same project wrote
+        # a %irc block whose lines were ordered differently on every run:
+        # three orderings in three processes, three digests of one input.
+        irc_specific_keys = [
+            key
+            for key in self.settings.__dict__
+            if key not in parent_settings_keys
+        ]
 
         if not any(
             getattr(self.settings, key) is not None
@@ -1171,41 +1188,39 @@ class ORCAInputWriter(InputWriter):
             if value is None:
                 continue  # ignore the rest of the code and go to next in the for loop
             # only write into IRC input if the value is not None
-            if key == "internal_modred":
-                pass  # internal_modred is not an option in ORCA IRC file
-            elif key in {"inithess", "hess_filename"}:
-                pass  # written above, before the loop
-            elif key == "monitor_internals":
-                if value is True:
-                    f.write("  True\n")
-                    assert (
-                        self.settings.internal_modred is not None
-                    ), 'No internal modred is specified for IRC job "monitor_intervals" option!'
-                    prepend_string_list = (
-                        get_prepend_string_list_from_modred_free_format(
-                            self.settings.internal_modred, program="orca"
-                        )
-                    )
-                    for prepend_string in prepend_string_list:
-                        f.write(f"  {{ {prepend_string} }}\n")
-                    f.write("  end\n")
-            elif key == "adapt_scale_displ":
-                if value is True:
-                    f.write("  Adapt_Scale_Displ True\n")
-            elif key == "sd_parabolicfit":
-                if value is True:
-                    f.write("  SD_ParabolicFit True\n")
-            elif key == "interpolate_only":
-                if value is True:
-                    f.write("  Interpolate_only True\n")
-            elif key == "do_sd_corr":
-                if value is True:
-                    f.write("  Do_SD_Corr True\n")
-            elif key == "sd_corr_parabolicfit":
-                if value is True:
-                    f.write("  SD_Corr_ParabolicFit True\n")
+            if key in {
+                "internal_modred",  # the list Monitor_Internals carries
+                "monitor_internals",  # written last, below
+                "inithess",  # written above, before the loop
+                "hess_filename",
+            }:
+                continue
+            if key in _ORCA_IRC_SWITCHES:
+                # A stated switch is written whichever way it was stated.
+                # Each was written only when true, which is ORCA's own
+                # default for all five, so a project could never turn one
+                # off (R10 Q31 census).
+                f.write(
+                    f"  {_ORCA_IRC_SWITCHES[key]} "
+                    f"{'true' if value else 'false'}\n"
+                )
             else:  # all other keys with given values
                 f.write(f"  {key} {value}\n")
+        if self.settings.monitor_internals is True:
+            # ORCA's keyword opens a list of internal coordinates, closed by
+            # its own ``end``; a bare "True" line was written in its place,
+            # which is no %irc keyword at all. Last, so that nested ``end``
+            # closes nothing a reader of the block still has to read.
+            assert (
+                self.settings.internal_modred is not None
+            ), 'No internal modred is specified for IRC job "monitor_intervals" option!'
+            f.write("  Monitor_Internals\n")
+            coordinates = get_prepend_string_list_from_modred_free_format(
+                self.settings.internal_modred, program="orca"
+            )
+            for coordinate in coordinates:
+                f.write(f"    {{ {coordinate} }}\n")
+            f.write("  end\n")
         f.write("end\n")
 
     @property
