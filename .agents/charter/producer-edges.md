@@ -46,3 +46,22 @@ in-approval producer edge asks for ``reached_positions`` by name and so
 refuses it, while the later-cycle geometry lift serves it. Until one
 function answers both, an ORCA IRC endpoint is reusable only through a
 new workflow with its own review.
+
+A relaxed scan that stopped early keeps the steps it converged (R10 Q32).
+ORCA prints its surface table only after the last step. So a scan killed
+by the clock had no readable points, and four archived goals lost 10 or
+more converged points each; R10 Q20's G1 lost 26 points and 6
+node-hours. The ORCA reader now reads each converged step from the
+output itself:
+- on all 36 archived completed ORCA 6.1.1 scans it equals ORCA's own
+  table;
+- in 25 truncated scans it recovers 176 converged points;
+- a step's `<stem>.NNN.xyz` is not taken as evidence that the step
+  converged, because ORCA writes one for a step that did not.
+
+`bind_scan_point_geometry` binds such a point and says what it is: a
+constrained minimum, never a saddle. The reply carries the source's
+recorded ending, `inspect_run` lists the partial surface, and the repair
+menu for a stopped scan names this route. A typed ending does not yet
+carry the converged points, and PySCF and xTB partial results were not
+examined.
