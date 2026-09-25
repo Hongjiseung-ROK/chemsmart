@@ -211,6 +211,16 @@ class GaussianInputWriter(InputWriter):
                 # returns empty list if no heavy elements found in structure
                 # (heavy elements specified in settings)
             ):
+                if self.settings.light_elements_basis is None:
+                    # None was substituted for the route basis and the
+                    # writer died inside re.sub (R10 Q31 census).
+                    raise ValueError(
+                        "This structure holds none of heavy_elements "
+                        f"{self.settings.heavy_elements}, so every element "
+                        "gets light_elements_basis, which is not set. State "
+                        "light_elements_basis, or one basis for every "
+                        "element as basis."
+                    )
                 # BSE uses generic names while Gaussian owns its native route
                 # vocabulary. Translate only known aliases; punctuation in
                 # e.g. aug-cc-pVDZ and 6-31G(d) is chemically meaningful.

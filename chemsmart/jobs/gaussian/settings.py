@@ -1249,6 +1249,9 @@ class GaussianJobSettings(MolecularJobSettings):
         Returns:
             str: Complete route string for Gaussian input file.
         """
+        refusal = self._per_element_basis_refusal()
+        if refusal is not None:
+            raise ValueError(refusal)
         if self.route_to_be_written is not None:
             if getattr(self, "broken_symmetry", False):
                 raise ValueError(
@@ -1740,6 +1743,40 @@ class GaussianJobSettings(MolecularJobSettings):
             route_string += " pop=nboread"  # write bond order matrix
             logger.debug("Added WBI-specific pop=nboread keyword")
         return route_string
+
+    def _per_element_basis_refusal(self):
+        """Why the per-element basis stated cannot be written, or None.
+
+        Gaussian writes a per-element basis as a Gen/GenECP section: the
+        elements named in ``heavy_elements`` get ``heavy_elements_basis``,
+        and the others ``light_elements_basis`` (which one a structure
+        needs is the writer's to check, with the structure in hand). One
+        half of the pair without the other has no section to write:
+        ``heavy_elements_basis`` alone -- the half the capability
+        advertises -- validated and then died inside the writer replacing
+        the route basis with None (R10 Q31 census).
+        """
+
+        pair = (
+            ("heavy_elements", self.heavy_elements),
+            ("heavy_elements_basis", self.heavy_elements_basis),
+        )
+        missing = [name for name, value in pair if value is None]
+        if len(missing) != 1:
+            return None
+        present = (
+            "heavy_elements"
+            if missing[0] != "heavy_elements"
+            else ("heavy_elements_basis")
+        )
+        return (
+            f"{present} was set without {missing[0]}. A Gaussian "
+            "per-element basis is written as a Gen/GenECP section and "
+            "needs both: the elements that get the exception "
+            "(heavy_elements) and the set they get (heavy_elements_basis), "
+            "with light_elements_basis for every other element. Add "
+            f"{missing[0]}, or state one basis for every element as basis."
+        )
 
     @property
     def _genecp_elements_specified(self):
