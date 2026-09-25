@@ -518,3 +518,14 @@ hub's CLI carries the question to experiment (29.79 vs 29.1 +- 0.5).
   delivered numbers against B1-B4 and O1e (R3), (6) the host's words (R4);
   then O1e's IRC, CCSD(T) (ORCA and PySCF), T1 and stabilities against
   O-B, O-C, O-F, O-G, O-H and the oracle's own dH++(412 K) and dH_rxn.
+- 2026-09-25: EPISODE ENDS. G1 and O1e read (above). Milestone B not earned:
+  a single-program route by the model's recorded choice, and a goal parked
+  on its prose wave decision. The dispersion repair stands on provider-free
+  and target evidence (census replay with zero false refusals, Q15 g2's own
+  preview refused, D-run3 on the target), not on a live goal. Merged
+  r10-integration b96e63ee (7b84516f, no conflict; the dispersion functions
+  and both validate() paths intact). Gates on a pristine export of 7b84516f:
+  full suite 23 failed (the baseline set: test_structures 19,
+  test_pyscf_dispersion_conformance 2, test_PyscfSettings 1,
+  test_aggregation 1), 4826 passed; tests/agent none failed; ruff, black and
+  isort clean on the five touched files. No job of q20 is running.
