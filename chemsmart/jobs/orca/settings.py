@@ -2814,6 +2814,22 @@ class ORCApKaJobSettings(ORCAJobSettings):
         return ref_acid_sp_settings, ref_cb_sp_settings
 
 
+def orca_solvent_file_name(path):
+    """The name ORCA's ``%cosmors solventfilename`` takes for a solvent file.
+
+    ORCA opens ``<name>.cosmorsxyz``, so the writer writes the file's
+    basename without its extension; the reader reads that name back, and
+    the preview compares a stated path through this one function.
+    """
+
+    if path is None:
+        return None
+    basename = os.path.basename(str(path))
+    if basename.lower().endswith(".cosmorsxyz"):
+        return basename[: -len(".cosmorsxyz")]
+    return os.path.splitext(basename)[0]
+
+
 def orca_scan_block(coordinates, dist_start, dist_end, num_steps):
     """The ``%geom Scan`` specification the ORCA writer reads.
 

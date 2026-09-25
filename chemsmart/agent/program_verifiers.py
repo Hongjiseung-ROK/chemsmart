@@ -1102,6 +1102,14 @@ def _settings_match(parsed, expected, *, native_input=None):
             )
             continue
         observed = getattr(parsed, field)
+        if is_orca and field == "solventfilename":
+            # ORCA reads a solvent file by its name without the extension,
+            # which is what the writer writes; a stated path is compared
+            # through the same function.
+            from chemsmart.jobs.orca.settings import orca_solvent_file_name
+
+            if orca_solvent_file_name(value) == observed:
+                continue
         if is_orca and field == "light_elements_basis" and observed is None:
             # ORCA gives every element without a NewGTO override the route
             # basis, and the per-element basis owner refuses a light set

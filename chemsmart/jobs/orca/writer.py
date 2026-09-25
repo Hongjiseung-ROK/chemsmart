@@ -767,10 +767,12 @@ class ORCAInputWriter(InputWriter):
             logger.info(f"Solvent filename is: {sf_path}")
             sf_basename = os.path.basename(sf_path)
             logger.info(f"Solvent basename is: {sf_basename}")
-            # Strip .cosmorsxyz extension if present
-            if sf_basename.lower().endswith(".cosmorsxyz"):
-                sf_name = sf_basename[: -len(".cosmorsxyz")]
-            else:
+            # The name ORCA opens as <name>.cosmorsxyz, from the one
+            # function the preview compares through.
+            from chemsmart.jobs.orca.settings import orca_solvent_file_name
+
+            sf_name = orca_solvent_file_name(sf_path)
+            if not sf_basename.lower().endswith(".cosmorsxyz"):
                 sf_cosmorsxyz = os.path.join(
                     os.path.dirname(sf_path),
                     f"{os.path.splitext(sf_basename)[0]}.cosmorsxyz",
@@ -783,7 +785,6 @@ class ORCAInputWriter(InputWriter):
                     f"Writing solvent molecule .cosmorsxyz to {sf_cosmorsxyz}"
                 )
                 solvent_mol.write_cosmorsxyz(sf_cosmorsxyz)
-                sf_name = os.path.splitext(sf_basename)[0]
             sf_line = f'solventfilename "{sf_name}"'
 
         needs_block = (
