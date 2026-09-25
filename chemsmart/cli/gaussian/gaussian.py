@@ -120,14 +120,26 @@ def click_gaussian_settings_options(f):
 
 
 def click_gaussian_irc_options(f):
-    """Common click options for IRC-related jobs."""
+    """Common click options for IRC-related jobs.
+
+    Every option defaults to None, meaning "not given": the command then
+    keeps what the project's ``irc:`` section states, and the settings
+    class's own default where the project states nothing. These defaults
+    were the numbers themselves (512, 128, 20, 6, False), so the command's
+    "use the project value unless the user gives one" never held: every
+    Gaussian IRC a project configured ran maxpoints=512 and maxcycle=128
+    (R9 g1 and g3 as written), and a session that asked for maxpoints 20,
+    48 or 60 met a red preview and either wrote 512 to match or lost the
+    path (R10 Q28 G1, G2).
+    """
 
     @click.option(
         "-fl/",
         "--flat-irc/--no-flat-irc",
         type=bool,
-        default=False,
-        help="Whether to run flat IRC or not.",
+        default=None,
+        help="Whether to run flat IRC or not. Default: the project's "
+        "flat_irc, else no.",
     )
     @click.option(
         "-pt",
@@ -151,30 +163,35 @@ def click_gaussian_irc_options(f):
         "-rs",
         "--recalc-step",
         type=int,
-        default=6,
+        default=None,
         help="Compute the Hessian analytically every N predictor steps or every "
-        "|N| corrector steps if N < 0.",
+        "|N| corrector steps if N < 0. Default: the project's recalc_step, "
+        "else 6.",
     )
     @click.option(
         "-mp",
         "--maxpoints",
         type=int,
-        default=512,
-        help="Number of points along the reaction path to examine.",
+        default=None,
+        help="Number of points along the reaction path to examine. Default: "
+        "the project's maxpoints, else 512.",
     )
     @click.option(
         "-mc",
         "--maxcycles",
         type=int,
-        default=128,
-        help="Maximum number of steps along the IRC to run.",
+        default=None,
+        help="Maximum number of steps along the IRC to run. Default: the "
+        "project's maxcycles, else 128.",
     )
     @click.option(
         "-ss",
         "--stepsize",
         type=int,
-        default=20,
-        help="Step size along the reaction path, in units of 0.01 Bohr.",
+        default=None,
+        help="Step size along the reaction path, in units of 0.01 Bohr. "
+        "Default: the project's stepsize, else Gaussian's own (a predictor "
+        "route writes 20).",
     )
     @click.option(
         "-d",
