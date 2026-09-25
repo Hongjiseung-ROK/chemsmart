@@ -152,7 +152,77 @@ O2 (Gaussian):
   Physics: three real modes, bend 1550-1750 and stretches 3600-4000 cm-1.
 - O2b `sp: {forces: true}`: Gaussian prints its Forces (Hartrees/Bohr) block.
 
+## Jobs issued
+
+- 2026-09-25: O1, CUHK Slurm 2154008 (r10-q31-a), 4 cores, pre-registration
+  811ec1606bca, code a39f784b (digest 95a24b3c...); COMPLETED.
+- 2026-09-25: O2, CUHK Slurm 2154009 (r10-q31-b), 4 cores, pre-registration
+  811ec1606bca, same code; COMPLETED.
+
+## O1, O2 -- READ (from the programs' own outputs)
+
+- O1a FAILED as pre-registered-to-fail: ORCA ran scan point 1, recomputing
+  the exact Hessian (the input still carried the class default
+  `Recalc_Hess 5`), carried it into point 2 (`InHess .... Read`) and stopped:
+  "Error (ORCA_GSTEP): could not find the Hessian file!" (hcnscan.carthess).
+  The c30a76cf repair (no Calc_Hess) moved Q20's abort from point 1 to
+  point 2. Repaired again in 73c4c351 (a ScanTS carries no recalculation);
+  re-run as O3a.
+- O1b HOLDS: OptTS converged; one imaginary mode, -1076.84 cm-1 (band
+  [-1250, -1000]); H-C 1.1969, H-N 1.3975 A (bands [1.10, 1.25], [1.30,
+  1.50]).
+- O1c: the settings claim HOLDS, the physics prediction FAILED. ORCA's own
+  IRC settings block reads back every stated control: "MaxIter .... 40"
+  (default 20), "Direction .... Forward-only", "Initial displacement Hessian
+  type .... Compute analytically", "Do parabolic fit if SD step is uphill
+  .... NO", "Do Correction to SD step .... NO", "Do update to length of SD
+  step and correction .... NO" (ORCA's default is YES for all three: no
+  project could state NO before 293fc7b9), and the iteration table carries
+  the monitored B(H2,C0) and B(H2,N1) columns (Monitor_Internals applied).
+  Normal termination, no input error. But the path did not reach a
+  minimum: with the step corrections off, the energies zigzag (-93.281486,
+  -93.280290, -93.280606, -93.282343 ...) with max|G| ~0.1 Eh/bohr and the
+  walk stops at the stated MaxIter 40 ("MAXIMUM NUMBER OF ITERATIONS
+  REACHED"), H-N 0.99-1.04 A and H-C 1.96 A (heading to HNC). The
+  prediction "ends at a minimum" was wrong; the control O3b tests whether
+  the disabled controls are the cause.
+- O1d HOLDS: `!  EnGrad` -> CARTESIAN GRADIENT printed; watergrad.engrad has
+  3 atoms, 9 components, energy -76.3574137395 = FINAL SINGLE POINT ENERGY
+  -76.357413739454; max|g| 0.0360 Eh/bohr. Gaussian's forces on the same
+  geometry (O2b) are the negative of ORCA's gradient to 6e-5 Eh/bohr
+  (O: 0.036013/0.008027 vs 0.035972/0.007963).
+- O2a H0 HOLDS: Gaussian's generated frequency step route is `#N
+  Geom=AllCheck Guess=TCheck SCRF=Check GenChk RB3LYP/def2SVP Freq` -- no
+  typed word in it -- yet its IOps carry them: 3/75=-7 (superfinegrid; the
+  O2b sp without a grid has no 3/75) and 3/124=41 (GD3BJ) in both steps;
+  "Nuclear repulsion after empirical dispersion term = 9.0878341267" and
+  "SMD-CDS ... = 1.43" identical to the opt's last point; "Symmetry turned
+  off by external request" in both; the freq step's SCF equals the opt's
+  last to 1e-10 Eh (-76.3704978120). Every typed word the hub writes on an
+  opt+freq route reaches the generated frequency step (Q27's class does not
+  extend to them). Physics: modes 1609.6, 3770.9, 3842.8 cm-1, all real.
+- O2b HOLDS: `# b3lyp def2svp force` -> "Forces (Hartrees/Bohr)" printed.
+
+## Oracle O3 (ORCA) -- PRE-REGISTRATION
+
+Written before submission; code = this branch at the commit named in
+code-commit.txt (73c4c351 + this EPISODE.md), 4 cores / 8 GB.
+- O3a ScanTS from the same project and bent HCN as O1a, on the repaired
+  writer (the %geom block carries only the Scan). PREDICT: the relaxed scan
+  runs past its highest point, OptTS from there converges, Freq shows
+  exactly one imaginary mode within 5 cm-1 of O1b's -1076.84 cm-1 (band
+  [-1250, -1000]), H-C and H-N within 0.005 A of O1b's saddle. FAIL: any
+  ORCA abort, or no saddle.
+- O3b CONTROL for O1c: the same forward IRC from O1b's saddle (MaxIter 40,
+  InitHess calc_anfreq, Monitor_Internals) with no switch stated. PREDICT:
+  ORCA's settings block prints YES for the parabolic fit, the SD correction
+  and the step-length update (its defaults), and the path converges before
+  iteration 40 with non-increasing energies, ending near HNC (H-N 0.98-1.02
+  A). If it also zigzags and stops at 40, O1c's zigzag is NOT attributed to
+  the switches.
+
 ## Status
 
 2026-09-25: repairs and guard committed; merged r10-integration 3f3331c0;
-oracles O1 and O2 pre-registered, not yet submitted.
+O1 and O2 read; full suite on a pristine export of a39f784b: 23 failed ==
+the round baseline, 4852 passed. O3 pre-registered, not yet submitted.
