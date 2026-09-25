@@ -336,14 +336,14 @@ Predictions (never tuned after a result):
 - 2026-09-25: live goal G2, CUHK Slurm 2153763 (r10-q28-b), 32 cores,
   pre-registration 25920fd9cb7a.
 
-## Gates (tree b7158727 = f049528a + episode records)
+## Gates (final: 53fa990d = q28 23cb2daf + r10-integration 9964968e)
 
-- tests/agent on a pristine export of b7158727: 3233 passed, 0 failed
-  (chemsmart imported from the export).
-- Full suite (worktree, PYTHONPATH set, merged tree): 23 failed == the
-  round baseline (test_structures x19, PyscfSettings x1, aggregation x1,
-  pyscf dispersion x2), 4788 passed.
-- ruff, black --check, isort --check clean on the 13 touched Python files.
+- Full suite on a pristine export of 53fa990d (chemsmart imported from the
+  export): 23 failed == the round baseline (test_structures x19,
+  PyscfSettings x1, aggregation x1, pyscf dispersion x2), 4812 passed; no
+  failure under tests/agent.
+- ruff, black --check, isort --check clean on the 16 touched Python files.
+- Earlier: tests/agent on a pristine export of b7158727, 3233 passed.
 
 ## Found and left
 
