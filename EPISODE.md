@@ -130,6 +130,67 @@ projection) against the rotor's rigid turn (B, the direction
   on all three; A fails it on ethane. (B is applied to Q30's band after the
   fact, and says so.)
 
+## Repair (as built; one commit per defect, witnesses red on the base)
+
+1. What a program held is read from its own record: Gaussian's "Initial
+   Parameters" table (frozen internal coordinates from any source, and atoms
+   frozen in all three Cartesian coordinates), ORCA's "Will constrain atom"
+   lines (atoms held in all three). A structure that held anything is not a
+   stationary point of the full surface.
+2. A structure is judged by the check of the program that judged it
+   (`ConvergenceCheckV1`, one reader function per program): Gaussian's force
+   rows at the structure the modes belong to (its frequency step's check with
+   the exact Hessian), ORCA's printed verdict, xTB's verdict at the level it
+   ran. Order: atom; held/frozen; driven; a search's own non-convergence (it
+   outranks the last check: po3-r19); the program's check; a gradient no
+   program judged, against the host's criterion (geomeTRIC's, PySCF's own);
+   a search's marker; else unmeasured (a search that ended unjudged says so
+   instead of "handed its geometry").
+3. A held surface is judged by the check of the program that held it; the
+   Cartesian residual is measured and stated. A structure stationary on the
+   full surface is stationary on any surface through it (no second,
+   foreign threshold).
+4. A named dihedral that turns a group with more than one atom off the bond
+   is removed as that group's rigid turn (the direction `internal_rotors`
+   removes), with the overlap and the strain on the turn's surface stated.
+- shared: the characterisation records the host's measured gradient
+  whatever judged the structure, and names the reading's criterion.
+
+## PRE-REGISTRATION -- oracle O1 (CLI; written before submission)
+
+Question: is Gaussian's own convergence (which the base host refused where
+the largest Cartesian component exceeded geomeTRIC's 4.5e-4) adequate for the
+free energy the host now serves on it? Re-judge two Gaussian-converged
+structures by re-optimising them from where Gaussian's default criterion
+stopped, with `opt=tight` (max force 1.5e-5), same level (B3LYP-D3(BJ)/
+def2-TZVP, Gaussian 16 C.02, CUHK), and derive through the repaired host:
+- M: methanol held at H3-O2-C1-H4 = 115 deg (modred), from the end of R10
+  Q30's g_meoh_heldp115 (now fixture meoh_b3lyp_d3bj_tzvp_held115.log): the
+  held-surface free energy (projected_coordinates, rigid turn).
+- E: ethane staggered (opt), from the end of Q30's g_c2h6_eq (now fixture
+  c2h6_b3lyp_d3bj_tzvp_opt.log): the harmonic G and the torsion-projected G.
+- controls: the same two restarted with the default criterion (1-2 steps).
+Bands (fixed now):
+- P1: both tight runs complete ("Optimization completed"); their Freq-step
+  maximum internal force <= 1.5e-5 and largest Cartesian component <= 4.5e-4.
+- P2 (decisive): |G(default) - G(tight)| <= 0.01 kcal/mol for M's held-surface
+  G and for E's harmonic and projected G.
+- Falsifier: |dG| > 0.05 kcal/mol on either -> Gaussian's default criterion is
+  not adequate for these free energies, the base refusal had a physical
+  point, and repair 3 is wrong in substance (it would be reverted).
+- Reported, not banded: the geometry change (largest interatomic distance
+  change), the electronic energy change, the controls' dG.
+- Inputs (r10/q33/cli/o1 on CUHK; sha256): commands.txt f1cb4e42...,
+  gau_tz.yaml a2d413fc... (Q30's gau_tz.yaml), gau_tz_tight.yaml 17a314a8...
+  (the same plus `additional_opt_options_in_route: tight`; the writer
+  renders `opt=(tight)` and `opt=(modredundant,tight)`, checked with
+  `chemsmart run --fake`), meoh_held115_default_end.xyz e415ddcd...,
+  c2h6_eq_default_end.xyz 68d25049... (both the reached structures of the
+  fixtures, written by scratchpad q33/oracle/write_starts.py; H3-O2-C1-H4 =
+  114.9999 deg, H3-C1-C2-H6 = 60.0000 deg). Code 2bcdc763 (digest
+  955a1bd7...), 16 cores, 32 GB, 1 h. Analysis afterwards, provider-free,
+  through derive_result_thermochemistry on the fetched logs.
+
 ## Status
 
 - step 0: brief read; base verified; AGENTS.md, CONDUCT.md, RSL README and the
@@ -140,3 +201,10 @@ projection) against the rotor's rigid turn (B, the direction
   functions read. Cluster gate open.
 - step 1: census and projection census read (above). Premise narrowed? No:
   widened -- five classes, two of them the brief's.
+- step 2: repairs committed, one per defect: 3041b7fb (shared:
+  characterisation), cfaffd58 (held/frozen), 6ca94a2f (the program's own
+  check), b25ea98b (held surface), 2bcdc763 (rigid turn). Each commit's
+  witnesses shown red on its parent and green after (per-state files built
+  from the tested final tree, which the last commit equals byte for byte);
+  tests/agent on the final state: exit 0, no failures.
+- step 3: oracle O1 pre-registered (above); submitting next.
