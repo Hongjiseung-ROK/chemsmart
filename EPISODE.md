@@ -120,6 +120,58 @@ Predictions (bands fixed now):
   and dG vs Gaussian-host within 0.15; above -> refused naming it. Either
   is the measured way; reported as observed.
 
+## O1 -- READ (CUHK 2153713, COMPLETED 5 min 19 s, 10/10 exit 0, code 83b9bfbd)
+
+Read through the host's own readers and derivation (scratch
+q27/proto/analyse_o1.py on the fetched outputs), against P1-P6:
+- P1 met: every Gaussian archive Hessian reproduces its printed spectrum to
+  <= 0.0088 cm^-1.
+- P2 met: G(held 0, projected) - G(ts0, mode 1 removed) = -0.0031; G(held
+  180) - G(ts180) = +0.0063 kcal/mol (band +-0.02).
+- P3 FALSIFIED as registered, for a reason the pre-registration did not
+  foresee: `freq=projected` written into the modred route reaches only
+  Gaussian's first job step (overlay 7/45=1); the frequency step Gaussian
+  generates after an optimisation (`#N Geom=AllCheck ... Freq`) drops
+  `Projected`, and g_p90 printed six ordinary modes (454.19 cm^-1
+  torsion included), identical to g_m90's. The hub can write the token,
+  and through an opt+freq job it silently does nothing.
+- P4: its observable held (g_p0 keeps -612.87, g_p180 keeps -236.46
+  cm^-1), but not by the predicted mechanism: no projection ran.
+- P5 met: Gaussian-host dG(90, activation convention) +0.344 vs ORCA-host
+  +0.346 kcal/mol (diff -0.002, band +-0.10); also dG(held 0) 7.959 vs
+  7.954, dG(held 180) 0.340 vs 0.347.
+- P6: PySCF `hess` at the Gaussian held-90 geometry measured |g| 6.06e-3
+  and a residual of 1.2e-4 Eh/Bohr once the torsion is removed (dE/dphi
+  -0.00505 Eh/rad, as ORCA -5.06e-3 and Gaussian -5.055e-3): derived. Same
+  geometry, same functional form (b3lyp -> b3lypg, VWN3), no D3: PySCF vs
+  Gaussian electronic energy +7.6e-7 Eh, projected thermal Gibbs
+  correction -0.0002, projected G +0.0003 kcal/mol.
+- Host held-coordinate projection vs gradient tangent on O1's own
+  Hessians: at held 0 the tangent keeps -612.87 and removes the 3778
+  stretch; at held 180 it keeps -236.46 and drops a stretch to 3549.86;
+  at held 90 the two agree to 0.4 cm^-1.
+
+## PRE-REGISTRATION -- oracle O1b (written after O1, before submission)
+
+Why: P3 did not measure Gaussian's projection at all. O1b runs it as a
+standalone job (`sp` with route parameter `freq=projected`, so the route
+is `# b3lyp def2svp empiricaldispersion=gd3bj freq=projected`) at the
+structures O1's modred runs reached (archive input orientation, scratch
+q27/oracle-o1b/g_m{0,90,180}_reached.xyz).
+- P3': held 90: Gaussian prints 5 modes equal within 0.5 cm^-1 to the
+  host's gradient-tangent projection of g_m90's Hessian and gradient
+  [956.89, 1376.46, 1396.89, 3724.35, 3727.85].
+- P4': held 0 and 180: by symmetry the gradient (A1 in C2v, Ag in C2h)
+  cannot contain the torsion (A2, Au), so a gradient-tangent projection
+  keeps the imaginary torsion: Gaussian prints a mode within 5 cm^-1 of
+  -612.9 (0 deg) / -236.5 (180 deg) and loses a real one (host tangent at
+  180: [-236.46, 1241.61, 1519.77, 3549.86, 3798.39], within 5 cm^-1
+  each) -- or refuses/warns. FALSIFIER: the saddles' five real modes
+  within 1 cm^-1, which would make Gaussian's option a valid translation
+  of a held coordinate at those points.
+- Observed and reported, not banded: whether Gaussian's own thermochemistry
+  section uses the projected modes.
+
 ## PRE-REGISTRATION -- live goal g1 (written before submission)
 
 Task, geometry and envelope byte-identical to R10 Q21's g1-hooh (TASK.md
