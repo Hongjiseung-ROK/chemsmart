@@ -351,8 +351,15 @@ class GaussianRoute:
     def force(self):
         """
         Check if force calculation is requested.
+
+        The ``Force`` keyword, as a whole route word (``force``,
+        ``force=...``, ``force(...)``), not the letters anywhere in the
+        route.
         """
-        return "force" in self.route_string
+        return any(
+            re.fullmatch(r"force(?:[=(].*)?", word)
+            for word in self.route_inputs
+        )
 
     @property
     def ab_initio(self):

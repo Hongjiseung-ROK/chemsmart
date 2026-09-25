@@ -971,7 +971,11 @@ class GaussianFileMixin(FileMixin):
             chk=self.chk,
             jobtype=self.jobtype,
             title=title,
-            freq=self.freq,
+            # The settings hold one frequency request: ``freq`` (analytic)
+            # or ``numfreq`` (``freq=numer``), never both -- the writer
+            # refuses both. The route reader answers ``freq`` for any
+            # frequency word, so ``freq=numer`` read back as both.
+            freq=self.freq and not self.numfreq,
             numfreq=self.numfreq,
             dieze_tag=self.dieze_tag,
             solvent_model=self.solvent_model,
@@ -987,7 +991,9 @@ class GaussianFileMixin(FileMixin):
             light_elements_basis=self.light_elements_basis,
             custom_solvent=self.custom_solvent,
             append_additional_info=None,
-            forces=False,
+            # Read from the route's ``Force`` word; it was the constant
+            # False, so a written ``force`` never read back.
+            forces=self.force,
             broken_symmetry=self.broken_symmetry,
             # The typed numerics read back from the words the writer writes
             # for them, so a written input shows the request behind it.
