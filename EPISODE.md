@@ -312,20 +312,59 @@ invert_constraints without frozen atoms).
 - The census guard on the merge with Q30's scan/thermochemistry work: 40
   passed with Q30's hindered-rotor tests.
 
+## The ORCA reader repair (the master's condition before merge)
+
+The master's ruling (existing doctrine, as for R10 Q27): a path this
+episode made reachable must not deliver wrong numbers. The ORCA output
+reader keyed its thermochemistry sections on the printed frequency
+tables; ORCA 6.1.1 prints one thermochemistry block per Hessian but the
+table, normal modes and IR spectrum for only some. hcnscan3.out (O3a)
+holds ten Hessians and ten complete blocks and one table (scan point 1,
+line 4796); an OptTS prints a table per Hessian (hcnsaddle.out: the guess
+at 1211, the saddle at 3834).
+
+Measured on the head (5612d565) with the witness laid over a pristine
+export: 8 of 8 red -- the ScanTS served scan point 1's electronic energy
+(-93.34125806), ZPE, geometry and table beside the saddle's Gibbs energy;
+the OptTS control kept its -1122.72 cm-1 (that assertion passed) but its
+normal modes were the guess's (H of the imaginary mode 0.976910,
+-0.181373 against the saddle's 0.977265, -0.177352), and G - E(el),
+thermal corrections and entropy terms of every several-Hessian output
+(both new files, the two hooh_torsion OptTS saddles, the unconverged
+po3-r19 search) came from the first block.
+
+Checked before relying on it (scratch check_association.py): over every
+ORCA output under tests/data and the five q31 outputs with thermochemistry
+(49 blocks), the last table printed after the previous block and before
+this one has real modes equal to this block's own `freq.` lines in 38
+blocks, 0 mismatch, and 11 blocks have no table: ScanTS's nine later
+Hessians and both IRC outputs' initial Hessians.
+
+Repair (one shared commit, 07cc7978; witness
+tests/agent/test_an_orca_result_is_read_at_its_last_hessian.py over the
+two outputs, copied with provenance under
+tests/data/ORCATests/several_hessians): a section is one thermochemistry block; its
+table is taken only when those modes match, else `frequencies` is None;
+normal modes, IR columns and every thermochemistry accessor read the
+served section's lines; `all_vibrational_frequencies` is None where ORCA
+printed no table for the served Hessian (or several tables and no
+thermochemistry), and `unprinted_frequency_table_reason` says why; the
+typed reader refuses frequencies and mode composition with that sentence;
+the thermochemistry kernel returns no frequencies there, and
+derive_thermochemistry names that sentence instead of claiming an
+unconverged optimisation. On hcnscan3.out the host now serves the
+saddle's E(el) -93.27590907, ZPE 0.01078027, G -93.28613642 Eh and
+geometry, and refuses frequencies, mode composition, the characterisation
+and the free energy. On hcnsaddle.out: -1122.72, 2091.27, 2629.38 cm-1,
+first-order saddle, and the saddle's modes and G - E(el) -0.01025574.
+
 ## Found and left
 
-- The ORCA output reader misreads a ScanTS+Freq run (O3a, CUHK 2154022):
-  `_vibrational_frequency_blocks` (chemsmart/io/orca/output.py:574) opens
-  a section only at a "VIBRATIONAL FREQUENCIES" header, which ORCA 6.1.1
-  prints for the first of the run's Hessians alone, so the one section runs
-  from scan point 1 to the end of the file; `all_vibrational_frequencies`
-  (:3254) returns scan point 1's table and the thermochemistry accessors
-  read scan point 1's electronic energy and ZPE beside the saddle's Gibbs
-  energy. Reachable only since this episode made ScanTS run. Left: the
-  reader is result semantics, outside q31's radius, and its repair needs a
-  per-Hessian section and a source for the saddle's imaginary mode (the
-  .hess file; the .out prints only the real ones). Until then a ScanTS
-  stage's frequencies and thermochemistry are not evidence.
+- A ScanTS's saddle frequencies (its imaginary mode) are printed only in
+  the `.hess` ORCA writes beside the output; the reader refuses them rather
+  than read a second file whose bytes no receipt covers. A ScanTS stage
+  therefore cannot be characterised, derive a free energy, or feed an ORCA
+  producer-Hessian edge until a receipted `.hess` read exists.
 - `append_additional_info` (Gaussian) is written and never read back by
   the input reader; the Agent path refuses it (Q28), the human path has no
   preview. Left.
@@ -363,10 +402,14 @@ invert_constraints without frozen atoms).
   per-element basis, an auxiliary/extrapolation basis beside an ORCA
   semiempirical method, a stated recalc_hess on an ORCA ScanTS.
 - ORCA sp `forces: true` now runs EnGrad.
-- An ORCA ScanTS now runs to its saddle, and the host parses its
-  frequencies and thermochemistry from the scan's first point (found and
-  left above): a newly reachable route whose typed evidence is wrong until
-  the reader is repaired.
+- An ORCA ScanTS now runs to its saddle; the host serves the saddle's
+  printed thermochemistry and geometry and refuses its frequencies, order
+  and derived free energy, saying why.
+- Every ORCA output with several Hessians now reads normal modes, IR
+  columns, thermal corrections, entropy terms and G - E(el) from its last
+  thermochemistry block, where they came from the first: database records
+  and mode-composition quantities of every OptTS change (the guess's
+  values become the saddle's).
 - Whether the host should keep writing `%scf maxiter 200` unstated.
 
 ## Status
@@ -374,3 +417,6 @@ invert_constraints without frozen atoms).
 2026-09-25: repairs, guard and oracles O1/O2/O3 read; merged
 r10-integration df78d69d (aaf3d5f3); no job running. Milestone A
 (reachability) claimed in the hand-back; no live Agent goal was spent.
+The master held the merge on the ORCA reader; repaired in 07cc7978 (8 of
+8 witness tests red on 5612d565, green after; the working tree's full
+suite: 23 failed, the baseline set, 4871 passed).
