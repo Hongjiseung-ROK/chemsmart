@@ -76,7 +76,11 @@ def _host(tmp_path, *results):
         task_spec_sha256s=(fixture.public_context.task_spec_sha256,),
         approved_workspace=tmp_path / "workspace",
         exposure=build_exposure("host_search").with_pinned(
-            ("bind_scan_point_geometry", "inspect_run")
+            (
+                "bind_scan_point_geometry",
+                "bind_reached_geometry",
+                "inspect_run",
+            )
         ),
         **inputs,
     )
@@ -201,6 +205,29 @@ def test_a_step_the_scan_did_not_finish_is_refused_with_the_steps_that_did(
                 "program": "orca",
             },
         )
+
+
+def test_the_reached_structure_refusal_names_the_route_a_scan_has(tmp_path):
+    """What R10 Q20 G1's cycle 3 met twice, on these bytes: a refusal that
+    named single points and Hessians and no route a scan has."""
+
+    host = _host(tmp_path, ("orca-result-99fd69768f6248ea", _TIMED_OUT))
+
+    with pytest.raises(ContractError) as refused:
+        host.dispatch(
+            turn_id="turn-1",
+            tool_name="bind_reached_geometry",
+            arguments={
+                "artifact_id": "orca-result-99fd69768f6248ea",
+                "reached_artifact_id": "geometry-scan-r2-reached",
+                "program": "orca",
+            },
+        )
+
+    message = str(refused.value)
+    assert "'as_reached'" in message
+    assert "bind_scan_point_geometry" in message
+    assert "inspect_run" in message
 
 
 def test_inspecting_a_scan_that_stopped_early_shows_its_converged_points(
