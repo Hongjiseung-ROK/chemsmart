@@ -158,6 +158,8 @@ O2 (Gaussian):
   811ec1606bca, code a39f784b (digest 95a24b3c...); COMPLETED.
 - 2026-09-25: O2, CUHK Slurm 2154009 (r10-q31-b), 4 cores, pre-registration
   811ec1606bca, same code; COMPLETED.
+- 2026-09-25: O3, CUHK Slurm 2154022 (r10-q31-a), 4 cores, pre-registration
+  7fbc2d629ea6, code 6c32ebf9; COMPLETED (both commands exit 0, 17:50).
 
 ## O1, O2 -- READ (from the programs' own outputs)
 
@@ -243,6 +245,23 @@ code-commit.txt (73c4c351 + this EPISODE.md), 4 cores / 8 GB.
   of O1b (the guess's Hessian); against O1b's converged saddle the two
   agree to 0.85 cm-1. Both are reported; the corrected comparison is not a
   re-scored prediction.
+- O3b (the control for O1c): its input differs from O1c's only by the five
+  switch lines (`diff`: lines 10-14, nothing else). ORCA's settings block
+  prints its defaults -- "Do parabolic fit if SD step is uphill .... YES",
+  "Do Correction to SD step .... YES", "Do parabolic fit to SD correction
+  .... YES", "Only interpolate for parabolic fit .... YES", "Do update to
+  length of SD step and correction .... YES" -- with the stated MaxIter 40,
+  Forward-only and analytic initial Hessian. "THE IRC HAS CONVERGED" at
+  step 34 of 40 (max|G| 7.9e-4 Eh/bohr), normal termination, ending at H-N
+  1.00 A and H-C 2.18 A (HNC; band [0.98, 1.02] HOLDS), -93.330312 Eh,
+  34.14 kcal/mol below the saddle. The clause "non-increasing energies"
+  FAILS AS WRITTEN at one step: step 32 lies 2e-6 Eh (0.001 kcal/mol)
+  above step 31. The two walks are identical through step 2 (-93.277772)
+  and part at step 3, where O1c's first uncorrected step begins its zigzag
+  (max|G| 0.09-0.12 Eh/bohr from step 4, no convergence in 40). So O1c's
+  zigzag IS attributed to the stated switches, on this one controlled
+  pair: the `false` values reached ORCA and changed its walk, which is the
+  walk they ask for. Not a defect of the host.
 
 ## Census C0 re-read on the final code (73c4c351; results sha256 3b18e2fc...)
 
@@ -258,6 +277,17 @@ scan), the command's own job word, a value equal to what the input already
 says (ORCA light basis = route basis; Gaussian light basis without heavy
 elements; the census link route), or no program field (ORCA title,
 invert_constraints without frozen atoms).
+
+## Gates (final code: aaf3d5f3 = q31 6c32ebf9 + r10-integration df78d69d)
+
+- Full suite on a pristine export of aaf3d5f3 (chemsmart imported from the
+  export): 23 failed == the round baseline (test_structures x19,
+  PyscfSettings x1, aggregation x1, pyscf dispersion x2), 4863 passed; no
+  failure under tests/agent. (Earlier: a39f784b, 23 failed, 4852 passed.)
+- ruff, black --check, isort --check clean on the 16 Python files q31's
+  own commits touch.
+- The census guard on the merge with Q30's scan/thermochemistry work: 40
+  passed with Q30's hindered-rotor tests.
 
 ## Found and left
 
@@ -302,5 +332,6 @@ invert_constraints without frozen atoms).
 
 ## Status
 
-2026-09-25: repairs, guard and oracles O1/O2 read; merged r10-integration
-df78d69d (aaf3d5f3); O3 running (CUHK 2154022).
+2026-09-25: repairs, guard and oracles O1/O2/O3 read; merged
+r10-integration df78d69d (aaf3d5f3); no job running. Milestone A
+(reachability) claimed in the hand-back; no live Agent goal was spent.
