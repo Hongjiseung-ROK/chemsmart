@@ -85,8 +85,14 @@ def derive_trusted_thermochemistry(
     frequency_scale_factor: float = 1.0,
     reaction_coordinate_mode: int = 0,
     projected_coordinates: tuple = (),
+    internal_rotors: tuple = (),
 ) -> ThermochemistryReceiptV1:
-    """Evaluate shared RRHO or quasi-harmonic thermochemistry."""
+    """Evaluate shared RRHO or quasi-harmonic thermochemistry.
+
+    ``internal_rotors`` are ``(torsion, scan artifact, scan program)``
+    triples: each scan is a host-resolved ``TrustedArtifactRefV1``, never a
+    path a model wrote.
+    """
 
     normalized_program = str(program).strip().lower()
     expected_kind = typed_result_artifact_kind(normalized_program)
@@ -95,6 +101,24 @@ def derive_trusted_thermochemistry(
             f"{normalized_program} thermochemistry requires a bound "
             f"{expected_kind} artifact, not {artifact.kind!r}"
         )
+    rotors, rotor_paths = [], {}
+    for torsion, scan, scan_program in internal_rotors or ():
+        scan_program = str(scan_program).strip().lower()
+        scan_kind = typed_result_artifact_kind(scan_program)
+        if scan.kind != scan_kind:
+            raise ContractError(
+                f"a {scan_program} rotor scan requires a bound {scan_kind} "
+                f"artifact, not {scan.kind!r}"
+            )
+        rotors.append(
+            {
+                "torsion": list(torsion),
+                "scan_artifact_id": scan.artifact_id,
+                "scan_artifact_sha256": scan.sha256,
+                "scan_program": scan_program,
+            }
+        )
+        rotor_paths[scan.artifact_id] = scan.path
     request = ThermochemistryRequestV1(
         schema_version="chemsmart.thermochemistry-request.v1",
         artifact_id=artifact.artifact_id,
@@ -111,10 +135,12 @@ def derive_trusted_thermochemistry(
         use_weighted_mass=use_weighted_mass,
         frequency_scale_factor=frequency_scale_factor,
         projected_coordinates=projected_coordinates,
+        internal_rotors=tuple(rotors),
     )
     return derive_result_thermochemistry(
         request=request,
         artifact_path=artifact.path,
+        rotor_artifact_paths=rotor_paths or None,
     )
 
 

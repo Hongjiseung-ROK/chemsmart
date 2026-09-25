@@ -462,6 +462,7 @@ _FORBIDDEN_PROBE = {
     "use_weighted_mass": True,
     "frequency_scale_factor": 0.99,
     "projected_coordinates": [[3, 1, 2, 4]],
+    "internal_rotors": [{"torsion": [3, 1, 2, 4], "scan_input_id": "scan"}],
     "expression_nodes": [
         {"node_id": "e", "operation": "ref", "reference": "x"}
     ],

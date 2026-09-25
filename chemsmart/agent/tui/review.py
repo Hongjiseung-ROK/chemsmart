@@ -463,6 +463,16 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
                 )
                 + " projected"
             )
+        rotors = tuple(getattr(node, "internal_rotors", ()) or ())
+        if node.temperature_k is not None and rotors:
+            conditions.append(
+                "rotor "
+                + ", ".join(
+                    "-".join(str(i) for i in rotor.torsion)
+                    + f" on {rotor.scan_input_id or rotor.scan_artifact_id}"
+                    for rotor in rotors
+                )
+            )
         state = human_state(node.support_state)
         if node.blocked_reason:
             state += f": {node.blocked_reason}"
