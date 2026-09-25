@@ -1985,13 +1985,23 @@ class ORCAJobSettings(MolecularJobSettings):
         # same project field is used by NEB and ordinary ORCA jobs such as
         # IRC, so materialize it here instead of dropping it outside NEB.
         if self.semiempirical is not None:
+            # An auxiliary or extrapolation basis belongs to a basis-set
+            # method: a semiempirical route writes neither, so each was
+            # accepted and dropped (R10 Q31 census). Refused with the rest.
             if any(
                 value is not None
-                for value in (self.ab_initio, self.functional, self.basis)
+                for value in (
+                    self.ab_initio,
+                    self.functional,
+                    self.basis,
+                    self.aux_basis,
+                    self.extrapolation_basis,
+                )
             ):
                 raise ValueError(
                     "semiempirical ORCA methods cannot be combined with "
-                    "ab_initio, functional, or basis settings"
+                    "ab_initio, functional, basis, aux_basis or "
+                    "extrapolation_basis settings"
                 )
             level_of_theory = self.semiempirical
         else:
