@@ -145,7 +145,11 @@ to impose a dihedral constraint off an exactly planar step, Q27 g1 CUHK 2153714
 One observation each of deepseek-v4-flash-0731 (alibaba-token-plan), run in
 parallel in the two slots, on code that carries 40510c65 (analysis plane),
 76acb0fb (shared reachability), 6cef686a (Gaussian archive reader) and
-130e99cc (the rule on plan_thermochemistry).
+130e99cc (the rule on plan_thermochemistry), merged with r10-integration
+b96e63ee (Q28's native-word refusals, Q29's tool-argument repairs) at
+651f5d61 before issue, so the Agent meets the integrated host, and 7fa5cc92
+(the receipt's scan-energy cross-check). tests/agent on the merged tree:
+3268 passed, 20 skipped, 2 xfailed.
 - Tasks (do not name the treatment): "What is the standard molar entropy of
   hydrogen peroxide vapour / methanol vapour at 298.15 K?" at B3LYP-D3(BJ)/
   def2-TZVP, ORCA and Gaussian both available, S at 1 bar in J/(K mol) "with
