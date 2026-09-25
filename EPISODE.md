@@ -168,9 +168,14 @@ O2 (Gaussian):
   The c30a76cf repair (no Calc_Hess) moved Q20's abort from point 1 to
   point 2. Repaired again in 73c4c351 (a ScanTS carries no recalculation);
   re-run as O3a.
-- O1b HOLDS: OptTS converged; one imaginary mode, -1076.84 cm-1 (band
-  [-1250, -1000]); H-C 1.1969, H-N 1.3975 A (bands [1.10, 1.25], [1.30,
-  1.50]).
+- O1b HOLDS: OptTS converged; one imaginary mode, -1122.72 cm-1 (band
+  [-1250, -1000]; the charter's ORCA HCN/HNC saddle at this level:
+  -1121.7), real modes 2091.3 and 2629.4; H-C 1.1969, H-N 1.3975 A (bands
+  [1.10, 1.25], [1.30, 1.50]). CORRECTED: this section first said -1076.84
+  cm-1, which my reader took from the output's first frequency block -- the
+  Calc_Hess Hessian at the guess -- not the converged saddle's (line 3834,
+  and hcnsaddle.hess). O3a's pre-registered comparison was written against
+  that misread number.
 - O1c: the settings claim HOLDS, the physics prediction FAILED. ORCA's own
   IRC settings block reads back every stated control: "MaxIter .... 40"
   (default 20), "Direction .... Forward-only", "Initial displacement Hessian
@@ -221,8 +226,81 @@ code-commit.txt (73c4c351 + this EPISODE.md), 4 cores / 8 GB.
   A). If it also zigzags and stops at 40, O1c's zigzag is NOT attributed to
   the switches.
 
+## O3 -- READ (CUHK Slurm 2154022, pre-registration 7fbc2d629ea6, code 6c32ebf9)
+
+- O3a: the repaired ScanTS input (`! ScanTS Freq B3LYP/G def2-svp`, %geom
+  carrying only the Scan) RAN: ORCA scanned H-N 2.10 -> 1.30 A (energies
+  rising to -93.27590968 Eh at 1.40 A, falling at 1.30), printed "ScanTS
+  option: We are already beyond the maximum, aborting the Relaxed Surface
+  Scan", refined point 8 and ran the TS optimisation to convergence;
+  normal termination. Saddle: H-C 1.1957, H-N 1.3935, C-N 1.1880 A and
+  -93.275909074 Eh, against O1b's OptTS saddle 1.1969, 1.3975, 1.1882 A
+  and -93.275909427 Eh (|dr| <= 0.004 A, dE 3.5e-7 Eh); the Hessian at it
+  (hcnscan3.hess) has one imaginary mode, -1123.57 cm-1, real 2092.7 and
+  2639.3 (O1b: -1122.72, 2091.3, 2629.4). Physics band [-1250, -1000] and
+  the geometry prediction HOLD. The pre-registered "within 5 cm-1 of
+  -1076.84" is FAILED AS WRITTEN (47 cm-1): that number was my misreading
+  of O1b (the guess's Hessian); against O1b's converged saddle the two
+  agree to 0.85 cm-1. Both are reported; the corrected comparison is not a
+  re-scored prediction.
+
+## Census C0 re-read on the final code (73c4c351; results sha256 3b18e2fc...)
+
+Same instrument, same 783 cases: 583 written, 72 not written, 128 refused
+or failed. The preview is red on the stated setting in 9 cases (base: 78):
+Gaussian `append_additional_info` x8 (written, never read back; the Agent
+path refuses the field) and an ORCA NEB light basis beside a semiempirical
+method (not executable). Every not-written cell is one of: not applicable
+by the writer's table (optimiser controls on sp/td/irc; path controls on a
+non-IRC link; ORCA forces on gradient-driven stages; PySCF optimiser
+settings off opt), a loader override the session is told (freq on irc and
+scan), the command's own job word, a value equal to what the input already
+says (ORCA light basis = route basis; Gaussian light basis without heavy
+elements; the census link route), or no program field (ORCA title,
+invert_constraints without frozen atoms).
+
+## Found and left
+
+- `append_additional_info` (Gaussian) is written and never read back by
+  the input reader; the Agent path refuses it (Q28), the human path has no
+  preview. Left.
+- A Gaussian link over an IRC target is still compared against fields its
+  reader does not read (the IRC leaf of the second route); link is not
+  executable for the Agent. Left.
+- ORCA readers stop a block at a nested `end`: `_orca_geom_values`
+  (utils/mixins.py) ends %geom at the Scan sub-block's `end`, so a
+  `fullScan` after it is not read back; the %irc reader ends at the first
+  `end` (the writer now puts Monitor_Internals last for it). Left: shared
+  file, no Agent loss.
+- `run orca ts` rewrites every "ts" inside a label (`label.replace`), R10
+  Q20's note. Left: not a setting.
+- Two builders of the ORCA scan block: `orca_scan_block` (ScanTS) and the
+  scan branch of utils/cli.py `get_setting_from_jobtype_for_orca`. Left:
+  shared file; both produce the writer's form.
+- ORCA `%scf` is written with `maxiter 200` whenever the block opens
+  (scf_convergence, reference, broken symmetry) though no project states it
+  (ORCA's default is 125): a value the host adds, not one it drops. For the
+  owner.
+- Gaussian `forces` on an optimising stage writes `opt ... force`; whether
+  Gaussian runs that compound was not measured.
+- Gaussian IRC `predictor` requires `recorrect` even for LQA, which has no
+  recorrection; refused with a sentence. Left.
+- The ORCA SCF preset vocabulary has `medium` where the CLI offers
+  `NormalSCF`; not measured against the binary.
+
+## For the owner (LOUD lines, not decided here)
+
+- A person's project now takes effect where a command default replaced it
+  (ORCA tssearch_type, the five IRC switches, invert_constraints, forces;
+  Gaussian link IRC controls), and several `--no-...` flags now act.
+- Refused where accepted before: ORCA `gbw: false`, a numeric ORCA
+  `scf_tol`, ORCA `forces` on a td stage, an incomplete Gaussian
+  per-element basis, an auxiliary/extrapolation basis beside an ORCA
+  semiempirical method, a stated recalc_hess on an ORCA ScanTS.
+- ORCA sp `forces: true` now runs EnGrad.
+- Whether the host should keep writing `%scf maxiter 200` unstated.
+
 ## Status
 
-2026-09-25: repairs and guard committed; merged r10-integration 3f3331c0;
-O1 and O2 read; full suite on a pristine export of a39f784b: 23 failed ==
-the round baseline, 4852 passed. O3 pre-registered, not yet submitted.
+2026-09-25: repairs, guard and oracles O1/O2 read; merged r10-integration
+df78d69d (aaf3d5f3); O3 running (CUHK 2154022).
