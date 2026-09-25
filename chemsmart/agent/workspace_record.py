@@ -380,6 +380,48 @@ def record_run(
                     "recorded_at": stamp,
                 }
             )
+        elif kind == "analysis_completion_evaluated":
+            # A declared category a claim answered under its own id, as the
+            # gate certified it, is that question's delivery at goal grain
+            # exactly as a finding's answer is: a later cycle's settlement
+            # reads it here. A finding's answer is recorded with the
+            # finding, so only the claimed ones are written.
+            for observable_id, words in (
+                payload.get("declared_categorical_answers") or {}
+            ).items():
+                words = tuple(
+                    dict(word)
+                    for word in words or ()
+                    if isinstance(word, Mapping)
+                )
+                if not words or any(word.get("finding_id") for word in words):
+                    continue
+                # A session evaluates its completion more than once; one
+                # answer is one row.
+                if any(
+                    entry.get("kind") == "answer"
+                    and entry.get("claim_id") == str(observable_id)
+                    and entry.get("answer") == words
+                    for entry in entries
+                ):
+                    continue
+                entries.append(
+                    {
+                        "kind": "answer",
+                        "goal_id": goal_id,
+                        "cycle": int(cycle),
+                        "run": run,
+                        "claim_id": str(observable_id),
+                        "answer": words,
+                        "claim_receipt_sha256": str(
+                            words[0].get("claim_record_sha256") or ""
+                        ),
+                        "completion_receipt_sha256": str(
+                            payload.get("receipt_sha256") or ""
+                        ),
+                        "recorded_at": stamp,
+                    }
+                )
         elif kind == "scientific_decision_recorded":
             # Every finding is the goal's, not its cycle's: one that
             # answers a declared question is that question's delivery at

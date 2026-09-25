@@ -55,7 +55,7 @@ LEGACY_RESULTS_SCHEMA_VERSION = "1.0"
 #: remains schema 2.0 so historical artifacts stay readable; this marker
 #: identifies records that satisfy the stricter state, status, and runtime
 #: reference checks required for new execution/data-edge admission.
-RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v10"
+RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v11"
 #: Contract versions this ChemSmart still reads as executed evidence.  v3 and
 #: v4 share one applied-spec vocabulary; v4 adds datasets (forces at the
 #: Hessian geometry, spin populations) and status facts (the mass convention
@@ -101,6 +101,13 @@ RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v10"
 #: solvated artifact that carries no solvation term is a defective
 #: record rather than an older one, which is a distinction only a
 #: version can make.
+#: v11 adds ``broken_symmetry``: whether the job asked for the
+#: broken-symmetry open-shell singlet, which the scf stage reaches by
+#: following the restricted solution's own RHF/RKS -> UHF/UKS instability
+#: and records under ``status/stages/scf/broken_symmetry``.  It is the one
+#: singlet whose ``reference_family`` is unrestricted, and the validator
+#: reads the field to expect that family.  Under its own version, because
+#: the archived v10 digests were computed over the v10 vocabulary.
 PREVIOUS_RESULT_CONTRACT_VERSIONS = (
     "chemsmart.pyscf-result-contract.v3",
     "chemsmart.pyscf-result-contract.v4",
@@ -109,6 +116,7 @@ PREVIOUS_RESULT_CONTRACT_VERSIONS = (
     "chemsmart.pyscf-result-contract.v7",
     "chemsmart.pyscf-result-contract.v8",
     "chemsmart.pyscf-result-contract.v9",
+    "chemsmart.pyscf-result-contract.v10",
 )
 SUPPORTED_RESULT_CONTRACT_VERSIONS = PREVIOUS_RESULT_CONTRACT_VERSIONS + (
     RESULT_CONTRACT_VERSION,
@@ -210,10 +218,14 @@ APPLIED_SPEC_FIELDS_V8 = APPLIED_SPEC_FIELDS_V7 + ("irc_direction",)
 #: digest reconstructs.
 APPLIED_SPEC_FIELDS_V9 = APPLIED_SPEC_FIELDS_V8
 
-#: The current (v10) vocabulary.  Identical to v9's for the same reason:
+#: The v10 vocabulary, frozen.  Identical to v9's for the same reason:
 #: the energy decomposition is *read* from the program, not asked for, so
 #: it introduces no setting.
-APPLIED_SPEC_FIELDS = APPLIED_SPEC_FIELDS_V9
+APPLIED_SPEC_FIELDS_V10 = APPLIED_SPEC_FIELDS_V9
+
+#: The current (v11) vocabulary: whether the broken-symmetry singlet was
+#: asked for.
+APPLIED_SPEC_FIELDS = APPLIED_SPEC_FIELDS_V10 + ("broken_symmetry",)
 
 #: Digest vocabulary per contract version.  Extending the current tuple in
 #: place would silently change the reconstruction for every archived
@@ -226,6 +238,7 @@ APPLIED_SPEC_FIELDS_BY_CONTRACT = {
     "chemsmart.pyscf-result-contract.v7": APPLIED_SPEC_FIELDS_V7,
     "chemsmart.pyscf-result-contract.v8": APPLIED_SPEC_FIELDS_V8,
     "chemsmart.pyscf-result-contract.v9": APPLIED_SPEC_FIELDS_V9,
+    "chemsmart.pyscf-result-contract.v10": APPLIED_SPEC_FIELDS_V10,
     RESULT_CONTRACT_VERSION: APPLIED_SPEC_FIELDS,
 }
 
@@ -486,13 +499,18 @@ def pyscf_surface_identity(config):
     }
 
 
-def pyscf_reference_family(*, symbols, charge, multiplicity, xc):
+def pyscf_reference_family(
+    *, symbols, charge, multiplicity, xc, broken_symmetry=False
+):
     """Derive the PySCF reference family from host-owned molecular state.
 
     ``pyscf.scf.HF`` selects its concrete class from electron count and spin;
     in particular, the one-electron open-shell path is ``HF1e``/ROHF rather
     than UHF.  Recording that decision before script generation lets result
-    validation detect a runtime reference substitution independently.
+    validation detect a runtime reference substitution independently.  The
+    broken-symmetry request is the one singlet whose reference is
+    unrestricted (``uks``/``uhf`` at spin 0), because that is what it asks
+    for.
     """
 
     if isinstance(charge, bool) or not isinstance(charge, Integral):
@@ -512,10 +530,11 @@ def pyscf_reference_family(*, symbols, charge, multiplicity, xc):
         raise ValueError("electron count and multiplicity are inconsistent")
     if (electron_count - spin) % 2:
         raise ValueError("electron count and multiplicity have invalid parity")
+    unrestricted_singlet = bool(broken_symmetry) and spin == 0
     if xc is not None:
-        return "rks" if spin == 0 else "uks"
+        return "rks" if spin == 0 and not unrestricted_singlet else "uks"
     if spin == 0:
-        return "rhf"
+        return "uhf" if unrestricted_singlet else "rhf"
     if electron_count == 1:
         return "rohf"
     return "uhf"
@@ -753,6 +772,13 @@ class PySCFScriptWriter:
                 charge=charge,
                 multiplicity=multiplicity,
                 xc=settings.xc,
+                broken_symmetry=getattr(settings, "broken_symmetry", False),
+            ),
+            # The broken-symmetry request (contract v11): the scf stage
+            # follows the restricted solution's own instability into the
+            # unrestricted reference above, and records what it found.
+            "broken_symmetry": bool(
+                getattr(settings, "broken_symmetry", False) is True
             ),
             "ab_initio": settings.ab_initio,
             "method": settings.method_name,
@@ -932,8 +958,10 @@ class PySCFScriptWriter:
         path = os.path.join(directory, f"{self.job.label}.py")
         if config is None:
             config = self.build_config()
+        # Rendered before the file is opened, so a refusal leaves no file.
+        text = self.render(config)
         with open(path, "w") as handle:
-            handle.write(self.render(config))
+            handle.write(text)
         logger.debug(f"Wrote PySCF driver script: {path}")
         return path
 
@@ -1097,16 +1125,25 @@ def _functional_definition(
     }
 
 
-def _build_method(config, mol):
+def _build_method(config, mol, restricted=False):
     """Construct the mean-field object.
 
     Order matters and follows gpu4pyscf's own method_from_config: grids and
     density fitting are applied on the CPU object, `.to_gpu()` comes next,
     and the solvent is attached last. Attaching a solvent before `.to_gpu()`
     leaves a CPU-resident solvent object on a GPU method.
+
+    The broken-symmetry request is the one singlet built unrestricted, as
+    its recorded reference family says; ``restricted`` builds the same
+    mean field restricted, the solution whose instability the scf stage
+    follows into it.
     """
     import pyscf
     from pyscf import dft, scf
+
+    unrestricted_singlet = bool(config.get("broken_symmetry")) and not (
+        restricted
+    )
 
     def _is_gpu4pyscf_object(value):
         return any(
@@ -1128,9 +1165,19 @@ def _build_method(config, mol):
         return float(solvent_db[key][5])
 
     if config["xc"] is None:
-        mf = scf.HF(mol)
+        if restricted:
+            mf = scf.RHF(mol)
+        elif unrestricted_singlet:
+            mf = scf.UHF(mol)
+        else:
+            mf = scf.HF(mol)
     else:
-        mf = dft.KS(mol, xc=config["xc"])
+        if restricted:
+            mf = dft.RKS(mol, xc=config["xc"])
+        elif unrestricted_singlet:
+            mf = dft.UKS(mol, xc=config["xc"])
+        else:
+            mf = dft.KS(mol, xc=config["xc"])
         config.setdefault("materializations", {})[
             "functional_definition"
         ] = _functional_definition(
@@ -2474,8 +2521,15 @@ def _energy_decomposition(mf):
 
 
 def _spin_populations(mf, config):
-    """Per-atom Mulliken spin populations, open-shell references only."""
-    if int(config.get("spin") or 0) == 0:
+    """Per-atom Mulliken spin populations, open-shell references only.
+
+    The broken-symmetry singlet is an open-shell reference at spin 0: its
+    populations are where its two spins sit, which is the evidence that it
+    broke.
+    """
+    if int(config.get("spin") or 0) == 0 and not config.get(
+        "broken_symmetry"
+    ):
         return None
     evaluator = getattr(mf, "mulliken_spin_pop", None)
     if not callable(evaluator):
@@ -2715,6 +2769,93 @@ def _scf_stability(mf):
             }
     record["seconds"] = round(time.time() - started, 3)
     return record
+
+
+def _broken_symmetry_scf(config, mf, mol):
+    """Reach the broken-symmetry singlet the way PySCF itself reaches it.
+
+    The restricted solution is converged, PySCF's own stability analysis
+    asks whether it is unstable toward RHF/RKS -> UHF/UKS, and the
+    unrestricted mean field ``mf`` starts from the orbitals PySCF rotated
+    along that instability; its internal instabilities are then followed
+    until PySCF calls it stable (at most five times).  A restricted
+    solution that is stable is left where it is: the unrestricted SCF
+    starts from it and stays spin-symmetric, which is the honest answer
+    for a structure that does not break.  A mixing guess is not this:
+    PySCF's alpha HOMO/LUMO mix of its own guess collapsed on p-benzyne,
+    and its default ``init_guess_breaksym`` left H2 at 2.00 A restricted,
+    while this route reached the solution Gaussian and ORCA reach on every
+    system measured (R10 Q18 O0, CUHK Slurm 2153330).
+
+    Returns the unrestricted energy and a record of what was followed, in
+    flat arrays the HDF5 schema stores.
+    """
+    from pyscf.scf import stability as stability_module
+
+    kinds = __CHEMSMART_STABILITY_PRINTED_KINDS__
+    started = time.time()
+    restricted = _build_method(config, mol, restricted=True)
+    restricted_energy = float(restricted.kernel())
+    record = {
+        "requested": True,
+        "mechanism": (
+            "the restricted solution's RHF/RKS -> UHF/UKS instability "
+            "followed by PySCF's stability analysis into the unrestricted "
+            "reference, then its internal instabilities followed until stable"
+        ),
+        "source": (
+            "pyscf.scf.stability.rhf_external, pyscf.scf.stability.uhf_internal"
+        ),
+        "restricted_class": _class_name(restricted),
+        "restricted_converged": bool(restricted.converged),
+        "restricted_energy": restricted_energy,
+        "external_rotation_space": "RHF/RKS -> UHF/UKS",
+    }
+    listener = _stability_listener(restricted)
+    rotated, external_stable = stability_module.rhf_external(
+        restricted, verbose=listener, return_status=True
+    )
+    heard = _stability_heard(listener.heard, kinds).get("external") or {}
+    record["external_stable"] = bool(external_stable)
+    record["external_lowest_eigenvalue"] = float(
+        (heard.get("lowest_eigenvalues") or [float("nan")])[0]
+    )
+    occupation = np.asarray(restricted.mo_occ, dtype=float)
+    occupations = (
+        (occupation > 0).astype(float),
+        (occupation > 1).astype(float),
+    )
+    guess = mf.make_rdm1(
+        (np.asarray(rotated[0]), np.asarray(rotated[1])), occupations
+    )
+    energy = float(mf.kernel(dm0=guess))
+    stable_flags = []
+    lowest = []
+    energies = [energy]
+    for _step in range(5):
+        listener = _stability_listener(mf)
+        rotated, internal_stable = stability_module.uhf_internal(
+            mf, verbose=listener, return_status=True
+        )
+        said = _stability_heard(listener.heard, kinds).get("internal") or {}
+        stable_flags.append(bool(internal_stable))
+        lowest.append(
+            float((said.get("lowest_eigenvalues") or [float("nan")])[0])
+        )
+        if internal_stable:
+            break
+        energy = float(mf.kernel(dm0=mf.make_rdm1(rotated, mf.mo_occ)))
+        energies.append(energy)
+    record["internal_stable"] = stable_flags[-1] if stable_flags else False
+    record["internal_stable_by_step"] = stable_flags
+    record["internal_lowest_eigenvalue_by_step"] = lowest
+    record["unrestricted_energy_by_step"] = energies
+    record["unrestricted_energy"] = energy
+    record["unrestricted_converged"] = bool(mf.converged)
+    record["eigenvalue_unit"] = __CHEMSMART_STABILITY_EIGENVALUE_UNIT__
+    record["instability_threshold"] = __CHEMSMART_STABILITY_THRESHOLD__
+    record["seconds"] = round(time.time() - started, 3)
+    return energy, record
 
 
 def _hessian_correlated_method(config):
@@ -2965,7 +3106,13 @@ def main():
         for stage in CONFIG["stages"]:
             current_stage = stage
             if stage == "scf":
-                energy = mf.kernel()
+                broken_symmetry = None
+                if CONFIG.get("broken_symmetry"):
+                    energy, broken_symmetry = _broken_symmetry_scf(
+                        CONFIG, mf, mol
+                    )
+                else:
+                    energy = mf.kernel()
                 energies.append(float(energy))
                 stage_status = {"converged": bool(mf.converged)}
                 cycles = getattr(mf, "cycles", None)
@@ -2973,6 +3120,8 @@ def main():
                     stage_status["iterations"] = int(cycles)
                     # Historical alias retained for existing consumers.
                     stage_status["cycles"] = int(cycles)
+                if broken_symmetry is not None:
+                    stage_status["broken_symmetry"] = broken_symmetry
                 status["stages"]["scf"] = stage_status
             elif stage == "opt":
                 surface = mf

@@ -66,21 +66,84 @@ def _plan():
     )
 
 
+def _receipt(node_id, *, passed):
+    """A real validation receipt, rehydrated the way a restored host reads
+    one from its stream: the join reads the receipt's own record."""
+
+    from chemsmart.agent._contracts import canonical_data, canonical_sha256
+    from chemsmart.agent.scientific_validation import (
+        scientific_validation_receipt_from_record,
+    )
+    from chemsmart.analysis.result_quantities import (
+        DIMENSIONLESS,
+        make_quantity_value,
+    )
+
+    source = canonical_sha256({"extraction": node_id})
+    record = {
+        "schema_version": "chemsmart.scientific-validation-receipt.v1",
+        "workflow_id": "wf",
+        "plan_sha256": canonical_sha256("plan"),
+        "node_id": node_id,
+        "input_bindings": [
+            {
+                "input_id": "in",
+                "source_receipt_sha256": source,
+                "quantity_id": "imag-count",
+                "quantity_value_sha256": canonical_sha256({"value": 1}),
+            }
+        ],
+        "source_receipt_sha256s": [source],
+        "rule_results": [
+            {
+                "rule_id": "one-imaginary-mode",
+                "predicate": "count_equals",
+                "input_ids": ["in"],
+                "passed": passed,
+                "observed_value": 1 if passed else 2,
+                "threshold": None,
+                "expected_count": 1,
+                "unit": "1",
+            }
+        ],
+        "outputs": [
+            canonical_data(
+                make_quantity_value(
+                    quantity_id="verdict",
+                    source_value=int(passed),
+                    source_unit="1",
+                    value=int(passed),
+                    unit="1",
+                    dimension=DIMENSIONLESS,
+                    evidence_ref="scientific-validation:test",
+                    data_kind="integer",
+                )
+            )
+        ],
+        "all_rules_passed": passed,
+        "status": "evaluated",
+    }
+    return scientific_validation_receipt_from_record(
+        record, receipt_sha256=canonical_sha256(record)
+    )
+
+
 def _host(receipts):
     host = object.__new__(CommandCompiledToolHostV1)
-    host.scientific_validation_receipts = receipts
+    host.scientific_validation_receipts = {
+        receipt.receipt_sha256: receipt for receipt in receipts.values()
+    }
+    # No decision stands beside these receipts: every failed verdict is
+    # unanswered, which is the state this join names claims under.
+    host.scientific_decisions = {}
+    host.quantity_extractions = {}
+    host.quantity_expression_receipts = {}
     return host
 
 
 @pytest.mark.capability("rule:plan.claim_carries_declared_id")
 def test_a_passing_criterion_names_nothing():
-    host = _host(
-        {
-            "r1": SimpleNamespace(
-                node_id="vld-c4", all_rules_passed=True, status="valid"
-            )
-        }
-    )
+    host = _host({"r1": _receipt("vld-c4", passed=True)})
     assert (
         host._claims_on_a_failed_criterion(_plan(), task_spec_sha256="a" * 64)
         == ()
@@ -89,13 +152,7 @@ def test_a_passing_criterion_names_nothing():
 
 @pytest.mark.capability("rule:plan.claim_carries_declared_id")
 def test_a_failed_criterion_names_the_claim_that_descends_from_it():
-    host = _host(
-        {
-            "r1": SimpleNamespace(
-                node_id="vld-c4", all_rules_passed=False, status="invalid"
-            )
-        }
-    )
+    host = _host({"r1": _receipt("vld-c4", passed=False)})
     assert host._claims_on_a_failed_criterion(
         _plan(), task_spec_sha256="a" * 64
     ) == ("ddg-activation",)
@@ -118,13 +175,7 @@ def test_a_criterion_on_another_chain_leaves_the_claim_alone():
             ),
         )
     )
-    host = _host(
-        {
-            "r1": SimpleNamespace(
-                node_id="vld-b", all_rules_passed=False, status="invalid"
-            )
-        }
-    )
+    host = _host({"r1": _receipt("vld-b", passed=False)})
     assert (
         host._claims_on_a_failed_criterion(plan, task_spec_sha256="b" * 64)
         == ()

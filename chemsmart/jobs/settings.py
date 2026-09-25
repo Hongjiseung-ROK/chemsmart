@@ -244,6 +244,97 @@ def td_manifold_reference_refusal(manifold, multiplicity):
     return None
 
 
+#: What ``broken_symmetry: true`` asks for, whichever program runs it: the
+#: lowest spin-polarised (broken-symmetry, open-shell singlet) solution of
+#: the unrestricted equations at Ms = 0 -- the bound multiplicity 1 -- where
+#: one lies below the spin-symmetric solution, and the spin-symmetric one
+#: where none does.  Each program's settings write it with the mechanism
+#: measured to reach that solution there, and say which:
+#:
+#: - Gaussian: the method unrestricted (``U``) from ``guess=mix``, the alpha
+#:   HOMO and LUMO of Gaussian's guess mixed 50:50;
+#: - ORCA: ``HFTyp UHF`` with ``GuessMix`` at this angle, the same mixing of
+#:   ORCA's guess;
+#: - PySCF: the restricted solution's own RHF/RKS -> UHF/UKS instability
+#:   followed by PySCF's stability analysis into the unrestricted space, and
+#:   internal instabilities followed until stable.
+#:
+#: Whether the symmetry actually broke is a fact about the result, read
+#: from its <S**2>, never assumed from the request.  Measured, not recalled
+#: (R10 Q18 oracles O0 and O0b, CUHK Slurm 2153330 and 2153375, fixed
+#: geometries, def2-SVP, matched tight numerics): one solution in all three
+#: programs for H2 at 2.00 A (UB3LYP -1.0184866 Eh, <S**2> 0.7053, within
+#: 1.2e-8 Eh), ethylene twisted 85 degrees (-78.4223308, within 6e-8) and
+#: p-benzyne (-230.704724, <S**2> 0.9703, within 1.1e-6), and the restricted
+#: energy where none lies lower (H2 at 0.74 A, planar ethylene under B3LYP).
+#: A mixing guess is not one mechanism across programs: which orbitals are a
+#: guess's HOMO and LUMO is a program fact -- PySCF's mix of its own guess
+#: collapsed on p-benzyne, and PySCF's default ``init_guess_breaksym`` left
+#: H2 at 2.00 A restricted -- and at an exactly degenerate geometry (the
+#: 90-degree twist) Gaussian's mixing reached a solution 26 kcal/mol above
+#: the one ORCA and PySCF reach, with <S**2> 1.001 that does not show it.
+#: The particular solution is not portable; the request and its evidence
+#: are.
+BROKEN_SYMMETRY_MULTIPLICITY = 1
+BROKEN_SYMMETRY_GUESS_MIX_DEGREES = 45
+
+
+def broken_symmetry_request(value):
+    """The boolean a ``broken_symmetry`` setting holds, or a refusal.
+
+    ``None`` and ``False`` ask for nothing; ``True`` asks for the
+    broken-symmetry open-shell singlet.  Any other value is refused rather
+    than read as truthy: a string such as ``"mix"`` would otherwise ask for
+    a program-specific guess the typed field exists to replace.
+    """
+
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    raise ValueError(
+        f"broken_symmetry takes true or false, got {value!r}: it asks for an "
+        "unrestricted open-shell singlet started from a symmetry-breaking "
+        "guess, and each program's own mechanism is written by the host."
+    )
+
+
+#: The sentence tail every program's translation ends with: where the
+#: answer to the request is read.  One text, so the three programs'
+#: reviews point at one set of evidence.
+BROKEN_SYMMETRY_EVIDENCE_SENTENCE = (
+    "Whether the spin symmetry broke is read from the result, not assumed: "
+    "its level states the reference that ran (rks, uks, ...) and "
+    "broken_symmetry, spin_square gives <S**2> against 0 for the singlet, "
+    "and a request whose solution stayed spin-symmetric raises the anomaly "
+    "spin.broken_symmetry_request_unbroken with its numbers."
+)
+
+
+def broken_symmetry_refusal(requested, multiplicity):
+    """Why a broken-symmetry request cannot be translated for *multiplicity*.
+
+    Returns None when nothing was requested, the state is unknown (a
+    project validated before a molecule is bound) or the state is the
+    singlet the request defines; otherwise the sentence a writer refuses
+    with, naming the routes that remain.
+    """
+
+    if not requested or multiplicity is None:
+        return None
+    if int(multiplicity) == BROKEN_SYMMETRY_MULTIPLICITY:
+        return None
+    return (
+        f"broken_symmetry asks for the open-shell singlet (Ms = 0, "
+        f"multiplicity {BROKEN_SYMMETRY_MULTIPLICITY}) reached from a "
+        "symmetry-breaking guess; this node binds multiplicity "
+        f"{multiplicity}, which is already an open-shell reference and has "
+        "no broken-symmetry translation here. Bind multiplicity 1 for the "
+        "broken-symmetry singlet, or remove broken_symmetry for the "
+        "high-spin state."
+    )
+
+
 # Public top-level vocabulary owned by the loader below.  These are section
 # names, not the Click job inventory: the two sets intentionally differ.
 MOLECULAR_GAS_PHASE_JOB_SECTIONS = (

@@ -88,12 +88,19 @@ def test_the_plan_a_rewake_produces_is_admitted_and_runs(tmp_path):
                     "live-2",
                 )
             ),
+            # Its run claims nothing and `barrier` is still owed, so the
+            # goal is woken again. What the woken cycles do is not under
+            # test.
+            *(
+                _planning_session(f"live-{index}", terminal="blocked")
+                for index in range(3, 9)
+            ),
         ],
         executes=[_execute(tmp_path, failed=False, status="completed")],
         max_revisions=3,
     )
 
-    assert len(contexts) == 2, "the goal was not re-woken"
+    assert len(contexts) >= 2, "the goal was not re-woken"
     assert contexts[1]["previous_run"] == "runs/live-1"
     assert "never held the typed outcome" not in " ".join(result.reasons)
     from .test_an_analysis_only_cycle_does_not_freeze_an_empty_scope import (

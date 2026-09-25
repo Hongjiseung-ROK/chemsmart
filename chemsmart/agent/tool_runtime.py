@@ -36,6 +36,7 @@ from chemsmart.agent.analysis_claims import (
     analysis_finding_from_record,
     build_analysis_claim_record,
     build_analysis_finding,
+    claim_operand,
     evaluate_finding_relation,
 )
 from chemsmart.agent.analysis_completion import (
@@ -160,6 +161,12 @@ from chemsmart.agent.execution import (
     write_host_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
+from chemsmart.agent.goal import (
+    FailedCriterionV1,
+    cited_receipts,
+    failed_criteria,
+    results_read,
+)
 from chemsmart.agent.identity import (
     ApprovedMolecularIdentityV1,
     refuse_impossible_electronic_state,
@@ -188,7 +195,11 @@ from chemsmart.agent.preflight import (
     evaluate_program_node_preflight,
     validator_receipt_from_safe_preview,
 )
-from chemsmart.agent.preview import SafePreviewReceiptV1, execute_safe_preview
+from chemsmart.agent.preview import (
+    SafePreviewReceiptV1,
+    execute_safe_preview,
+    preview_refusal,
+)
 from chemsmart.agent.program_verifiers import build_preview_expectation
 from chemsmart.agent.projects import (
     ProjectDocumentV1,
@@ -283,10 +294,12 @@ from chemsmart.analysis.literature_constants import (
     literature_constant,
 )
 from chemsmart.analysis.quantity_expressions import (
+    ExpressionOperandV1,
     QuantityExpressionError,
     QuantityExpressionRequestV1,
     canonical_unit_for_dimension,
     convert_normalized_value,
+    expression_kind_observations,
     expression_level_observations,
     expression_node_from_plan,
     expression_thermochemical_convention_observations,
@@ -937,6 +950,31 @@ def results_for_selector(
             else tuple(reader.accessors)
         )
         if declared is None or selector not in declared:
+            # A quantity that exists only at a stationary point is read,
+            # not left unread, where the host shows the structure is not
+            # one: the thermochemistry stage refuses it there by the same
+            # function, so a line the program printed for it (ORCA prints
+            # a "Final Gibbs free energy" after a constrained optimum) is
+            # no producer a reader is missing (R10 Q21 g1-hooh, CUHK
+            # 2153623: a verified refusal read as unverified over it).
+            from chemsmart.analysis.result_quantities import (
+                exists_only_at_a_stationary_point,
+                structure_stationarity,
+            )
+
+            if exists_only_at_a_stationary_point(selector):
+                try:
+                    reading = structure_stationarity(program, output)
+                except Exception:  # noqa: BLE001 - unread when unreadable
+                    reading = None
+                if reading is not None and (
+                    reading.stationarity == "not_stationary"
+                ):
+                    absent.append(
+                        f"{artifact_id}: {reading.sentence()}, so it has no "
+                        f"{selector} whatever its output prints"
+                    )
+                    continue
             unread.append((str(artifact_id), str(artifact.path)))
             continue
         try:
@@ -1803,6 +1841,46 @@ def _observed_spin_deviation(
         return None
 
 
+def _observed_broken_symmetry_unbroken(
+    observation: Mapping[str, Any], program: str
+) -> dict[str, Any] | None:
+    """The anomaly a broken-symmetry request that stayed symmetric raises.
+
+    ``broken_symmetry: true`` asks for the open-shell singlet and the
+    program's own record shows the request applied; a solution whose
+    <S**2> stayed within the threshold of 0 is the spin-symmetric one.
+    That is sometimes the right answer -- a structure with no diradical
+    character declines to break, as a closed-shell molecule must -- so it
+    is an observation with standing, never a verdict: every number above
+    it describes the closed-shell solution, and the settlement names it
+    where a number descends from it.  The session says what it means.
+    """
+
+    block = observation.get(program)
+    if not isinstance(block, Mapping):
+        return None
+    record = block.get("spin_symmetry")
+    if not isinstance(record, Mapping):
+        return None
+    if record.get("broken_symmetry_requested") is not True:
+        return None
+    if record.get("spin_symmetry") != "unbroken":
+        return None
+    values: dict[str, Any] = {
+        "signal_id": "spin.broken_symmetry_request_unbroken",
+        "reference": str(record.get("reference") or ""),
+        "spin_square": float(record["spin_square"]),
+        "spin_square_target": float(record["spin_square_target"]),
+        "threshold": float(record["threshold"]),
+    }
+    followed = record.get("followed_instability")
+    if isinstance(followed, Mapping):
+        # PySCF's own answer about the restricted solution it started from:
+        # a stable one explains why nothing broke.
+        values["followed_instability"] = canonical_data(dict(followed))
+    return values
+
+
 def _silence_can_refute(
     signal_id: str,
     source: Mapping[str, Any],
@@ -2109,6 +2187,15 @@ def _neutral_sensor_facts(
         diagnostics = None
     if diagnostics:
         block["reference_stability"] = canonical_data(diagnostics)
+    # Which determinant ran and whether its spin symmetry broke, through
+    # the reader's one function: the level's reference and request, and
+    # <S**2> through the selectors a session extracts (R10 Q18).
+    try:
+        symmetry = reader.spin_symmetry_for_output(output)
+    except Exception:  # noqa: BLE001 - a reader that cannot say says nothing
+        symmetry = None
+    if symmetry:
+        block["spin_symmetry"] = canonical_data(symmetry)
     raw_frequencies = getattr(output, "vibrational_frequencies", None)
     frequencies: tuple[float, ...] = ()
     if raw_frequencies is not None:
@@ -2525,6 +2612,34 @@ def compile_time_observations(
         reason = orca_numerical_hessian_reason(resolved)
         if reason:
             observations.append(reason)
+    # The broken-symmetry request, and a singlet mixing guess made without
+    # it: the translation each program's own settings module states, so
+    # the reply and the review name the mechanism the input carries --
+    # unless the writer refuses the request for this state, which it does
+    # with the sentence its settings raise. Stating the translation there
+    # told a triplet node "ORCA runs ... on the singlet" beside a writer
+    # that had refused to write it (R10 Q26 census, all three programs).
+    import importlib
+
+    from chemsmart.jobs.settings import broken_symmetry_refusal
+
+    try:
+        describe = getattr(
+            importlib.import_module(f"chemsmart.jobs.{program}.settings"),
+            "describe_broken_symmetry",
+            None,
+        )
+    except ImportError:
+        describe = None
+    refused = broken_symmetry_refusal(
+        resolved.get("broken_symmetry") is True, multiplicity
+    )
+    if refused:
+        observations.append(refused)
+    elif callable(describe):
+        sentence = describe(dict(resolved), multiplicity=multiplicity)
+        if sentence:
+            observations.append(sentence)
     # Every job type that promises a stationary point: the two that
     # search for one and the two that evaluate a Hessian on one. The
     # union this replaced added the geometry-cap set to a hand-written
@@ -2745,6 +2860,21 @@ _PLAN_SHAPED_TOOLS = frozenset(
         "amend_scientific_workflow",
         "declare_requested_observable",
     }
+)
+
+#: How a declared category is answered, said once for every refusal and
+#: miss that needs it: the same act that delivers a number, with a word.
+_CATEGORY_ROUTE = (
+    "extract the word the program printed (its extraction selector, e.g. "
+    "scf_stability_external or irc_direction, or stationary_point_kind for "
+    "what a structure is) and claim it with "
+    "record_analysis_claims under the question's own id, as a number is "
+    "claimed under its id; an integer the host read there (e.g. "
+    "irc_converged) answers the same way. A finding with "
+    "answers_observable_id resting on '<that claim> == <the word>' may "
+    "state your interpretation beside it. A question whose answer is a "
+    "relation between numbers is delivered by its numbers and stated as a "
+    "finding"
 )
 
 
@@ -4216,10 +4346,10 @@ class CommandCompiledToolHostV1:
                 raise ContractError(
                     "a declared observable requires one sentence of meaning"
                 )
-            # A question whose answer is a word or a relation -- is the
-            # reference stable, which minimum does this branch reach,
-            # which isomer is in this file -- is declared as a category
-            # and delivered only by a finding that answers it. It has no
+            # A question whose answer is a word -- is the reference
+            # stable, which way did this branch go -- is declared as a
+            # category and delivered by the word the host read, claimed
+            # under its id or through a finding that answers it. It has no
             # magnitude, so it carries no band, sign or tolerance.
             categorical = unit.lower() == "category"
             if categorical:
@@ -4854,12 +4984,38 @@ class CommandCompiledToolHostV1:
         retired = superseded_observable_ids(
             tuple(self.requested_observable_declarations.values())
         )
-        # The words the host read that answer each declared category, from
-        # the newest finding that answers it. A finding answers only
-        # through a word the host read (the finding verifier refuses any
-        # other), and those words -- never the finding's sentence -- are
-        # what this gate certifies as delivered.
+        # The words the host read that answer each declared category: a
+        # word (or an integer the host read) claimed under the category's
+        # id answers it, as a number claimed under its id delivers a
+        # declared number; a finding that answers it, newer and resting on
+        # such a claim, carries its words instead. Both answer through one
+        # rule (``_categorical_answer_row``), and those words -- never the
+        # finding's sentence -- are what this gate certifies as delivered.
         answered: dict[str, tuple[Mapping[str, Any], ...]] = {}
+        answered_by_claim: dict[str, str] = {}
+        for record_sha256, record in self.analysis_claim_records.items():
+            if getattr(record, "task_spec_sha256", "") != task_spec_sha256:
+                continue
+            for claim in getattr(record, "claims", ()):
+                for field in ("claim_id", "quantity_id"):
+                    key = str(getattr(claim, field, "") or "")
+                    declaration = self.requested_observable_declarations.get(
+                        key
+                    )
+                    if (
+                        declaration is None
+                        or str(declaration.get("unit") or "") != "category"
+                    ):
+                        continue
+                    word, _reason = self._categorical_answer_row(
+                        claim_operand(claim, claim_record_sha256=record_sha256)
+                    )
+                    if word is None:
+                        continue
+                    answered[key] = (
+                        {**word, "claim_record_sha256": record_sha256},
+                    )
+                    answered_by_claim[key] = field
         for finding in self.analysis_findings.values():
             if (
                 finding.task_spec_sha256 == task_spec_sha256
@@ -4874,6 +5030,7 @@ class CommandCompiledToolHostV1:
                     }
                     for word in finding.answer
                 )
+                answered_by_claim.pop(finding.answers_observable_id, None)
         misses = []
         limitations = []
         for observable_id, record in sorted(
@@ -4881,11 +5038,10 @@ class CommandCompiledToolHostV1:
         ):
             if str(record.get("unit") or "") == "category":
                 # A question whose answer is a word is answered by a word
-                # the host read, bound through a finding's relation, and
-                # never by a claim's dimension.
+                # the host read, and never by a claim's dimension.
                 if observable_id in answered:
                     self._declared_observable_join_fields[observable_id] = (
-                        "finding"
+                        answered_by_claim.get(observable_id, "finding")
                     )
                     self._declared_categorical_answers[observable_id] = (
                         answered[observable_id]
@@ -4895,11 +5051,8 @@ class CommandCompiledToolHostV1:
                     continue
                 misses.append(
                     f"declared question {observable_id!r} (category) has "
-                    "no word or integer the host read answering it; claim "
-                    "the word the program printed or a count the host "
-                    "rendered, and record a finding with "
-                    f"answers_observable_id {observable_id!r} resting on "
-                    "'<that claim> == <the value>'"
+                    "no word or integer the host read answering it: "
+                    + _CATEGORY_ROUTE
                 )
                 limitations.append(f"declared_observable:{observable_id}")
                 continue
@@ -6936,9 +7089,13 @@ class CommandCompiledToolHostV1:
         """
 
         root = getattr(self, "run_evidence_root", None)
-        if not root:
+        if not root or not receipt_sha256:
             return False
-        needle = f'"receipt_sha256": "{receipt_sha256}"'
+        # The digest is searched as itself and the record is read as the
+        # store wrote it. The needle used to spell the JSON with a space
+        # after the colon, which the event store never writes, so every
+        # citation of a recorded run's receipt was refused -- including
+        # the failed validation receipt the wake tells a session to cite.
         for stream in sorted(
             Path(root).glob(".chemsmart-agent/goals/*/runs/*/events.jsonl")
         ):
@@ -6946,16 +7103,21 @@ class CommandCompiledToolHostV1:
                 text = stream.read_text(encoding="utf-8")
             except OSError:
                 continue
-            if needle not in text:
+            if receipt_sha256 not in text:
                 continue
             for line in text.splitlines():
-                if needle not in line:
+                if receipt_sha256 not in line:
                     continue
                 try:
                     event = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                if event.get("kind") in self._RUN_RECEIPT_KINDS:
+                payload = event.get("payload") or {}
+                if (
+                    event.get("kind") in self._RUN_RECEIPT_KINDS
+                    and str(payload.get("receipt_sha256") or "")
+                    == receipt_sha256
+                ):
                     return True
         return False
 
@@ -7823,83 +7985,141 @@ class CommandCompiledToolHostV1:
         and a finding saying "UNSTABLE" over a relation that read
         'stable': the completion's word was false both times.
 
-        A count or a verdict the host rendered as an integer answers too:
-        the master's smoke goal (R10, 2026-09-24) rested a yes/no question
-        on minimum-verdict == 1, the relation held, and the refusal said
-        nothing the host read answered it. An integer is compared exactly,
-        as a word is; a real number is not, so a distance still answers
-        nothing.
+        A count or a flag the host read from the program's output as an
+        integer answers too: the master's smoke goal (R10, 2026-09-24)
+        rested a yes/no question on an integer, the relation held, and the
+        refusal said nothing the host read answered it. An integer is
+        compared exactly, as a word is; a real number is not, so a distance
+        still answers nothing. Which claims answer is one rule,
+        ``_categorical_answer_row``, shared with the claim that carries a
+        category's id: two organs answering one question call one function.
         """
 
         answer: list[dict[str, Any]] = []
+        unread: list[str] = []
         for row in relations:
             left = row.get("left") or {}
-            if row.get("relation") != "==" or left.get("data_kind") not in (
-                "text",
-                "integer",
-            ):
+            if row.get("relation") != "==":
+                unread.append(
+                    f"{left.get('claim_id')} {row.get('relation')} (not ==)"
+                )
                 continue
-            source = str(left.get("source_receipt_sha256") or "")
-            quantity_id = str(left.get("quantity_id") or "")
-            receipt = self.quantity_extractions.get(source)
-            bindings = dict(getattr(receipt, "selector_bindings", ()) or ())
-            bindings = bindings or dict(
-                self.quantity_extraction_bindings.get(source) or {}
-            )
-            value = left.get("value")
-            answer.append(
-                {
-                    "claim_id": str(left.get("claim_id") or ""),
-                    "word": (
-                        value
-                        if left.get("data_kind") == "text"
-                        else str(int(value))
-                    ),
-                    "selector": str(bindings.get(quantity_id) or ""),
-                    "source_receipt_sha256": source,
-                    "quantity_id": quantity_id,
-                    **(
-                        {"data_kind": "integer"}
-                        if left.get("data_kind") == "integer"
-                        else {}
-                    ),
-                }
-            )
+            word, reason = self._categorical_answer_row(left)
+            if word is None:
+                unread.append(f"{left.get('claim_id')} == ({reason})")
+                continue
+            answer.append(word)
         if not answer:
-            read = "; ".join(
-                f"{(row.get('left') or {}).get('claim_id')} "
-                f"{row.get('relation')} "
-                f"({(row.get('left') or {}).get('data_kind')})"
-                for row in relations
-            )
             raise RoutedContractError(
                 gate="finding.answers_through_a_word_the_host_read",
                 invariant=(
                     "a declared category is answered by a word or an "
-                    "integer the host read, bound to it through an == "
-                    "relation that holds over its claim; the finding's "
-                    "sentence is the session's interpretation, shown beside "
-                    "it."
+                    "integer the host read from the program's output, bound "
+                    "to it through an == relation that holds over its "
+                    "claim; the finding's sentence is the session's "
+                    "interpretation, shown beside it."
                 ),
                 diagnosis=(
                     f"finding {finding_id!r} answers {observable_id!r} and "
-                    f"rests on {read}: none is an == over a word or an "
-                    "integer claim, and a real number equals a value only to "
-                    "a precision nobody stated."
+                    "rests on " + "; ".join(unread) + "."
                 ),
-                route=(
-                    "claim the word the program printed (its extraction's "
-                    "selector, e.g. scf_stability_external or irc_direction) "
-                    "or a count the host rendered, with "
-                    "record_analysis_claims, and rest the answer on '<that "
-                    "claim> == <the value>'; keep the other relations as "
-                    "support, or record the finding without "
-                    "answers_observable_id -- a relation between numbers "
-                    "stands as a finding, and the number it rests on is "
-                    "delivered by its own claim"
-                ),
+                route=_CATEGORY_ROUTE,
             )
         return tuple(answer)
+
+    def _categorical_answer_row(
+        self, operand: Mapping[str, Any]
+    ) -> tuple[dict[str, Any] | None, str]:
+        """The answer a claim gives a declared category, or why it gives none.
+
+        A category's answer is what the program said, as the host read it:
+        a word an extraction read (a stability verdict, an IRC branch word),
+        or an integer it read there (a convergence flag, a count). The
+        verdict of a validation rule the session wrote is not one: it says
+        whether that rule held, the answer would not carry which way the
+        rule reads, and the host would certify "'1', selector unrecorded"
+        where the question asked for a word (R10 Q22's G-h2 claimed three
+        such verdicts under its three category ids in three cycles; FRONTIER
+        #23). A real number equals a value only to a precision nobody
+        stated. ``operand`` is a claim as ``claim_operand`` renders it.
+        """
+
+        data_kind = str(operand.get("data_kind") or "scalar")
+        source_kind = str(operand.get("source_kind") or "")
+        value = operand.get("value")
+        if data_kind == "text_vector":
+            return None, "a list of words; a category is answered by one"
+        if data_kind not in ("text", "integer"):
+            return None, (
+                "a real number, which equals a value only to a precision "
+                "nobody stated"
+            )
+        if source_kind != "quantity_extraction":
+            return None, (
+                "the verdict of a validation rule the session wrote, which "
+                "says whether that rule held, not what the program read"
+                if source_kind == "scientific_validation"
+                else f"a {source_kind or 'derived'} value, not a word or an "
+                "integer the host read from the program's output"
+            )
+        source = str(operand.get("source_receipt_sha256") or "")
+        quantity_id = str(operand.get("quantity_id") or "")
+        receipt = self.quantity_extractions.get(source)
+        bindings = dict(getattr(receipt, "selector_bindings", ()) or ())
+        bindings = bindings or dict(
+            self.quantity_extraction_bindings.get(source) or {}
+        )
+        return (
+            {
+                "claim_id": str(operand.get("claim_id") or ""),
+                "word": value if data_kind == "text" else str(int(value)),
+                "selector": str(bindings.get(quantity_id) or ""),
+                "source_receipt_sha256": source,
+                "quantity_id": quantity_id,
+                **({"data_kind": "integer"} if data_kind == "integer" else {}),
+            },
+            "",
+        )
+
+    def _categorical_answers_in(
+        self, record: Any
+    ) -> tuple[dict[str, Any], ...]:
+        """What each claim of one record answers, said in the claim's reply.
+
+        The session learns in the turn it claims which declared question
+        its word answered and which selector read it -- the pairing a
+        reader of the settlement checks, and the one R10 Q22's gh2c
+        answered with the spin-polarising word under a question it had
+        named for complex rotations.
+        """
+
+        rows: list[dict[str, Any]] = []
+        for claim in getattr(record, "claims", ()):
+            for field in ("claim_id", "quantity_id"):
+                key = str(getattr(claim, field, "") or "")
+                declaration = self.requested_observable_declarations.get(key)
+                if (
+                    declaration is None
+                    or str(declaration.get("unit") or "") != "category"
+                ):
+                    continue
+                word, _reason = self._categorical_answer_row(
+                    claim_operand(
+                        claim, claim_record_sha256=record.receipt_sha256
+                    )
+                )
+                if word is None:
+                    continue
+                rows.append(
+                    {
+                        "answers_declared_category": key,
+                        "meaning": str(declaration.get("meaning") or ""),
+                        "word": word["word"],
+                        "selector": word["selector"],
+                        "claim_id": word["claim_id"],
+                    }
+                )
+        return tuple(rows)
 
     def _host_signals_beneath(
         self,
@@ -11026,6 +11246,7 @@ class CommandCompiledToolHostV1:
             turn_id, {"invocation_sha256": invocation.invocation_sha256}
         )
         preview_status = preview["safe_preview"].status
+        refusal = preview_refusal(preview["safe_preview"])
         preflight = None
         if preview_status == "previewed" and not preview["critical_findings"]:
             # Preparation already holds every host-owned input needed by the
@@ -11106,10 +11327,22 @@ class CommandCompiledToolHostV1:
             # po3-r18 cycle 2's model-visible transcript contains zero
             # occurrences of `RIJCOSX` and zero of `aborting the run`.
             + self._probe_observations_for(node.node_id),
+            # Why no input was written, in ChemSmart's own words. Only the
+            # class reached the session, beside findings computed over the
+            # file a refused writer left, so "inspect the findings" sent
+            # it to fields that were never the problem (R10 Q26 census:
+            # 8 of 13 refusals).
+            **({"refusal": refusal} if refusal else {}),
             "next_action": (
                 "inspect the workflow frontier"
                 if preview_status == "previewed"
-                else "inspect the generated-input validation findings"
+                else (
+                    "read refusal: no input was written, and the sentence "
+                    "says why; the same node and project compile to the "
+                    "same refusal"
+                    if refusal
+                    else "inspect the generated-input validation findings"
+                )
             ),
         }
 
@@ -11695,6 +11928,8 @@ class CommandCompiledToolHostV1:
                 blocking.append(node_id)
                 blocking_reason = self._result_file_structure_reason(
                     plan, node_id
+                ) or self._node_preview_refusal(
+                    node_id, plan_sha256=plan.plan_sha256
                 )
             nodes.append(
                 {
@@ -11868,6 +12103,29 @@ class CommandCompiledToolHostV1:
             if receipt.invocation_sha256 == invocation_sha256
         ]
         return matches[-1] if matches else None
+
+    def _node_preview_refusal(
+        self, node_id: str, *, plan_sha256: str = ""
+    ) -> str:
+        """Why this node's latest command wrote no input, or "".
+
+        The frontier and the review ask this, and the compile reply renders
+        the receipt it just made through the same ``preview_refusal``, so
+        the three say one sentence. The review used to say "compiled, not
+        previewed" and route to compiling again, and the frontier "repair
+        using the findings", for a node whose writer had refused it with a
+        route in its own words (R10 Q26 census).
+        """
+
+        try:
+            invocation, _context = self._latest_invocation_for_node(
+                node_id, plan_sha256=plan_sha256
+            )
+        except ContractError:
+            return ""
+        return preview_refusal(
+            self._resolve_safe_preview(invocation.invocation_sha256)
+        )
 
     def _synthesize_command(self, turn_id: str, values: dict) -> Any:
         capability = self._get(
@@ -12385,6 +12643,16 @@ class CommandCompiledToolHostV1:
         )
         from chemsmart.agent.preview import retained_preview_artifact
 
+        # A check speaks for the compile it read and for no later one. The
+        # record used to be written when a check ran and kept when a later
+        # compile of the same node ran none, so ORCA's refusal of an ORCA
+        # node's bytes stayed that node's word after the session re-planned
+        # it in Gaussian: the compile reply, the frozen review and the
+        # executor's launch check all carried it, and two approved Gaussian
+        # nodes were refused "on these exact bytes" (R10 Q15 g1, CUHK Slurm
+        # 2152875). Every preflight of a node retires the node's record
+        # first; only a check of this compile's input takes its place.
+        getattr(self, "_input_check_by_node", {}).pop(node_id, None)
         executable = getattr(self, "input_check_executable", None)
         if program != "orca" or executable is None:
             return None
@@ -12750,9 +13018,10 @@ class CommandCompiledToolHostV1:
         if doubted_quantity_ids:
             # A session that doubts a receipt and claims from it has said
             # both things in typed form; the completion word carries that
-            # truth instead of certifying past it.
+            # truth instead of certifying past it -- beside, never in place
+            # of, the criteria its claims stand under.
             status = "partial"
-            findings = tuple(
+            findings = findings + tuple(
                 f"analysis.claim_under_recorded_doubt.{quantity_id}"
                 for quantity_id in doubted_quantity_ids
             )
@@ -12765,10 +13034,118 @@ class CommandCompiledToolHostV1:
             limitation_output_ids=limitation_output_ids,
         )
 
+    def _failed_criteria(self) -> tuple[FailedCriterionV1, ...]:
+        """Every failed acceptance-criterion verdict this host holds, and
+        whether a decision it recorded answered it.
+
+        The one function every organ calls (``goal.failed_criteria``):
+        the session's completion, the executor's completion of an
+        approved chain, and the settlement, which reads the same records
+        back from the stream. They used to answer three ways -- the
+        executor never looked, the session never read a decision, the
+        settlement read one receipt at a time -- and a goal whose session
+        cited the failed receipt and stood by its answer went back to the
+        human saying a gate had not passed (L1, R10 Q16, CUHK 2152989).
+        """
+
+        # getattr, as the other registry readers here: a host restored for
+        # preflight is built without running __init__.
+        validations = []
+        for digest, receipt in getattr(
+            self, "scientific_validation_receipts", {}
+        ).items():
+            record = canonical_data(receipt)
+            record["receipt_sha256"] = digest
+            validations.append(record)
+        if not validations:
+            return ()
+        cited: set[str] = set()
+        for decision in getattr(self, "scientific_decisions", {}).values():
+            cited |= cited_receipts(getattr(decision, "evidence_refs", ()))
+        result_artifacts, expression_sources = self._result_lineage_maps()
+        return failed_criteria(
+            validations,
+            cited=cited,
+            result_artifacts=result_artifacts,
+            expression_sources=expression_sources,
+        )
+
+    def _result_lineage_maps(
+        self,
+    ) -> tuple[dict[str, str], dict[tuple[str, str], tuple[str, ...]]]:
+        """Which result each extraction read, and what each expression
+        output was computed from -- the two maps ``results_read`` follows,
+        built from this host's receipts exactly as the settlement builds
+        them from the stream those receipts are written to."""
+
+        return (
+            {
+                str(digest): str(receipt.artifact_sha256)
+                for registry in (
+                    getattr(self, "quantity_extractions", {}),
+                    # A derivation reads its result as an extraction does.
+                    getattr(self, "thermochemistry_receipts", {}),
+                )
+                for digest, receipt in registry.items()
+                if getattr(receipt, "artifact_sha256", "")
+            },
+            {
+                (str(digest), str(dependency.output_id)): tuple(
+                    str(item) for item in dependency.source_receipt_sha256s
+                )
+                for digest, receipt in getattr(
+                    self, "quantity_expression_receipts", {}
+                ).items()
+                for dependency in getattr(receipt, "output_dependencies", ())
+            },
+        )
+
+    def _delivered_claims_on_an_unanswered_criterion(
+        self, records: Sequence[Any]
+    ) -> tuple[str, ...]:
+        """Claims a delivery made without a plan rests on an unread verdict.
+
+        A delivery certified from registered results has no approved plan
+        to trace, so the join is the receipts' own: a claim that renders
+        the verdict, or reads a result the verdict's rule read. The
+        certificate used to be minted ``passed`` over such a claim while
+        its own stream held the failed criterion nobody had cited.
+        """
+
+        unanswered = [
+            verdict
+            for verdict in self._failed_criteria()
+            if not verdict.answered
+        ]
+        if not unanswered:
+            return ()
+        result_artifacts, expression_sources = self._result_lineage_maps()
+        named: set[str] = set()
+        for record in records:
+            for claim in getattr(record, "claims", ()):
+                source = str(claim.source_receipt_sha256)
+                read = results_read(
+                    source,
+                    str(claim.quantity_id),
+                    result_artifacts=result_artifacts,
+                    expression_sources=expression_sources,
+                )
+                if any(
+                    source in verdict.receipt_sha256s
+                    or read.intersection(verdict.results)
+                    for verdict in unanswered
+                ):
+                    named.add(
+                        str(getattr(claim, "claim_id", "") or "")
+                        or str(claim.quantity_id)
+                    )
+        return tuple(sorted(named))
+
     def _claims_on_a_failed_criterion(
         self, plan: Any, *, task_spec_sha256: str
     ) -> tuple[str, ...]:
-        """Claims that descend from a result whose own criterion failed.
+        """Claims that descend from a result whose own criterion failed,
+        where no recorded decision has answered that verdict.
 
         A plan may carry scientific_validation nodes -- an imaginary-mode
         count, a spin-manifold check, a scan ridge above the barrier it
@@ -12781,12 +13158,24 @@ class CommandCompiledToolHostV1:
 
         Never a refusal and never a silent drop. A failed criterion is a
         stated finding, the number stays delivered, and the reader is
-        told which criterion it stands under.
+        told which criterion it stands under. A verdict a recorded
+        decision cites is answered: the session has read the finding
+        and stands by its delivery, which the settlement has always
+        counted as the scientist's call, so the completion no longer
+        names claims under it -- the verdict rides the completion's
+        observations instead (``_record_toolchain_completion``) and the
+        settlement word carries it.
         """
 
         nodes = {node.node_id: node for node in plan.analysis_nodes}
         if not nodes:
             return ()
+        unanswered_receipts = {
+            receipt
+            for verdict in self._failed_criteria()
+            if not verdict.answered
+            for receipt in verdict.receipt_sha256s
+        }
 
         def producers(node_id: str, seen: frozenset[str] = frozenset()) -> set:
             node = nodes.get(node_id)
@@ -12808,8 +13197,10 @@ class CommandCompiledToolHostV1:
 
         failed_producers: set[str] = set()
         failed_by_node: dict[str, str] = {}
-        for receipt in self.scientific_validation_receipts.values():
+        for digest, receipt in self.scientific_validation_receipts.items():
             if getattr(receipt, "all_rules_passed", True):
+                continue
+            if digest not in unanswered_receipts:
                 continue
             node_id = str(getattr(receipt, "node_id", "") or "")
             if node_id not in nodes:
@@ -13028,8 +13419,19 @@ class CommandCompiledToolHostV1:
             for row in declared_predictions
             if row.get("agreement") == "diverged" and row.get("observable_id")
         )
+        # The plan's own acceptance criteria that failed ride the same
+        # list under their own prefix, with whether a recorded decision
+        # has answered them: a completion certified over an answered one
+        # still says the delivery carries it. Unlike a declaration, a
+        # criterion carries no mark of whether the session stated it
+        # before or after it held the number (L-S2 did both).
+        failed = tuple(
+            verdict.observation_id for verdict in self._failed_criteria()
+        )
         anomaly_output_ids = tuple(
-            sorted(set(self._anomaly_output_ids()) | set(falsified))
+            sorted(
+                set(self._anomaly_output_ids()) | set(falsified) | set(failed)
+            )
         )
         body = {
             "schema_version": "chemsmart.analysis-completion-receipt.v1",
@@ -13134,6 +13536,27 @@ class CommandCompiledToolHostV1:
         task_spec_sha256 = self._resolve_task_spec_reference(
             {}, "task_spec_sha256"
         )
+        # The executor walked the chain the human approved and holds no
+        # decision, so a criterion of that chain which failed is a finding
+        # nobody has read yet: the claims standing on it are named, exactly
+        # as the session's completion names them. This walk used to certify
+        # ``passed`` over the same shape the session called partial (L1's
+        # first cycle, R10 Q16, CUHK 2152989: both stability criteria
+        # failed, the run's completion passed).
+        failed_criterion_ids = self._claims_on_a_failed_criterion(
+            plan, task_spec_sha256=task_spec_sha256
+        )
+        if failed_criterion_ids:
+            return self._record_toolchain_completion(
+                plan.plan_sha256,
+                task_spec_sha256=task_spec_sha256,
+                source_receipt_sha256s=receipts,
+                status="partial",
+                findings=tuple(
+                    f"analysis.claim_on_failed_criterion.{output_id}"
+                    for output_id in failed_criterion_ids
+                ),
+            )
         return self._record_toolchain_completion(
             plan.plan_sha256,
             task_spec_sha256=task_spec_sha256,
@@ -13259,6 +13682,18 @@ class CommandCompiledToolHostV1:
                 ),
             }
         )
+        standing = self._delivered_claims_on_an_unanswered_criterion(records)
+        if standing:
+            return self._record_toolchain_completion(
+                policy_sha256,
+                task_spec_sha256=task_spec_sha256,
+                source_receipt_sha256s=sources,
+                status="partial",
+                findings=tuple(
+                    f"analysis.claim_on_failed_criterion.{name}"
+                    for name in standing
+                ),
+            )
         return self._record_toolchain_completion(
             policy_sha256,
             task_spec_sha256=task_spec_sha256,
@@ -16602,16 +17037,70 @@ class CommandCompiledToolHostV1:
             - non_executable_ids
         )
         if not initial_ids or not initial_ids.issubset(previewed_ids):
+            # Name the nodes and what they hold. The bare sentence cost
+            # R10 Q15 g1 (CUHK 2152875) its first cycle: one amended scan
+            # node was never materialized again, the refusal reached the
+            # re-wake verbatim, and nothing in it said which node.
+            # A compiled node whose command raised is not "not previewed":
+            # it was refused, and the review says why in the words the
+            # compile reply and the frontier use.
+            def held_as(item: Any) -> str:
+                if item.state == "grounded":
+                    return "grounded, not compiled"
+                if item.state != "compiled":
+                    return item.state
+                refusal = self._node_preview_refusal(
+                    item.node_id, plan_sha256=plan.plan_sha256
+                )
+                return (
+                    f"compiled, and {refusal}"
+                    if refusal
+                    else "compiled, not previewed"
+                )
+
+            held = {item.node_id: held_as(item) for item in materialized.nodes}
+            missing = ", ".join(
+                f"{node_id} "
+                f"({held.get(node_id, 'not materialized for the current plan')})"
+                for node_id in sorted(initial_ids - previewed_ids)
+            )
             raise ContractError(
                 "every initial workflow node requires a green preview before "
-                "bounded execution"
+                "bounded execution; "
+                + (
+                    "the latest materialization of this plan holds none for "
+                    f"{missing}: compile_command previews a node, and a node "
+                    "an amendment changed is compiled again"
+                    if missing
+                    else "this plan has no initial node that executes"
+                )
             )
         unresolved_ids = (
             set(materialized.unresolved_node_ids) - non_executable_ids
         )
         if unresolved_ids != data_targets:
+            stray = sorted(unresolved_ids - data_targets)
+            resolved = sorted(data_targets - unresolved_ids)
             raise ContractError(
-                "only exact producer-dependent nodes may remain unresolved"
+                "only exact producer-dependent nodes may remain unresolved; "
+                + "; ".join(
+                    part
+                    for part in (
+                        (
+                            "unresolved without a producer edge: "
+                            + ", ".join(stray)
+                            if stray
+                            else ""
+                        ),
+                        (
+                            "resolved although they wait on a producer: "
+                            + ", ".join(resolved)
+                            if resolved
+                            else ""
+                        ),
+                    )
+                    if part
+                )
             )
         return materialized
 
@@ -18175,6 +18664,9 @@ class CommandCompiledToolHostV1:
                     "bound_multiplicity": multiplicity,
                 }
             )
+        unbroken = _observed_broken_symmetry_unbroken(observation, program)
+        if unbroken is not None:
+            anomalies.append(unbroken)
         if order_finding:
             # The verdict says the run failed its promise; the observation
             # says what the structure is. Both are true, and the second
@@ -18975,6 +19467,19 @@ class CommandCompiledToolHostV1:
                 },
             )
         )
+        # What each output is, where its operands' kinds decide it: a
+        # curvature, an orbital energy beside a state energy, or the
+        # reaction its coefficients describe (R10 Q21). Its own field, as
+        # the geometry observations have theirs: a level observation says
+        # two operands differ in Hamiltonian, and one-level arithmetic
+        # stays silent there. An observation that cannot be computed says
+        # nothing; it never fails the evaluation.
+        try:
+            kind_observations = expression_kind_observations(
+                request, receipt, self._expression_operand
+            )
+        except Exception:  # noqa: BLE001 - an observation never fails a call
+            kind_observations = ()
         self._emit(
             turn_id,
             EventKind.QUANTITY_EXPRESSION_EVALUATED,
@@ -18983,6 +19488,34 @@ class CommandCompiledToolHostV1:
             output_ids=tuple(item.quantity_id for item in receipt.outputs),
             semantic_signature_sha256=receipt.semantic_signature_sha256,
             record=record,
+            # What the evaluation read, as it was bound: each operand by
+            # receipt and quantity, the nodes and the outputs -- so the
+            # request whose digest the receipt carries (request_sha256)
+            # can be rebuilt from the stream alone and the evaluation
+            # replayed. The receipt holds the digest and not the request,
+            # and a provider-free walk's arguments reach no transcript: 8
+            # CUHK and 43 ax41 archived expressions could not be rebuilt
+            # (R10 Q21), and a signed word whose inputs cannot be replayed
+            # cannot be checked.
+            request_bindings={
+                "inputs": tuple(
+                    {
+                        "input_id": str(item["input_id"]),
+                        "receipt_sha256": str(item["receipt_sha256"]),
+                        "quantity_id": str(item["quantity_id"]),
+                        **(
+                            {"semantic_role": str(item["semantic_role"])}
+                            if str(item.get("semantic_role", "")).strip()
+                            else {}
+                        ),
+                    }
+                    for item in values["inputs"]
+                ),
+                "nodes": canonical_data(tuple(values["nodes"])),
+                "output_node_ids": tuple(
+                    str(item) for item in values["output_node_ids"]
+                ),
+            },
             **(
                 {"geometry_observations": geometry_observations}
                 if geometry_observations
@@ -18993,12 +19526,98 @@ class CommandCompiledToolHostV1:
                 if level_observations
                 else {}
             ),
+            **(
+                {"kind_observations": kind_observations}
+                if kind_observations
+                else {}
+            ),
         )
-        if geometry_observations or level_observations:
+        if geometry_observations or level_observations or kind_observations:
             self._reply_observations = (
-                tuple(geometry_observations) + level_observations
+                tuple(geometry_observations)
+                + level_observations
+                + tuple(kind_observations)
             )
         return receipt
+
+    def _expression_operand(self, receipt_sha256: str, quantity_id: str):
+        """What the host knows about one number an expression read.
+
+        An earlier expression's output is handed back as that
+        expression's own request and receipt, so the kind reading can
+        follow it to the results it came from; an extraction's quantity
+        is named by the selector it was bound to, a thermochemistry
+        receipt's by its own id; the species is read from the result
+        through its reader, once per result.
+        """
+
+        expression = self.quantity_expression_receipts.get(receipt_sha256)
+        request = self.quantity_expression_requests.get(receipt_sha256)
+        if expression is not None and request is not None:
+            return ("expression", request, expression)
+        extraction = self.quantity_extractions.get(receipt_sha256)
+        receipt = extraction or self.thermochemistry_receipts.get(
+            receipt_sha256
+        )
+        if receipt is None:
+            return None
+        name = str(quantity_id)
+        if extraction is not None:
+            name = str(
+                dict(getattr(extraction, "selector_bindings", ()) or ()).get(
+                    quantity_id
+                )
+                or self.quantity_extraction_bindings.get(
+                    receipt_sha256, {}
+                ).get(quantity_id)
+                or quantity_id
+            )
+        from chemsmart.analysis.result_quantities import (
+            geometry_of_selector,
+            result_geometries,
+            result_species,
+            structure_stationarity,
+        )
+
+        cache = self.__dict__.setdefault("_result_species_cache", {})
+        key = (str(receipt.program), str(receipt.artifact_sha256))
+        if key not in cache:
+            species, not_stationary, geometries = None, "", {}
+            artifact = self.artifacts.get(str(receipt.artifact_id))
+            if artifact is not None:
+                from chemsmart.analysis.result_readers import reader_for
+
+                try:
+                    output = reader_for(str(receipt.program)).open_output(
+                        str(artifact.path)
+                    )
+                    species = result_species(str(receipt.program), output)
+                    reading = structure_stationarity(
+                        str(receipt.program), output
+                    )
+                    if reading.stationarity == "not_stationary":
+                        not_stationary = reading.sentence()
+                    geometries = result_geometries(
+                        str(receipt.program), output
+                    )
+                except Exception:  # noqa: BLE001 - unreadable says nothing
+                    pass
+            cache[key] = (species, not_stationary, geometries)
+        species, not_stationary, geometries = cache[key]
+        # The geometry a number belongs to is the structural state its own
+        # selector declares; a derived thermochemistry quantity belongs to
+        # the structure its modes were computed at.
+        return ExpressionOperandV1(
+            name=name,
+            species=species,
+            structure=str(receipt.artifact_sha256),
+            not_stationary=not_stationary,
+            distances=geometry_of_selector(
+                str(receipt.program),
+                geometries,
+                name if extraction is not None else "vibrational_frequencies",
+            ),
+        )
 
     def _geometry_operation_observations(
         self, values: Mapping[str, Any], nodes: Sequence[Any]
@@ -19872,41 +20491,82 @@ class CommandCompiledToolHostV1:
 
         A word never delivers a declared number: every declaration is
         judged by id and dimension, and a verdict word is dimensionless,
-        so a word claimed under a declared id would satisfy a declared
-        count or eigenvalue by coincidence of dimension. The route is a
-        finding that answers the question and rests on this word.
+        so a word claimed under a declared number's id would satisfy a
+        declared count or eigenvalue by coincidence of dimension.
+
+        A word claimed under a declared *category's* id is that question's
+        answer, delivered as a number is under its id. This refused it
+        with the number's diagnosis: in the archive the refusal fired 16
+        times and all 16 were words claimed under a declared category, in
+        8 of the 9 goals that declared one -- 7 of them the claim node of
+        an approved chain, which failed whole and took the requested
+        energy with it (R10 Q23 census; ls2, CUHK 2153514).
         """
 
         claim_id = str(item["claim_id"])
         declared = self._declarations_for_claim(
             claim_id, str(quantity.quantity_id)
         )
-        if declared:
+        numbers = tuple(
+            declaration
+            for declaration in declared
+            if str(declaration.get("unit") or "") != "category"
+        )
+        if numbers:
             raise RoutedContractError(
                 gate="claim.a_word_delivers_no_declared_number",
                 invariant=(
-                    "a declared observable is delivered in its dimension, "
-                    "and a word the program printed has no magnitude to "
-                    "deliver."
+                    "a declared number is delivered in its dimension, and a "
+                    "word the program printed has no magnitude to deliver."
                 ),
                 diagnosis=(
                     f"{quantity.quantity_id!r} is the word "
-                    f"{quantity.value!r} and this claim carries the "
-                    "declared id "
+                    f"{quantity.value!r} and this claim carries the id of "
+                    "the declared number "
                     + ", ".join(
-                        repr(str(item.get("observable_id") or ""))
-                        for item in declared
+                        repr(
+                            f"{declaration.get('observable_id')} "
+                            f"({declaration.get('unit')})"
+                        )
+                        for declaration in numbers
                     )
                     + "."
                 ),
                 route=(
-                    "claim the word under an id of its own, then answer "
-                    "the question with a finding in "
-                    "record_scientific_decision that rests on it (for "
-                    "example, the claim == the word); a question whose "
-                    "answer is a word or a relation is declared in unit "
-                    "'category'"
+                    "claim the word under an id of its own, and the number "
+                    "under the declared id; a question whose answer is a "
+                    "word is declared in unit 'category' and answered by "
+                    "claiming the word under that id"
                 ),
+            )
+        reason = (
+            self._categorical_answer_row(
+                {
+                    "data_kind": quantity.data_kind,
+                    "source_kind": source_kind,
+                    "value": quantity.value,
+                }
+            )[1]
+            if declared
+            else ""
+        )
+        if reason:
+            raise RoutedContractError(
+                gate="claim.a_category_is_answered_by_a_word_the_host_read",
+                invariant=(
+                    "a declared category is answered by one word or integer "
+                    "the host read from the program's output."
+                ),
+                diagnosis=(
+                    f"{quantity.quantity_id!r} is {reason} and this claim "
+                    "carries the declared category "
+                    + ", ".join(
+                        repr(str(declaration.get("observable_id") or ""))
+                        for declaration in declared
+                    )
+                    + "."
+                ),
+                route=_CATEGORY_ROUTE,
             )
         if (
             item.get("uncertainty") is not None
@@ -20119,6 +20779,51 @@ class CommandCompiledToolHostV1:
                     )
                 )
                 continue
+            categories = tuple(
+                declaration
+                for declaration in self._declarations_for_claim(
+                    str(item["claim_id"]), str(quantity.quantity_id)
+                )
+                if str(declaration.get("unit") or "") == "category"
+            )
+            if categories:
+                # A number under a declared category's id was accepted here
+                # and called undelivered only at completion, so G-h2 claimed
+                # three validation verdicts under its three category ids in
+                # three cycles and never learned why (R10 Q22, CUHK 2153627).
+                reason = self._categorical_answer_row(
+                    {
+                        "data_kind": quantity.data_kind,
+                        "source_kind": source_kind,
+                        "value": quantity.value,
+                    }
+                )[1]
+                if reason:
+                    raise RoutedContractError(
+                        gate=(
+                            "claim.a_category_is_answered_by_a_word_the_"
+                            "host_read"
+                        ),
+                        invariant=(
+                            "a declared category is answered by one word or "
+                            "integer the host read from the program's output."
+                        ),
+                        diagnosis=(
+                            f"{quantity.quantity_id!r} is {reason}, and this "
+                            "claim carries the declared category "
+                            + ", ".join(
+                                repr(str(declaration.get("observable_id")))
+                                for declaration in categories
+                            )
+                            + "."
+                        ),
+                        route=_CATEGORY_ROUTE,
+                    )
+                # An integer the host read answers in its own unit: the
+                # word 'category' is no unit to convert to, and Q11 g2's
+                # claim of its IRC flag under 'category' was refused as an
+                # unsupported unit (CUHK 2151911).
+                item = {**item, "display_unit": str(quantity.unit or "1")}
             display_unit = str(item["display_unit"])
             display_value = convert_normalized_value(
                 quantity.value, quantity.dimension, display_unit
@@ -20432,7 +21137,7 @@ class CommandCompiledToolHostV1:
         # actually taught.
         self._reply_observations = tuple(
             row for row in sufficiency_rows if row is not None
-        )
+        ) + self._categorical_answers_in(record)
         # The current assessment of each requirement, latest wins, so
         # the refusal verifier can check that a precision a session
         # says it cannot establish is one this goal actually has open.

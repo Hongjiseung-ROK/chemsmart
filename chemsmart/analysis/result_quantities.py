@@ -434,10 +434,188 @@ def thermochemistry_route_hint(selectors) -> str:
         return ""
     return (
         f" A thermochemistry stage derives {matched} from a "
-        "frequency-bearing result under an explicitly bound temperature, "
-        "pressure, and standard state; plan one on the producing "
-        "calculation instead of selecting these from the log."
+        "frequency-bearing result at a stationary point -- a converged "
+        "optimisation or saddle search, or a Hessian taken at one -- under "
+        "an explicitly bound temperature, pressure, and standard state; "
+        "plan one on such a calculation instead of selecting these from the "
+        "log. A structure held or driven along a coordinate (modred, scan) "
+        "is not a stationary point and has no free energy: relax it without "
+        "the constraint first."
     )
+
+
+#: The layers one structure's thermochemical state functions are sums of,
+#: in the order they accumulate: E(el), + ZPE = E0, + thermal energy above
+#: the zero-point level = U(T), + pV = H(T), - TS = G(T).  An energy a
+#: receipt carries is a fixed block of these for one structure, which is
+#: what lets the host read a combination of energies as a reaction.
+ENERGY_LAYERS = ("electronic", "zero_point", "thermal", "pV", "minus_TS")
+
+#: What a contiguous block of layers is called when one species enters an
+#: output with it.
+ENERGY_LAYER_BLOCKS: Mapping[tuple[int, ...], str] = {
+    (0,): "E",
+    (0, 1): "E0 (E + ZPE)",
+    (0, 1, 2): "U",
+    (0, 1, 2, 3): "H",
+    (0, 1, 2, 3, 4): "G",
+}
+
+
+@dataclass(frozen=True)
+class EnergyKindV1:
+    """What an energy-valued number is, beyond its dimension.
+
+    Dimensional analysis checks that two numbers share a unit; it cannot
+    tell a total energy from an orbital eigenvalue or an orbital-rotation
+    curvature, all of which the vocabulary serves in hartree.  ``kind`` is
+    one of:
+
+    - ``state_energy``: the energy of one structure in one state, as the
+      block of ``ENERGY_LAYERS`` in ``layers`` (``E``, ``E0``, ``U``, ``H``
+      or ``G``);
+    - ``correction``: a block of layers without the electronic one (a
+      zero-point energy, a thermal correction, T*S with ``sign`` -1);
+    - ``electronic_component``: a part of one electronic energy (a
+      correlation, dispersion or solvation term) -- a decomposition, with
+      no layer of its own;
+    - ``orbital_energy``: a one-electron eigenvalue or a gap between two;
+    - ``excitation_energy``: a vertical energy between two states of one
+      structure, positive by convention;
+    - ``orbital_rotation_curvature``: an eigenvalue of an SCF stability
+      matrix -- the curvature of the energy along a rotation of the
+      orbitals, not an energy difference between states -- under the
+      ``normalisation`` of the matrix it belongs to.
+
+    ``indexes_structures`` marks a vector whose elements are the energies
+    of different structures -- the points of a scan, an IRC branch or an
+    optimisation -- so an element picked by index is its own structure,
+    not the one the result reached.
+    """
+
+    kind: str
+    layers: tuple[int, ...] = ()
+    sign: int = 1
+    normalisation: str = ""
+    indexes_structures: bool = False
+
+
+_E = EnergyKindV1("state_energy", (0,))
+_E_ALONG_A_PATH = EnergyKindV1("state_energy", (0,), indexes_structures=True)
+_COMPONENT = EnergyKindV1("electronic_component")
+_ORBITAL = EnergyKindV1("orbital_energy")
+_EXCITATION = EnergyKindV1("excitation_energy")
+
+#: One kind per energy-valued selector or thermochemistry quantity id.  The
+#: two name spaces agree wherever they share a name (``gibbs_free_energy``
+#: printed by a program and derived by the host are both a G), so they are
+#: one table; ``test_every_energy_names_its_kind`` holds every energy a
+#: reader declares, and every one a thermochemistry receipt writes, to it.
+ENERGY_KINDS: Mapping[str, EnergyKindV1] = {
+    # One structure's electronic energy, however the program reached it.
+    "energy": _E,
+    "energies": _E_ALONG_A_PATH,
+    "scf_energy": _E,
+    "reference_energy": _E,
+    "electronic_energy": _E,
+    "scan_energies": _E_ALONG_A_PATH,
+    "trajectory_energies": _E_ALONG_A_PATH,
+    # Thermochemical state functions of one structure.
+    "internal_energy": EnergyKindV1("state_energy", (0, 1, 2)),
+    "enthalpy": EnergyKindV1("state_energy", (0, 1, 2, 3)),
+    "quasi_harmonic_enthalpy": EnergyKindV1("state_energy", (0, 1, 2, 3)),
+    "gibbs_free_energy": EnergyKindV1("state_energy", (0, 1, 2, 3, 4)),
+    "quasi_harmonic_gibbs_free_energy": EnergyKindV1(
+        "state_energy", (0, 1, 2, 3, 4)
+    ),
+    # Corrections: layers above the electronic energy of one structure.
+    "zero_point_energy": EnergyKindV1("correction", (1,)),
+    "thermal_internal_energy_correction": EnergyKindV1("correction", (1, 2)),
+    "thermal_enthalpy_correction": EnergyKindV1("correction", (1, 2, 3)),
+    "enthalpy_increment_above_zero_point": EnergyKindV1("correction", (2, 3)),
+    "thermal_gibbs_correction": EnergyKindV1("correction", (1, 2, 3, 4)),
+    "quasi_harmonic_thermal_gibbs_correction": EnergyKindV1(
+        "correction", (1, 2, 3, 4)
+    ),
+    "entropy_times_temperature": EnergyKindV1("correction", (4,), sign=-1),
+    "quasi_harmonic_entropy_times_temperature": EnergyKindV1(
+        "correction", (4,), sign=-1
+    ),
+    # Parts of one electronic energy.
+    "correlation_energy": _COMPONENT,
+    "ccsd_correlation_energy": _COMPONENT,
+    "triples_correction": _COMPONENT,
+    "dispersion_energy": _COMPONENT,
+    "solvation_electrostatic_energy": _COMPONENT,
+    "solvation_nonelectrostatic_energy": _COMPONENT,
+    "solvation_free_energy": _COMPONENT,
+    "xtb_solvation_sasa_energy": _COMPONENT,
+    "xtb_solvation_hydrogen_bond_energy": _COMPONENT,
+    "xtb_solvation_shift_energy": _COMPONENT,
+    # One-electron eigenvalues.
+    "homo": _ORBITAL,
+    "lumo": _ORBITAL,
+    "gap": _ORBITAL,
+    "alpha_homo": _ORBITAL,
+    "alpha_lumo": _ORBITAL,
+    "beta_homo": _ORBITAL,
+    "beta_lumo": _ORBITAL,
+    # Vertical state-to-state energies.
+    "excitation_energies": _EXCITATION,
+    "singlet_excitation_energies": _EXCITATION,
+    "triplet_excitation_energies": _EXCITATION,
+    # Stability-matrix eigenvalues: curvatures, each of its own matrix
+    # (R10 Q13: PySCF's internal root is 4 x Gaussian's singlet (A+B) root,
+    # its external root equals Gaussian's triplet root to 1e-6 Eh, and
+    # real -> complex is (A-B)).
+    "scf_stability_internal_lowest_eigenvalue": EnergyKindV1(
+        "orbital_rotation_curvature",
+        normalisation=(
+            "PySCF internal: real rotations that keep the reference's spin "
+            "form, eigenvalue of its orbital Hessian 4(A+B)"
+        ),
+    ),
+    "scf_stability_external_lowest_eigenvalue": EnergyKindV1(
+        "orbital_rotation_curvature",
+        normalisation=(
+            "PySCF external: rotations into the next space (RHF/RKS -> "
+            "UHF/UKS triplet block, UHF/UKS -> GHF/GKS), eigenvalue of that "
+            "block's (A+B)"
+        ),
+    ),
+    "scf_stability_real_to_complex_lowest_eigenvalue": EnergyKindV1(
+        "orbital_rotation_curvature",
+        normalisation=(
+            "PySCF real -> complex: imaginary rotations, eigenvalue of (A-B)"
+        ),
+    ),
+    "wavefunction_stability_lowest_eigenvalue": EnergyKindV1(
+        "orbital_rotation_curvature",
+        normalisation=(
+            "Gaussian: lowest (A+B) root over the blocks it tested (singlet "
+            "and RHF -> UHF triplet for a restricted reference)"
+        ),
+    ),
+}
+
+
+def energy_kind(name: str) -> EnergyKindV1 | None:
+    """The kind of an energy selector or thermochemistry quantity id."""
+
+    return ENERGY_KINDS.get(str(name))
+
+
+def exists_only_at_a_stationary_point(name: str) -> bool:
+    """Whether a quantity is defined only at a stationary point.
+
+    Everything that carries a vibrational or thermal layer -- a zero-point
+    energy, a thermal correction, T*S, U, H, G -- is a harmonic expansion
+    about a point where the gradient vanishes; an electronic energy, an
+    orbital eigenvalue or a curvature is defined anywhere.
+    """
+
+    kind = energy_kind(name)
+    return kind is not None and any(layer > 0 for layer in kind.layers)
 
 
 _IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.:-]{0,127}$")
@@ -1829,6 +2007,325 @@ def low_frequency_mode_entropy(
     }
 
 
+#: The words a stationarity reading can say, and what establishes each.
+STATIONARITY_WORDS = ("stationary", "not_stationary", "unmeasured")
+
+
+@dataclass(frozen=True)
+class StructureStationarityV1:
+    """Whether the structure a result's modes belong to is stationary.
+
+    A harmonic free energy, like the order of a stationary point, is a
+    property of a point where the gradient vanishes: the partition
+    function expands the energy about it and counts every remaining
+    motion as a vibration about it.  The answer is read from the result
+    through its reader, in this order, because a measurement outranks a
+    label: one atom has no internal coordinate; a gradient the reader
+    binds to the structure the modes belong to is compared with the
+    optimiser's own criterion; a coordinate the result held or drove is
+    not relaxed; a geometry search is as converged as the program's own
+    marker says; and a result handed its geometry, with no gradient
+    bound to it, is ``unmeasured`` -- neither shown nor refuted.
+    """
+
+    stationarity: str
+    basis: str
+    program: str
+    jobtype: str = ""
+    max_abs_gradient_eh_per_bohr: float | None = None
+    criterion_eh_per_bohr: float | None = None
+    held_coordinates: int = 0
+    driven_points: int = 0
+
+    def __post_init__(self) -> None:
+        if self.stationarity not in STATIONARITY_WORDS:
+            raise QuantityContractError(
+                f"stationarity is one of {list(STATIONARITY_WORDS)}"
+            )
+
+    def sentence(self) -> str:
+        """What the structure is and what says so, in one clause."""
+
+        job = f"{self.program} {self.jobtype}".strip()
+        if self.basis == "atom":
+            return "stationary point: one atom has no internal coordinate"
+        if self.basis == "measured_gradient":
+            relation = (
+                "at or below" if self.stationarity == "stationary" else "above"
+            )
+            prefix = (
+                "stationary point"
+                if self.stationarity == "stationary"
+                else "not a stationary point"
+            )
+            return (
+                f"{prefix}: the largest gradient component at this "
+                "result's structure is "
+                f"{self.max_abs_gradient_eh_per_bohr:.3g} Eh/Bohr, "
+                f"{relation} the optimiser's criterion of "
+                f"{self.criterion_eh_per_bohr:g} (geomeTRIC convergence_gmax)"
+            )
+        if self.basis == "held_coordinate":
+            return (
+                f"not a stationary point: this {job} result held "
+                f"{self.held_coordinates} internal coordinate(s) fixed while "
+                "the rest relaxed, so the energy still slopes along the "
+                "held motion and its modes count that motion as a "
+                "vibration"
+            )
+        if self.basis == "driven_coordinate":
+            return (
+                f"not a stationary point: this {job} result drove a "
+                f"coordinate over {self.driven_points} point(s); no point "
+                "of a scan is claimed stationary"
+            )
+        if self.basis == "search_not_converged":
+            return (
+                f"not a stationary point: this {job} search printed the "
+                "program's own marker that it did not converge, so the "
+                "structure its modes belong to is not one the program "
+                "found stationary"
+            )
+        if self.basis == "search_converged":
+            return (
+                f"stationary point: the {job} search printed the "
+                "program's own convergence marker, and its modes belong to "
+                "the structure it reached"
+            )
+        return (
+            f"stationarity unmeasured: this {job} result was handed its "
+            "geometry and binds no gradient to it, so it neither shows "
+            "nor refutes that the geometry is a stationary point of this "
+            "surface; a free energy describes a state only if it is one"
+        )
+
+
+def _reader_answer(reader: Any, output: Any, selector: str) -> Any:
+    """The reader's value for a selector, or None when it says nothing."""
+
+    try:
+        value, _unit = reader.read(output, selector)
+    except Exception:  # noqa: BLE001 - an absence or an undeclared selector
+        return None
+    return value
+
+
+def structure_stationarity(
+    program: str, output: Any
+) -> StructureStationarityV1:
+    """Read whether the structure this result's modes belong to is stationary.
+
+    One function, because every organ that says what a structure *is*
+    asks it: a free energy (``derive_result_thermochemistry``) and the
+    order of a stationary point both stand on a stationary point.  The
+    characterisation asked only the gradient and the free energy asked
+    nothing, so on the base of R10 Q21 a free energy was derived from a
+    Gaussian ``modred`` held at HOOH = 90 deg, from an ORCA OptTS that
+    printed its own non-convergence (po3-r19: a delivered 23.19 kcal/mol
+    free energy of activation) and from the PySCF ``water_stretched_hess``
+    Hessian at 41 times the gradient criterion -- the very artifact the
+    characterisation refuses an order on.
+
+    Every fact is read through the program's reader: the structure's
+    atoms, the gradient bound to one structure
+    (``stationarity_gradient_for_output``), a held or driven coordinate
+    (``constrained_coordinate_count``, ``scan_steps_planned``), and a
+    geometry search's own convergence marker (``converged``).
+    """
+
+    from chemsmart.agent.terminal_states import (
+        GEOMETRY_SEARCH_JOBTYPES,
+        HESS_STATIONARITY_GRADIENT_EH_PER_BOHR,
+    )
+    from chemsmart.analysis.result_readers import reader_for
+
+    normalized = str(program).strip().lower()
+    reader = reader_for(normalized)
+    if reader is None:
+        raise QuantityContractError(
+            f"no result reader is registered for {normalized!r}"
+        )
+    jobtype = str(getattr(output, "jobtype", "") or "").strip().lower()
+    common = {"program": normalized, "jobtype": jobtype}
+    symbols = _reader_answer(reader, output, "symbols")
+    if symbols is not None and len(tuple(symbols)) == 1:
+        return StructureStationarityV1(
+            stationarity="stationary", basis="atom", **common
+        )
+    gradient = reader.stationarity_gradient_for_output(output)
+    if gradient is not None:
+        criterion = float(HESS_STATIONARITY_GRADIENT_EH_PER_BOHR)
+        return StructureStationarityV1(
+            stationarity=(
+                "stationary" if gradient <= criterion else "not_stationary"
+            ),
+            basis="measured_gradient",
+            max_abs_gradient_eh_per_bohr=float(f"{gradient:.6g}"),
+            criterion_eh_per_bohr=criterion,
+            **common,
+        )
+    held = _reader_answer(reader, output, "constrained_coordinate_count")
+    if held:
+        return StructureStationarityV1(
+            stationarity="not_stationary",
+            basis="held_coordinate",
+            held_coordinates=int(held),
+            **common,
+        )
+    driven = _reader_answer(reader, output, "scan_steps_planned")
+    if driven:
+        return StructureStationarityV1(
+            stationarity="not_stationary",
+            basis="driven_coordinate",
+            driven_points=int(driven),
+            **common,
+        )
+    if jobtype in GEOMETRY_SEARCH_JOBTYPES:
+        converged = _reader_answer(reader, output, "converged")
+        if converged is None and "converged" not in reader.accessors:
+            # A reader that declares no convergence selector (xTB) still
+            # names the parser's own marker for the host's sensors.
+            converged = getattr(output, "converged", None)
+        if converged is not None and not bool(converged):
+            return StructureStationarityV1(
+                stationarity="not_stationary",
+                basis="search_not_converged",
+                **common,
+            )
+        if converged is not None:
+            return StructureStationarityV1(
+                stationarity="stationary",
+                basis="search_converged",
+                **common,
+            )
+    return StructureStationarityV1(
+        stationarity="unmeasured", basis="fixed_geometry", **common
+    )
+
+
+def result_species(program: str, output: Any) -> tuple[str, Any, Any] | None:
+    """``(formula, charge, multiplicity)`` of the structure a result is of.
+
+    Read through the program's reader, as every other fact about a
+    result is; the formula is Hill-ordered, and a charge or multiplicity
+    the reader does not serve is None rather than a guess. None when the
+    reader serves no atoms.
+    """
+
+    from chemsmart.analysis.quantity_expressions import hill_formula
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(str(program).strip().lower())
+    if reader is None:
+        return None
+    symbols = _reader_answer(reader, output, "symbols")
+    if not symbols:
+        return None
+
+    def _integer(value: Any) -> Any:
+        try:
+            return int(round(float(value)))
+        except (TypeError, ValueError):
+            return None
+
+    return (
+        hill_formula(symbols),
+        _integer(_reader_answer(reader, output, "charge")),
+        _integer(_reader_answer(reader, output, "multiplicity")),
+    )
+
+
+#: The selectors that serve one structure's positions. Each reader declares
+#: which of its molecular states (``result_readers.STRUCTURAL_STATES``) each
+#: belongs to, so the geometry a number describes is read by the state its
+#: own selector declares -- never assumed to be "the" structure of a result
+#: (an unconverged ORCA ``OptTS Freq`` reports its energy where the search
+#: stopped and its modes where its Hessian was computed, 1.23 A apart on a
+#: live po3 search).
+POSITION_SELECTORS = (
+    "positions",
+    "reached_positions",
+    "supplied_positions",
+    "trajectory_end_positions",
+    "trajectory_start_positions",
+)
+
+
+def result_geometries(program: str, output: Any) -> dict[str, tuple]:
+    """Each structure one result carries, by the state its reader declares.
+
+    ``{structural state: sorted interatomic distances in Angstrom}`` for
+    every position selector the reader serves on this output; a sampled
+    point (``scan_point``) and a value no structure changes (``stateless``)
+    name no one geometry and are left out.
+    """
+
+    from chemsmart.analysis.quantity_expressions import interatomic_distances
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(str(program).strip().lower())
+    if reader is None:
+        return {}
+    geometries: dict[str, tuple] = {}
+    for selector in POSITION_SELECTORS:
+        if selector not in reader.selectors:
+            continue
+        state = reader.structural_state(selector)
+        if state in geometries or state in {"scan_point", "stateless"}:
+            continue
+        distances = interatomic_distances(
+            _reader_answer(reader, output, selector)
+        )
+        if distances is not None:
+            geometries[state] = distances
+    return geometries
+
+
+def geometry_of_selector(
+    program: str, geometries: Mapping[str, tuple], selector: str
+) -> tuple | None:
+    """The geometry a selector's value describes, from ``result_geometries``.
+
+    None when the reader declares no state for the selector, or serves no
+    positions in that state: the host then does not know which structure
+    the number belongs to and says so rather than guessing.
+    """
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(str(program).strip().lower())
+    if reader is None:
+        return None
+    return geometries.get(reader.structural_state(str(selector)))
+
+
+def _stationarity_refusal(
+    stationarity: StructureStationarityV1, artifact_id: str
+) -> QuantityExtractionError:
+    """The routed refusal of a free energy at a non-stationary structure."""
+
+    return QuantityExtractionError(
+        "[thermochemistry.free_energy_needs_a_stationary_point] A free "
+        "energy, an enthalpy or a zero-point energy from harmonic modes is "
+        "a property of a stationary point: the partition function expands "
+        "the energy about a point where the gradient vanishes and counts "
+        "every other motion as a vibration about it. Diagnosis: result "
+        f"{artifact_id!r} is {stationarity.sentence()}. Route: its "
+        "electronic energy, its frequencies and every other number stay "
+        "readable and deliverable as what they are -- the energy and the "
+        "curvature at a structure that is not stationary (a held or driven "
+        "coordinate's energies are points on a constrained surface, and a "
+        "free energy along a path needs the path direction projected out "
+        "of the Hessian, which this derivation does not do). For a free "
+        "energy, reach a stationary point of the same surface -- relax "
+        "without the constraint (opt for a minimum, ts for a saddle; a "
+        "structure held at a symmetric point often converges in a few "
+        "steps) or continue the search from the structure this one "
+        "reached -- and derive thermochemistry on that result. Cost: one "
+        "engine call to reach a stationary point."
+    )
+
+
 def derive_result_thermochemistry(
     *,
     request: ThermochemistryRequestV1,
@@ -1874,6 +2371,23 @@ def derive_result_thermochemistry(
             raise QuantityExtractionError(
                 "PySCF parser observed substituted bytes"
             )
+    # Whether the structure these modes belong to is a stationary point,
+    # asked before anything is derived: a free energy is a property of a
+    # stationary point, so a structure that is shown not to be one has none
+    # to give, whatever its modes are -- and a structure nobody measured
+    # says so in the receipt rather than passing as one.
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(request.program)
+    reached = reader.open_output(artifact)
+    stationarity = structure_stationarity(request.program, reached)
+    # A result that printed no modes at all has nothing to derive from,
+    # and says so below in its own words; the stationarity refusal is for
+    # a structure whose modes exist and describe no stationary point.
+    if stationarity.stationarity == "not_stationary" and _reader_answer(
+        reader, reached, "vibrational_frequencies"
+    ):
+        raise _stationarity_refusal(stationarity, request.artifact_id)
     engine = Thermochemistry(
         filename=str(artifact),
         temperature=request.temperature_k,
@@ -2127,6 +2641,12 @@ def derive_result_thermochemistry(
         )
     assumptions = _thermochemistry_assumptions(
         request, engine.convention_statements
+    ) + (
+        # What the free energy stands on, with the number or the marker
+        # that says so. Inside ``assumptions`` (already inside the digest
+        # and the recorded record) for the reason the reaction-coordinate
+        # selection is: a receipt minted before this line keeps verifying.
+        stationarity.sentence(),
     )
     body = {
         "schema_version": "chemsmart.thermochemistry-receipt.v1",

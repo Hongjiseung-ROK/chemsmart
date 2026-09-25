@@ -138,11 +138,18 @@ class ORCAInputWriter(InputWriter):
         job_inputfile = os.path.join(folder, f"{self.job.label}.inp")
         logger.debug(f"Writing ORCA input file: {job_inputfile}")
         f = open(job_inputfile, "w")
-        if self.job.settings.input_string:
-            # write the file itself for direct run
-            self._write_self(f)
-        else:
-            self._write_all(f)
+        try:
+            if self.job.settings.input_string:
+                # write the file itself for direct run
+                self._write_self(f)
+            else:
+                self._write_all(f)
+        except Exception:
+            # A refused input leaves no file behind; a partial .inp is read
+            # back as an input missing everything after the refusal.
+            f.close()
+            os.remove(job_inputfile)
+            raise
         logger.info(f"Finished writing ORCA input file: {job_inputfile}")
         f.close()
 
@@ -386,6 +393,17 @@ class ORCAInputWriter(InputWriter):
         logger.debug("Writing SCF block")
 
         reference = getattr(self.settings, "reference", None)
+        # The broken-symmetry request is refused here too, where the bound
+        # multiplicity is finally known: a project is validated before any
+        # molecule is, and an input written without the request would run
+        # the spin-symmetric solution under a review that names it.
+        refusal = getattr(self.settings, "broken_symmetry_refusal", None)
+        refusal = refusal() if callable(refusal) else None
+        if refusal:
+            raise ValueError(refusal)
+        broken_symmetry = getattr(
+            self.settings, "broken_symmetry_scf_lines", lambda: ()
+        )()
         if (
             self.settings.scf_convergence
             or self.settings.scf_maxiter
@@ -397,6 +415,8 @@ class ORCAInputWriter(InputWriter):
                 # not a convergence knob: ROHF/UHF describe an open shell that
                 # RHF cannot represent at all.
                 f.write(f"  HFTyp {ORCA_REFERENCE_DETERMINANTS[reference]}\n")
+            for line in broken_symmetry:
+                f.write(f"  {line}\n")
             self._write_scf_maxiter(f)
             self._write_scf_convergence(f)
             f.write("end\n")

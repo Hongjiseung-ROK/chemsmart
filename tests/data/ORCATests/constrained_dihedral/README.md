@@ -17,3 +17,17 @@ and each equals its own relaxed scan's 90-degree point to 1.2e-6 Eh
 (ORCA) and 1.2e-7 Eh (Gaussian). Gaussian also ran the frequency step its
 project's default asked for; no reader serves that spectrum at a
 constrained optimum.
+
+## The same constrained optimum with its frequency step (R10 q21)
+
+`h2o2_b3lypg_d3bj_def2svp_hooh90_freq.out`: ORCA 6.1.1, written by an Agent
+goal on CUHK (**Slurm 2153623**, goal g1-hooh node `mod90`, code
+`d32eeeef`) as `! Opt Freq B3LYP/G def2-svp d3bj` with the H-O-O-H torsion
+held at 90 deg. The optimisation converged holding it (-151.423417917 Eh at
+the last step); the frequency step ran at that constrained optimum and
+ORCA printed `Final Gibbs free energy ... -151.41849362 Eh` (line 3282) --
+a number describing no state, because the structure is not a stationary
+point: the energy still slopes along the held torsion. The host refuses a
+free energy there, and this is the file the goal's unreachability check
+read the printed line from. sha256
+`3863610af1300088bc6c9f255cb35c5c923814318b42c458631b3069d4a507a7`.

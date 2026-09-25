@@ -286,6 +286,9 @@ _SUPPORTED_FIELDS = frozenset(
         "fd_step_angstrom",
         "scf_stability",
         "irc_direction",
+        # The broken-symmetry singlet (contract v11), written by the driver
+        # as a followed instability and verified against the spec it wrote.
+        "broken_symmetry",
     }
 )
 
@@ -1749,8 +1752,14 @@ def _expected_reference_family(
     electron_count = sum(atomic_numbers) - int(charge) - int(core_electrons)
     spin = int(multiplicity) - 1
     xc = spec.get("xc")
+    # The broken-symmetry request (contract v11) is the one singlet whose
+    # reference is unrestricted; an artifact whose vocabulary never carried
+    # the field answers None here and keeps the restricted expectation.
+    unrestricted_singlet = spec.get("broken_symmetry") is True and spin == 0
     if xc is not None:
-        return ("rks" if spin == 0 else "uks"), electron_count == 1
+        return (
+            "rks" if spin == 0 and not unrestricted_singlet else "uks"
+        ), electron_count == 1
     method = str(spec.get("method") or spec.get("ab_initio") or "").lower()
     # Every ab initio method -- HF and the correlated methods computed on
     # an HF reference -- runs the same mean field; only the family of that
@@ -1758,7 +1767,7 @@ def _expected_reference_family(
     if method not in PYSCF_AB_INITIO_METHODS:
         return None, electron_count == 1
     if spin == 0:
-        return "rhf", electron_count == 1
+        return ("uhf" if unrestricted_singlet else "rhf"), electron_count == 1
     if electron_count == 1:
         return "rohf", True
     return "uhf", False
@@ -5685,6 +5694,7 @@ def _check_hessian_support(settings, molecule, environment):
             charge=int(charge),
             multiplicity=int(multiplicity),
             xc=xc,
+            broken_symmetry=_member(settings, "broken_symmetry", False),
         )
     except (KeyError, TypeError, ValueError):
         return []
@@ -5947,6 +5957,7 @@ def _requested_spec(settings):
         "aux_basis",
         "defgrid",
         "scf_stability",
+        "broken_symmetry",
         "scf_tol",
         "scf_maxiter",
         "solvent_model",

@@ -1099,6 +1099,9 @@ def test_the_level_names_the_convention_and_the_root():
         "basis": "def2-svp",
         "basis_functions": "spherical",
         "ecp_core_electrons": {"O": 0, "H": 0},
+        # The determinant the driver built, in the words every program's
+        # level states it in (R10 Q18).
+        "reference": "rks",
     }
     assert reader.level_for_output(_open("water_mp2_sp")) == {
         "ab_initio": "mp2",
@@ -1107,6 +1110,7 @@ def test_the_level_names_the_convention_and_the_root():
         "basis_functions": "spherical",
         "ecp_core_electrons": {"O": 0, "H": 0},
         "frozen_core_conventions": ("all_electrons", "pyscf_default"),
+        "reference": "rhf",
     }, "PySCF's all-electron default is a level, never an absence"
     assert reader.level_for_output(_open("water_ccsdt_sp")) == {
         "ab_initio": "ccsd(t)",
@@ -1115,6 +1119,7 @@ def test_the_level_names_the_convention_and_the_root():
         "basis_functions": "spherical",
         "ecp_core_electrons": {"O": 0, "H": 0},
         "frozen_core_conventions": ("chemical_core", "pyscf_auto"),
+        "reference": "rhf",
     }, "'auto' is displayed as the count it applied"
     # A solvent name is not a level. The permittivity the density was
     # polarised with, the one the spectrum's fast term ran on, and the
@@ -1134,6 +1139,7 @@ def test_the_level_names_the_convention_and_the_root():
         "excitation_response_solvation": "non_equilibrium",
         "basis_functions": "spherical",
         "ecp_core_electrons": {"O": 0, "H": 0},
+        "reference": "rks",
     }
     assert reader.level_for_output(_open("formaldehyde_s1_opt")) == {
         "functional": "b3lyp",
@@ -1145,6 +1151,7 @@ def test_the_level_names_the_convention_and_the_root():
         "excited_state_root": 1,
         "basis_functions": "spherical",
         "ecp_core_electrons": {"C": 0, "O": 0, "H": 0},
+        "reference": "rks",
     }
     assert reader_for("orca").level_for_output(object()) == {}
 

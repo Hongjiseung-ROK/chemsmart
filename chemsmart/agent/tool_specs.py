@@ -1148,11 +1148,12 @@ def _legacy_tool_definitions(
                                     "'category' when the answer is a word "
                                     "a program prints -- a stability "
                                     "verdict, an IRC branch word -- "
-                                    "delivered as the host read it through "
-                                    "a finding that answers it. A relation "
-                                    "between numbers (which minimum, which "
-                                    "isomer) is delivered by its numbers "
-                                    "and stated as a finding."
+                                    "delivered as a number is: the word "
+                                    "the host read, claimed under this id. "
+                                    "A relation between numbers (which "
+                                    "minimum, which isomer) is delivered "
+                                    "by its numbers and stated as a "
+                                    "finding."
                                 ),
                             },
                             "meaning": {
@@ -1889,7 +1890,9 @@ def _legacy_tool_definitions(
                                     "include '<claim of that word> == <the "
                                     "word>'; the delivered answer is the "
                                     "host's word and your statement is shown "
-                                    "beside it as your interpretation."
+                                    "beside it as your interpretation. The "
+                                    "word claimed under the question's id "
+                                    "answers it without a finding."
                                 ),
                             },
                             "rests_on": {
@@ -2234,8 +2237,11 @@ def _legacy_tool_definitions(
             (
                 "Bind reportable claims to exact typed receipt quantities: "
                 "a number, or a word the program printed (a verdict, a "
-                "branch word), which is copied as read and never delivers a "
-                "declared number. Supply identifiers and display units only; "
+                "branch word), which is copied as read, never delivers a "
+                "declared number, and answers a question declared in unit "
+                "'category' when claimed under its id; the reply says which "
+                "question it answered and which selector read the word. "
+                "Supply identifiers and display units only; "
                 "the host copies and converts the values. Where a claim "
                 "answers an observable you declared, set its "
                 "``claim_id`` to that observable's id -- the "

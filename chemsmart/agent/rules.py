@@ -316,6 +316,14 @@ CODE_GATES: tuple[tuple[str, str], ...] = (
         "launched; the refusal quotes the program's own lines and the "
         "route out is to repair the field and compile again",
     ),
+    (
+        "thermochemistry.free_energy_needs_a_stationary_point",
+        "a free energy is a property of a stationary point: a structure "
+        "shown not to be one -- a measured gradient above the optimiser's "
+        "criterion, a held or driven coordinate, a search that printed its "
+        "own non-convergence -- has none, and every derived free energy "
+        "states what it stands on, unmeasured included",
+    ),
 )
 
 
@@ -1230,30 +1238,45 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "wake.recovery_route",
         "wake:recovery",
         "T4",
-        "If deliverables names an unanswered failed verdict, the previous "
-        "run delivered a structure the host judged not to be what the task "
-        "required, and this cycle exists so that you can answer it. The "
-        "legal routes are ordinary work, not special permissions: step the "
-        "offending structure along the mode that is wrong with "
+        "If deliverables names an unanswered failed verdict, an acceptance "
+        "criterion your own plan stated did not hold on a result the host "
+        "read: each entry gives the rule (node/rule), its statement -- the "
+        "number it read and what that number was held against -- and the "
+        "receipt_sha256s that state the verdict, with the stream that "
+        "minted them. This cycle exists so that you can answer it, and "
+        "there are two kinds of answer. If you stand by the result -- the "
+        "failure is the finding, or the criterion was the wrong test -- "
+        "record a scientific decision that cites one of those receipts in "
+        "postprocessing_receipt_sha256s and say why. A receipt a recorded "
+        "run minted (goals/...) is citable as it stands; one an earlier "
+        "session minted is not citable here, so evaluate the same rule, "
+        "under the same node and rule ids, over the same result again and "
+        "cite the receipt that returns. If you judge the result wrong, "
+        "repair what the criterion judged. For a structure the ordinary "
+        "routes are: step it along the mode that is wrong with "
         "displace_along_vibrational_mode and optimise again; change the "
         "internal coordinate the mode moves with edit_molecular_geometry; "
-        "seed a transition-state search from a validated frequency-bearing "
-        "producer's Hessian; or, if you judge the delivery sound as it "
-        "stands, record a scientific decision citing that validation "
-        "receipt and say why. Recovering and standing by the result are "
-        "both answers. Leaving it unanswered is the one thing that is not, "
-        "and it returns the goal to the human. Nothing here tells you which "
-        "answer is right -- the physics does that, after you act. Whatever "
-        "you do about the structure, deliverables also names any stale "
-        "quantity: a number the previous run rendered from the rejected "
-        "result, whose arithmetic was sound and whose structure no longer "
-        "stands. Recovering the structure does not recover those numbers. "
-        "Re-derive each one on the result you end up standing behind and "
-        "render it as a claim, because an expression that is evaluated and "
-        "never claimed is not delivered; a live run recomputed the right "
-        "value, rendered nothing, and left the superseded number as its "
-        "answer.",
-        "R1 0/3 -> 3/3; the stale-number live run",
+        "or seed a transition-state search from a validated "
+        "frequency-bearing producer's Hessian. For anything else, the "
+        "repair is the calculation that changes what the criterion "
+        "measured, inside the approved identities, states and conditions. "
+        "Recovering and standing by the result are both answers. Leaving it "
+        "unanswered is the one thing that is not, and it returns the goal "
+        "to the human. Nothing here tells you which answer is right -- the "
+        "physics does that, after you act. Whatever you do about it, "
+        "deliverables also names any stale quantity: a number the previous "
+        "run rendered from the rejected result, whose arithmetic was sound "
+        "and whose result no longer stands. Repairing the result does not "
+        "recover those numbers. Re-derive each one on the result you end up "
+        "standing behind and render it as a claim, because an expression "
+        "that is evaluated and never claimed is not delivered; a live run "
+        "recomputed the right value, rendered nothing, and left the "
+        "superseded number as its answer.",
+        "R1 0/3 -> 3/3; the stale-number live run; R10 Q22: the rule "
+        "called every failed criterion a structure the host judged, false "
+        "of 4 of 13 archived instances (reference stability, a margin), "
+        "and named no receipt, so 3 of 3 live sessions woken with one "
+        "(o2r, L1, L-S2) re-evaluated their criteria to mint one to cite",
     ),
     _r(
         "recovery.restart_from_what_it_reached",
@@ -1524,6 +1547,75 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "radical, PySCF missed root 6 at TD-DFT and ORCA the f=0.56 root "
         "at TDA, and full-TD-DFT <S^2> of D1 read 0.713 (Gaussian) vs "
         "0.801 (ORCA)",
+    ),
+    _r(
+        "reference.crossprogram.a_broken_symmetry_singlet_is_one_request",
+        "reference:about_cross_program_work",
+        "T1",
+        "An open-shell (broken-symmetry) singlet is one project request in "
+        "every program: broken_symmetry: true on a multiplicity-1 sp, opt, "
+        "ts, irc or Hessian stage (never td). The host writes each "
+        "program's own mechanism -- Gaussian's unrestricted method with "
+        "guess=mix, ORCA's HFTyp UHF with GuessMix, PySCF following its "
+        "restricted solution's own RHF/RKS -> UHF/UKS instability -- and "
+        "the compile reply names it, so no FlipSpin, BrokenSym or guess=mix "
+        "is yours to write; a guess=mix on a restricted Gaussian route "
+        "stays restricted. Whether the symmetry broke is read from "
+        "the result: its level states the reference that ran and "
+        "broken_symmetry, spin_square gives <S^2> (near 1 for a two-centre "
+        "diradical, 0 when the solution stayed spin-symmetric), and a "
+        "request that stayed symmetric raises "
+        "spin.broken_symmetry_request_unbroken. A structure with no "
+        "diradical character declines to break, which is an answer. The "
+        "particular solution a program reaches is not portable: compare "
+        "energies and <S^2>, never the request. Spin projection of a "
+        "broken-symmetry energy needs the high-spin partner's energy and "
+        "<S^2> as well.",
+        "R10 Q18 census: Q15 g1 wrote FlipSpin three native ways and a "
+        "restricted Gaussian guess=mix; an R8 twisted-ethylene session "
+        "delivered the restricted 97.3 kcal/mol barrier because no "
+        "broken-symmetry state was selectable; ax41 ino2 substituted an M=3 "
+        "determinant for the Ms=0 state. Oracles O0/O0b (CUHK 2153330, "
+        "2153375): one solution in three programs for H2 at 2.00 A and "
+        "p-benzyne, and Gaussian's mix 26 kcal/mol higher at a degenerate "
+        "90-degree twist",
+        boundaries=(
+            _b(
+                "gaussian",
+                "opt",
+                "admitted",
+                functional="b3lyp",
+                basis="def2-svp",
+                broken_symmetry=True,
+            ),
+            _b(
+                "orca",
+                "sp",
+                "admitted",
+                functional="b3lyp",
+                basis="def2-svp",
+                broken_symmetry=True,
+            ),
+            _b(
+                "pyscf",
+                "sp",
+                "admitted",
+                functional="b3lyp",
+                basis="def2-svp",
+                broken_symmetry=True,
+            ),
+            _b(
+                "pyscf",
+                "td",
+                "refused",
+                functional="b3lyp",
+                basis="def2-svp",
+                response_method="tda",
+                state_manifold="singlet",
+                nstates=3,
+                broken_symmetry=True,
+            ),
+        ),
     ),
     # R10 Q2 one name, one physics: end
     # R10 Q3 knowledge: append rules below this line

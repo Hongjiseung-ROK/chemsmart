@@ -28,11 +28,11 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Collection, Mapping, Sequence
 
 from chemsmart.agent._contracts import (
     ContractError,
@@ -46,11 +46,15 @@ from chemsmart.agent.delivery import (
 from chemsmart.agent.execution import STRUCTURE_MOVING_STAGES, anomaly_standing
 from chemsmart.agent.goal import (
     GOAL_SCHEMA_VERSION,
+    FailedCriterionV1,
     GoalLedger,
     GoalRecordV1,
     admit_revision,
+    cited_receipts,
     conditions_from_review,
+    failed_criteria,
     goal_scope_is_unbound,
+    results_read,
 )
 from chemsmart.agent.rules import rules_by_id
 from chemsmart.agent.terminal_states import (
@@ -256,9 +260,238 @@ def _finding_reasons(
     )
 
 
+def _claimed_answer_reasons(
+    claimed_answers: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> tuple[str, ...]:
+    """One reason per declared category a claim answered under its id.
+
+    The word the host read, stated first and in the same form a finding's
+    answer is, with what read it: a category is delivered as a number
+    is, by the claim that carries its id.
+    """
+
+    return tuple(
+        f"{observable_id} = "
+        + ", ".join(
+            f"{word.get('word')!r} (read by the host: "
+            f"{word.get('selector') or 'selector unrecorded'} on "
+            f"{str(word.get('source_receipt_sha256') or '')[:8]})"
+            for word in words
+        )
+        + ", claimed under the declared id"
+        for observable_id, words in sorted(claimed_answers.items())
+    )
+
+
+def _answered_criterion_reasons(
+    answered: Sequence[tuple[FailedCriterionV1, tuple[str, ...]]],
+) -> tuple[str, ...]:
+    """One reason per failed criterion a recorded decision answered.
+
+    The verdict with the number that failed it, the receipt the decision
+    cites, and the delivered numbers standing on it: the delivery carries
+    the failed expectation and the session's reading of it, and the word
+    says which finding it rests on.
+    """
+
+    return tuple(
+        "the plan's own acceptance criterion did not hold and the recorded "
+        f"decision cites it ({verdict.answered_by[-1][:8]}): "
+        f"{verdict.statement()}"
+        + (
+            "; delivered standing on it: " + ", ".join(standing)
+            if standing
+            else ""
+        )
+        for verdict, standing in answered
+    )
+
+
+def _unanswered_verdicts_named(delivery: "_AnalysisDelivery") -> str:
+    """Each unanswered verdict as the host read it: rule, number, receipt."""
+
+    return "; ".join(
+        f"{verdict.statement()} (receipt {verdict.receipt_sha256s[-1][:8]})"
+        for verdict in delivery.unanswered_criteria
+    ) or ", ".join(delivery.unanswered_verdicts)
+
+
+def _undelivered_declared_named(
+    delivery: "_AnalysisDelivery", observable_ids: Sequence[str]
+) -> str:
+    """Which undelivered declared observables a claim carries, and which none.
+
+    "No claim carrying their id in any cycle" was written over ids a claim
+    carried: G-h2's three category questions were claimed under their own
+    ids as the verdict numbers 1 and 0 in two cycles (R10 Q22, CUHK
+    2153627), and ax41's ino3-cont and ino3-r13a carried sixteen declared
+    ids as quantity ids in another unit -- 4 of the 11 such statements the
+    archives let one check. A claim of this stream or a row of the goal's
+    record under the id carries it; what it lacks is on the completion
+    receipt's own miss text, which the callers carry beside this.
+    """
+
+    carried = tuple(
+        observable_id
+        for observable_id in observable_ids
+        if observable_id in delivery.claim_rows
+        or observable_id in delivery.goal_delivered
+    )
+    uncarried = tuple(
+        observable_id
+        for observable_id in observable_ids
+        if observable_id not in carried
+    )
+    return "; ".join(
+        part
+        for part in (
+            (
+                "no claim in any cycle carries these declared observables: "
+                + ", ".join(uncarried)
+                if uncarried
+                else ""
+            ),
+            (
+                "a claim carries each of these declared observables without "
+                "answering its declaration: " + ", ".join(carried)
+                if carried
+                else ""
+            ),
+        )
+        if part
+    )
+
+
+def _inherited_verdict_reason(delivery: "_AnalysisDelivery") -> str:
+    """Why numbers standing on another cycle's unanswered verdict wait."""
+
+    return (
+        "these delivered quantities stand on results the goal's own "
+        "acceptance criterion rejected in another cycle, and no recorded "
+        "decision cites that verdict: "
+        + "; ".join(
+            f"{', '.join(standing)} on {verdict.statement()} (receipt "
+            f"{verdict.receipt_sha256s[-1][:8]})"
+            for verdict, standing in delivery.inherited_unanswered
+        )
+    )
+
+
+def _claims_a_later_refusal_supersedes(
+    refusing: "_AnalysisDelivery",
+    claimed_here: Collection[str],
+    goal_delivered: Mapping[str, Mapping[str, Any]],
+    declarations: Sequence[Mapping[str, Any]],
+    verified: Collection[str] | None = None,
+) -> dict[str, Mapping[str, Any]]:
+    """Declared ids an earlier cycle claimed that this cycle refused, with
+    the host's verification: the latest typed word about an id governs it.
+
+    A claim made in an earlier cycle delivers an id the later cycles did
+    not claim again (the goal-grain rule), and it used to deliver one a
+    later cycle refused as well. R10 Q24's live goal g2r (CUHK 2153691)
+    claimed dg-torsion-90deg in cycle 1 from a saddle search seeded at 90
+    degrees; cycle 2 read that the search had reached the cis saddle, H-O-O-H
+    0.047 degrees, renamed the number, and refused the observable through a
+    blocked node the host verified, and its passed completion listed the id
+    as delivered without. The goal settled achieved_with_observations
+    saying "delivered in an earlier cycle: dg-torsion-90deg" -- the cis
+    barrier, 7.95 kcal/mol, presented as the 90-degree free energy.
+
+    Not asked: an id this cycle claimed itself, and an id declared with a
+    required tolerance. A refusal of a claimed requirement is the
+    sufficiency menu's route for a precision no admissible calculation
+    reaches, and the claimed number stands (ax41 po3-r19 refused its
+    0.5 kcal/mol, through a blocked node, over the value it delivered).
+    An id declared with no tolerance has no precision to refuse, so its
+    refusal can only be of the number itself.
+    """
+
+    allowed = set(
+        refusing.verified_unreachable_ids if verified is None else verified
+    )
+    here = {str(item) for item in claimed_here}
+    requirements = {
+        str(row.get("observable_id") or "")
+        for row in declarations
+        if row.get("required_tolerance") is not None
+    }
+    superseded: dict[str, Mapping[str, Any]] = {}
+    for observable_id in sorted(allowed):
+        selector, _jobtype, blocked = refusing.unreachable_producers.get(
+            observable_id, ("", "", "")
+        )
+        if (
+            not (selector or blocked)
+            or observable_id in here
+            or observable_id in requirements
+        ):
+            continue
+        row = goal_delivered.get(observable_id)
+        if row is not None:
+            superseded[observable_id] = row
+    return superseded
+
+
+def _superseded_claim_named(row: Mapping[str, Any]) -> str:
+    """The clause a refusal adds about the earlier claim it supersedes."""
+
+    value = row.get("value")
+    number = (
+        f" ({value} {row.get('unit') or ''})".replace(" )", ")")
+        if value is not None
+        else ""
+    )
+    return (
+        "; this refusal supersedes the claim cycle "
+        f"{row.get('cycle')} rendered under this id{number}"
+    )
+
+
+def _earlier_deliveries(
+    delivery: "_AnalysisDelivery", superseded: Collection[str] = ()
+) -> tuple[str, ...]:
+    """The ids an earlier cycle delivered that this stream missed, less
+    the ones this cycle's verified refusal superseded."""
+
+    return tuple(
+        item
+        for item in delivery.delivered_in_earlier_cycles
+        if item.split(" (delivered in cycle", 1)[0] not in set(superseded)
+    )
+
+
+def _what_the_delivery_carries(
+    delivery: "_AnalysisDelivery",
+    ledger_anomalies: Sequence[Mapping[str, Any]],
+    evidence: Mapping[str, Any],
+    superseded: Collection[str] = (),
+) -> tuple[tuple[str, ...], dict[str, Any]]:
+    """The lines and receipts a delivery carries beside its word.
+
+    `_achieved_word` names them for an achieved goal -- the certificate
+    it stands on, the observations the host recorded, the provenance of
+    each number, the session's findings. A goal that settles on a typed
+    refusal delivered the rest of its answer as well, and its word used
+    to carry the refusal alone: 10 of 17 archived
+    unreachable_from_evidence settlements left out anomaly receipts,
+    falsified expectations or findings their own delivery held (R10
+    Q24 census), which is what the owner's ruling that the first word
+    must not hide what the run found was made against (2026-09-03).
+    """
+
+    word, lines = _achieved_word(
+        delivery, ledger_anomalies, superseded=superseded
+    )
+    if word == "achieved_with_observations":
+        evidence = _anomaly_evidence(evidence, ledger_anomalies)
+    return lines, dict(evidence)
+
+
 def _achieved_word(
     delivery: "_AnalysisDelivery",
     ledger_anomalies: Sequence[Mapping[str, Any]] = (),
+    superseded: Collection[str] = (),
 ) -> tuple[str, tuple[str, ...]]:
     """The settlement word for a certified delivery.
 
@@ -268,10 +501,27 @@ def _achieved_word(
     not hide what the run found (owner ruling, 2026-09-03).
     """
 
+    # A failed acceptance criterion the session answered is a finding the
+    # delivery carries, and the word says so. The charter's words for
+    # achieved_with_observations name "a pre-registered expectation the
+    # physics left"; an answered criterion rides beside it whether the
+    # session stated it before the engine ran or after it had read the
+    # number -- the records read here do not say which. The settlement
+    # names each from the records as they stand now; a completion's
+    # listing, minted before a decision that answered it, describes that
+    # earlier moment.
     observed = tuple(
         sorted(
-            set(delivery.anomaly_output_ids)
+            {
+                item
+                for item in delivery.anomaly_output_ids
+                if not str(item).startswith("failed_criterion:")
+            }
             | set(_anomaly_output_ids_from_records(ledger_anomalies))
+            | {
+                verdict.observation_id
+                for verdict, _standing in delivery.answered_criteria
+            }
         )
     )
     # Where a delivered number came from is true of either word, so it is
@@ -328,10 +578,18 @@ def _achieved_word(
                 )
             ),
         )
-    if delivery.delivered_in_earlier_cycles:
+    earlier = _earlier_deliveries(delivery, superseded)
+    if earlier:
         provenance = provenance + (
-            "delivered in an earlier cycle: "
-            + ", ".join(delivery.delivered_in_earlier_cycles),
+            "delivered in an earlier cycle: " + ", ".join(earlier),
+        )
+    if delivery.answered_criteria:
+        provenance = provenance + _answered_criterion_reasons(
+            delivery.answered_criteria
+        )
+    if delivery.claimed_answers:
+        provenance = provenance + _claimed_answer_reasons(
+            delivery.claimed_answers
         )
     if delivery.findings:
         provenance = provenance + _finding_reasons(delivery.findings)
@@ -452,18 +710,37 @@ def _achieved_word(
     # sentence was written over it all the same.
     certified = (
         "the host completion gate certified the delivery"
-        if delivery.completion_status == "passed"
+        if _delivery_certified(delivery)
         else "no completion gate certified this delivery"
     )
     if observed:
-        return (
-            "achieved_with_observations",
-            (
-                certified + "; the host also recorded observations nobody "
-                "asked for: " + ", ".join(observed),
-            )
-            + provenance,
+        # What the host detected unasked and what the session itself stated
+        # about its results are not one kind of thing: a criterion of the
+        # session's own plan is not an observation "nobody asked for". Nor
+        # is it always an expectation stated before the physics: L-S2 (R10
+        # Q19, CUHK Slurm 2153514) planned its real->complex rule after it
+        # had extracted -0.0288 Eh, and read its failed external rule as
+        # the answer it had meant to test for. When a criterion was stated
+        # is not read here, so the sentence says what was read: it did not
+        # hold.
+        stated = tuple(
+            item
+            for item in observed
+            if item.startswith(("falsified_expectation:", "failed_criterion:"))
         )
+        unasked = tuple(item for item in observed if item not in stated)
+        lead = certified
+        if unasked:
+            lead += (
+                "; the host also recorded observations nobody asked for: "
+                + ", ".join(unasked)
+            )
+        if stated:
+            lead += (
+                "; criteria and predictions the session itself stated that "
+                "did not hold: " + ", ".join(stated)
+            )
+        return ("achieved_with_observations", (lead,) + provenance)
     return ("achieved", (certified,) + provenance)
 
 
@@ -606,8 +883,17 @@ def _delivery_settlement(
         goal_delivered_ids=_goal_delivered_ids(workspace, goal_id),
         declared_observables=_first_declarations(ledger),
         goal_findings=_goal_findings(workspace, goal_id),
+        goal_streams=_goal_streams(ledger, workspace, goal_id),
     )
     evidence = _settlement_evidence(delivery)
+    # An earlier cycle's claim this cycle's verified refusal superseded:
+    # the id is open again, and the refusal answers it.
+    superseded = _claims_a_later_refusal_supersedes(
+        delivery,
+        delivery.claim_rows,
+        _goal_delivered_ids(workspace, goal_id),
+        _first_declarations(ledger),
+    )
     # What the goal declared and has not delivered under its id in any
     # cycle, read from the ledger's first declarations and the record --
     # a refusal made from the in-session route has no completion and so
@@ -621,6 +907,7 @@ def _delivery_settlement(
                 delivered_here=delivery.delivered_quantity_ids,
             )
             + tuple(delivery.undelivered_declared_ids)
+            + tuple(superseded)
         )
     )
     # An undelivered observable the session refused, and an observable
@@ -636,7 +923,7 @@ def _delivery_settlement(
     # claims, passed the gate, then left an analysis-only draft and
     # ended "planned", and the goal returned to the human saying the
     # gate had not passed (E2 window, 2026-09-03). The receipt decides.
-    certified = delivery.completion_status == "passed"
+    certified = _delivery_certified(delivery)
     if delivery.unresolved_requirement_ids:
         # The task said how good the answer had to be, the delivery says
         # it is not that good, and nothing computed, argued or refused
@@ -683,10 +970,13 @@ def _delivery_settlement(
         # not delivered, and the recorded decision with its receipts is
         # the typed refusal.
         settled = "unreachable_from_evidence"
+        carried, evidence = _what_the_delivery_carries(
+            delivery, _goal_anomalies(ledger), evidence, superseded
+        )
         reasons = (
             "the completion receipt names required outputs "
             "delivered without: " + ", ".join(delivery.blocked_output_ids),
-        )
+        ) + carried
     elif (
         delivery.decisions
         and refused_ids
@@ -704,14 +994,22 @@ def _delivery_settlement(
         # certified as unreachable settled achieved, and the tool's own
         # reply had promised this word for it.
         settled = "unreachable_from_evidence"
+        carried, evidence = _what_the_delivery_carries(
+            delivery, _goal_anomalies(ledger), evidence, superseded
+        )
         reasons = (
             _VERIFIED_REFUSAL_LEAD
             + "; ".join(
                 f"{observable_id} -- "
                 f"{delivery.unreachable_bases.get(observable_id, '')}"
+                + (
+                    _superseded_claim_named(superseded[observable_id])
+                    if observable_id in superseded
+                    else ""
+                )
                 for observable_id in refused_ids
             ),
-        )
+        ) + carried
     elif (
         delivery.decisions
         and open_ids
@@ -735,19 +1033,20 @@ def _delivery_settlement(
         )
     elif certified and delivery.undelivered_declared_ids:
         # The chain's kernels ran clean, and the headline the goal
-        # declared was never claimed by its id in any cycle. That is not
+        # declared was never delivered by its id in any cycle. That is not
         # a delivery a scientist would sign, whatever the completion word
         # says.
         settled = "returned_to_human"
         reasons = (
-            "the completion certified the chain, but these declared "
-            "observables have no claim carrying their id in any cycle: "
-            + ", ".join(delivery.undelivered_declared_ids),
+            "the completion certified the chain, but "
+            + _undelivered_declared_named(
+                delivery, delivery.undelivered_declared_ids
+            ),
         ) + delivery.open_declared_misses
-        if delivery.delivered_in_earlier_cycles:
+        earlier = _earlier_deliveries(delivery, superseded)
+        if earlier:
             reasons = reasons + (
-                "delivered in an earlier cycle: "
-                + ", ".join(delivery.delivered_in_earlier_cycles),
+                "delivered in an earlier cycle: " + ", ".join(earlier),
             )
     elif certified and delivery.unanswered_verdicts:
         # The host itself rendered a verdict saying a delivered structure
@@ -758,11 +1057,20 @@ def _delivery_settlement(
         settled = "returned_to_human"
         reasons = (
             "a validation verdict failed and no recorded decision cites "
-            "it: " + ", ".join(delivery.unanswered_verdicts),
+            "it: " + _unanswered_verdicts_named(delivery),
         )
+    elif certified and delivery.inherited_unanswered:
+        # The delivery stands on results the goal's own criterion rejected
+        # in another cycle, and no recorded decision answered that
+        # verdict: certifying it would say achieved over a finding nobody
+        # read.
+        settled = "returned_to_human"
+        reasons = (_inherited_verdict_reason(delivery),)
     elif certified and delivery.claims:
         goal_anomalies = _goal_anomalies(ledger)
-        settled, reasons = _achieved_word(delivery, goal_anomalies)
+        settled, reasons = _achieved_word(
+            delivery, goal_anomalies, superseded=superseded
+        )
         if settled == "achieved_with_observations":
             evidence = _anomaly_evidence(evidence, goal_anomalies)
         if terminal != "complete":
@@ -778,14 +1086,56 @@ def _delivery_settlement(
         # has not settled (two live goals, 2026-09-02).
         settled = "returned_to_human"
         reasons = delivery.stopped_by
+    elif (delivery.claims or delivery.decisions) and (
+        delivery.unanswered_verdicts or delivery.inherited_unanswered
+    ):
+        # The gate did not certify because the plan's own criterion failed
+        # and nobody answered it. Say which finding the goal is waiting
+        # on: "the gate did not pass" named nothing a human could act on
+        # (L1, R10 Q16).
+        settled = "returned_to_human"
+        reasons = (
+            f"the session ended {terminal!r} ({delivery.ending}); the "
+            "completion is not certified",
+        )
+        if delivery.unanswered_verdicts:
+            reasons = reasons + (
+                "a validation verdict failed and no recorded decision "
+                "cites it: " + _unanswered_verdicts_named(delivery),
+            )
+        if delivery.inherited_unanswered:
+            reasons = reasons + (_inherited_verdict_reason(delivery),)
     elif delivery.claims or delivery.decisions:
         # Something was recorded, but the host never certified
         # completion -- a human reads it, whatever the session's
-        # terminal word was.
+        # terminal word was. The word says what it read: "the host
+        # completion gate did not pass" was written over 25 archived
+        # streams still settled this way, and 24 of them held no
+        # completion receipt at all -- no gate had run; the 25th (L1,
+        # R10 Q16) held a partial one whose findings the word dropped.
         settled = "returned_to_human"
         reasons = (
             f"the session ended {terminal!r} ({delivery.ending}); it "
-            "recorded analysis but the host completion gate did not pass",
+            "recorded analysis and "
+            + (
+                "this stream holds no completion receipt, so nothing "
+                "certifies it"
+                if not delivery.completion_receipt_sha256
+                else f"its completion receipt "
+                f"{delivery.completion_receipt_sha256[:8]} is "
+                f"{delivery.completion_status or 'unstated'}"
+                + (
+                    ", naming " + ", ".join(delivery.completion_findings)
+                    if delivery.completion_findings
+                    else ""
+                )
+                + (
+                    "; limitations: "
+                    + ", ".join(delivery.limitation_output_ids)
+                    if delivery.limitation_output_ids
+                    else ""
+                )
+            ),
         )
     else:
         settled = "returned_to_human"
@@ -1311,21 +1661,49 @@ def _goal_envelope_record(shown: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
+def _failed_criterion_record(
+    verdict: FailedCriterionV1, minted_by: str = ""
+) -> dict[str, Any]:
+    """One failed criterion as a woken session is told it.
+
+    The rule, the number it read against what it was held to, and the
+    receipts that state the verdict, with the stream that minted them:
+    a decision answers a verdict only by citing one, and three of three
+    live sessions woken with the rule's name alone re-planned and
+    re-evaluated their criteria to mint one to cite (o2r, L1, L-S2; the
+    host had named the same receipt in its settlement all along).
+    """
+
+    return {
+        "verdict": verdict.label,
+        "statement": verdict.statement(),
+        "receipt_sha256s": tuple(verdict.receipt_sha256s),
+        **({"minted_by": minted_by} if minted_by else {}),
+    }
+
+
+def _deliverables_record(
+    delivery: _AnalysisDelivery, previous_run: str = ""
+) -> dict[str, Any]:
     """What the previous run's own stream says stands delivered.
 
     Names quantities and stated limitations, never values: the goal's
     demand is in the task, and this record lets a wake session see what
     it has already delivered, what the chain declared it could not, and
     what its own decisions doubt -- so the next action can follow the
-    gap rather than the tool list.
+    gap rather than the tool list. A failed criterion is the exception:
+    it is named with the number it read and the receipts that state it,
+    because answering it means citing one of them.
     """
 
     return {
         "delivered_quantity_ids": delivery.delivered_quantity_ids,
         "limitation_output_ids": delivery.limitation_output_ids,
         "doubted_quantity_ids": delivery.doubted_quantity_ids,
-        "unanswered_failed_verdicts": delivery.unanswered_verdicts,
+        "unanswered_failed_verdicts": tuple(
+            _failed_criterion_record(verdict, previous_run)
+            for verdict in delivery.unanswered_criteria
+        ),
         "stale_quantity_ids": delivery.stale_quantity_ids,
         "unclaimed_output_ids": delivery.unclaimed_output_ids,
         "undelivered_declared_observable_ids": (
@@ -1451,6 +1829,27 @@ def _goal_delivered_ids(
     delivered: dict[str, dict[str, Any]] = {}
     for entry in read_workspace_record(workspace):
         if entry.get("goal_id") != goal_id:
+            continue
+        if entry.get("kind") == "answer":
+            # A declared category a claim answered under its own id, as the
+            # completion gate certified it; the shared predicate delivers
+            # only a category by it, as it does a finding's answer.
+            key = str(entry.get("claim_id") or "")
+            previous = delivered.get(key)
+            if key and (
+                previous is None
+                or int(entry.get("cycle") or 0)
+                >= int(previous.get("cycle") or 0)
+            ):
+                delivered[key] = {
+                    "cycle": int(entry.get("cycle") or 0),
+                    "run": entry.get("run"),
+                    "claim_id": key,
+                    "claim_receipt_sha256": entry.get("claim_receipt_sha256"),
+                    "answer": tuple(
+                        dict(item) for item in entry.get("answer") or ()
+                    ),
+                }
             continue
         if entry.get("kind") == "finding":
             # A declared question the session answered with a finding;
@@ -2039,6 +2438,13 @@ def _wake_context(
                     "uncertified",
                     "refusals_reread",
                     "undelivered_declared_observable_ids",
+                    # What opened each earlier recovery. Without these a
+                    # recovery row read {"cycle": 1} in the woken cycle's
+                    # own trajectory (L-S2, R10 Q19), and a later cycle
+                    # could not see which criterion or ending it was.
+                    "verdicts",
+                    "terminal_states",
+                    "analysis_status",
                 }
             },
         }
@@ -2080,7 +2486,18 @@ def _wake_context(
                 goal_delivered_ids=_goal_delivered_ids(
                     workspace, goal.goal_id
                 ),
-            )
+                # Whether a verdict is answered is a question about the
+                # goal, and the settlement asks it of every stream the goal
+                # holds. Read from the previous stream alone, G-h2's cycle-3
+                # wake named val-real-stab/real-stable unanswered with the
+                # receipt cycle 2 had minted by judging it again, while
+                # cycle 2's decision had cited the run's receipt of the
+                # same verdict and the settlement called it answered; the
+                # woken session judged it twice more and cited that (R10
+                # Q22, CUHK 2153627). Two organs, one function.
+                goal_streams=_goal_streams(ledger, workspace, goal.goal_id),
+            ),
+            previous_run,
         )
     failure_report = dict(failure_report or {})
     approaches_tried = _recorded_approaches(ledger)
@@ -2318,6 +2735,46 @@ def _achieved(execute_result: Any) -> bool:
     return status == "completed" and analysis in {"completed", ""}
 
 
+def _delivery_certified(delivery: "_AnalysisDelivery") -> bool:
+    """Did a completion gate certify this delivery? Its receipt says.
+
+    The one answer every settlement path reads: the planning path, the
+    run path and the achieved word's own sentence asked it three ways,
+    and the run path never asked at all -- it signed achieved beside the
+    sentence "no completion gate certified this delivery" (g2-hooh).
+    """
+
+    return delivery.completion_status == "passed"
+
+
+def _analysis_nodes_run(events_path: Path) -> int:
+    """How many analysis nodes a run's stream records as having run.
+
+    A node the walk settled ``blocked_unsupported`` was declared
+    non-executable intent and never ran; every other settlement --
+    executed, failed, skipped -- is a node the chain reached.
+    """
+
+    count = 0
+    try:
+        lines = Path(events_path).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return 0
+    for line in lines:
+        if '"workflow_analysis_node_settled"' not in line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("kind") != "workflow_analysis_node_settled":
+            continue
+        state = str((event.get("payload") or {}).get("state") or "")
+        if state and state != "blocked_unsupported":
+            count += 1
+    return count
+
+
 @dataclass(frozen=True)
 class _AnalysisDelivery:
     """What one session's durable stream says it delivered."""
@@ -2327,6 +2784,11 @@ class _AnalysisDelivery:
     claims: int
     decisions: int
     receipt_sha256s: tuple[str, ...]
+    #: The latest completion receipt of the stream and the findings it
+    #: named, so a word about the gate says which receipt it read and
+    #: what that receipt held -- or that the stream holds none.
+    completion_receipt_sha256: str = ""
+    completion_findings: tuple[str, ...] = ()
     #: Claim quantities whose supporting receipt a recorded decision
     #: doubts (``doubt:{receipt}`` evidence references intersected with
     #: the rendered claims' source receipts) -- computed here from the
@@ -2371,16 +2833,38 @@ class _AnalysisDelivery:
     #: right. It is the join a reader needs, because the settlement word
     #: named the anomaly and never said the number came from it.
     flagged_quantity_ids: tuple[str, ...] = ()
-    #: Host-rendered verdicts that failed and that no recorded decision
-    #: has cited. A failed verdict is the host saying the delivered
-    #: structure is not what the task required -- a minimum that is a
-    #: saddle, a transition state with the wrong imaginary-mode count.
-    #: It never made a goal partial and it never opened a cycle, so a
-    #: run could deliver every required output, display "failed" in its
-    #: own report, and settle achieved with budget in hand. A decision
-    #: that cites the validation receipt has answered it; one that does
-    #: not has left it open.
+    #: Verdicts that failed and that no recorded decision has cited, by
+    #: ``node/rule``. A failed verdict is one of the plan's own acceptance
+    #: criteria that did not hold on a result the host read -- a minimum
+    #: that is a saddle, a reference that is unstable, a spread outside
+    #: the tolerance the session stated. It never made a goal partial and
+    #: it never opened a cycle, so a run could deliver every required
+    #: output, display "failed" in its own report, and settle achieved
+    #: with budget in hand. A decision that cites the validation receipt
+    #: has answered it; one that does not has left it open.
     unanswered_verdicts: tuple[str, ...] = ()
+    #: The same verdicts as the host read them -- the rule, the number it
+    #: judged, what it was held against -- each carrying only the
+    #: receipts of *this* stream that state it. The labels above are how
+    #: the host counts; these are what a woken session is told, because
+    #: a decision answers a verdict only by citing a receipt, and a wake
+    #: that named the rule alone left every woken session re-minting one
+    #: (R10 Q22: o2r, L1 and L-S2, 3 of 3).
+    unanswered_criteria: tuple[FailedCriterionV1, ...] = ()
+    #: The plan's own acceptance criteria that failed and that a recorded
+    #: decision answered, each with the delivered quantities standing on
+    #: the results it judged. The session read the finding and stands by
+    #: its numbers; the delivery carries both, and the word says so.
+    answered_criteria: tuple[
+        tuple[FailedCriterionV1, tuple[str, ...]], ...
+    ] = ()
+    #: Failed criteria another stream of the goal typed and no recorded
+    #: decision answered, each with the quantities this stream delivers
+    #: from the results it rejected. Nothing standing on them is
+    #: certified.
+    inherited_unanswered: tuple[
+        tuple[FailedCriterionV1, tuple[str, ...]], ...
+    ] = ()
     #: Delivered quantities whose own receipt lineage traces back to a
     #: result a failed verdict rejected. A recovery cycle that replaces
     #: the structure does not replace the numbers computed from the old
@@ -2438,6 +2922,10 @@ class _AnalysisDelivery:
     #: answers to, so a current-cycle claim is judged in the dimension
     #: its declaration asked for exactly as a record row is.
     claim_rows: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    #: Each claim of this stream as the pair of names it holds (claim_id,
+    #: quantity_id), so a reader can tell the second name of a claim that
+    #: carries a declared id from a claim under another name.
+    claim_names: tuple[tuple[str, str], ...] = ()
     #: The runtime's own terminal reason, kept typed rather than read
     #: back out of the rendered ending sentence: a cycle the provider's
     #: transport ended is a different fact from a cycle the science
@@ -2472,6 +2960,13 @@ class _AnalysisDelivery:
     #: relations it checked, and the host anomalies already under its
     #: evidence. A conclusion that reached no reader was prose.
     findings: tuple[Mapping[str, Any], ...] = ()
+    #: Declared categories a claim answered under their own id, as the
+    #: completion gate certified them: id -> the words the host read,
+    #: each with its selector and receipt. A finding answering the same
+    #: id speaks for it in ``findings`` instead.
+    claimed_answers: Mapping[str, tuple[Mapping[str, Any], ...]] = field(
+        default_factory=dict
+    )
 
     @property
     def retired_observable_ids(self) -> frozenset[str]:
@@ -2690,29 +3185,22 @@ def _stale_quantity_ids(
         str(item) for item in inherited_rejected_artifacts if item
     }
 
-    def _resolve(receipt: str, quantity_id: str, depth: int = 0) -> None:
-        """Name the results a rejected binding ultimately rests on."""
-
-        if depth > 8:
-            return
-        artifact = artifact_by_receipt.get(receipt)
-        if artifact:
-            rejected_artifacts.add(artifact)
-            return
-        for source in sources_by_output.get((receipt, quantity_id), ()):
-            if not source:
-                continue
-            producer = artifact_by_receipt.get(source)
-            if producer:
-                rejected_artifacts.add(producer)
-                continue
-            for other, output_id in sources_by_output:
-                if other == source:
-                    _resolve(other, output_id, depth + 1)
-
     for receipt, quantity_id in rejected_bindings:
         if receipt:
-            _resolve(receipt, quantity_id)
+            # The results a rejected binding ultimately rests on, read by
+            # the same resolver that gives a failed criterion its
+            # identity; a source the records cannot resolve rejects
+            # nothing.
+            rejected_artifacts.update(
+                result
+                for result in results_read(
+                    receipt,
+                    quantity_id,
+                    result_artifacts=artifact_by_receipt,
+                    expression_sources=sources_by_output,
+                )
+                if not result.startswith("receipt:")
+            )
 
     # Every read of a rejected result, not only the one the rule saw.
     tainted_receipts = {
@@ -2772,6 +3260,135 @@ def _printed_no_modes(record: Mapping[str, Any]) -> bool:
     return False
 
 
+@dataclass(frozen=True)
+class _VerdictRecords:
+    """What a stream holds that judges a failed acceptance criterion.
+
+    The validation receipts, the digests recorded decisions cite, and the
+    two maps that resolve a rule's inputs to the results it read. The
+    settlement and the tool host build these from one representation --
+    the receipt, carried whole in the stream's event -- and hand them to
+    one function (``goal.failed_criteria``).
+    """
+
+    validations: tuple[Mapping[str, Any], ...] = ()
+    cited: frozenset[str] = frozenset()
+    result_artifacts: Mapping[str, str] = field(default_factory=dict)
+    expression_sources: Mapping[tuple[str, str], tuple[str, ...]] = field(
+        default_factory=dict
+    )
+
+
+def _stream_lines(path: Path) -> list[str]:
+    try:
+        return Path(path).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+
+
+def _verdict_records(lines: Sequence[str]) -> _VerdictRecords:
+    validations: list[Mapping[str, Any]] = []
+    cited: set[str] = set()
+    result_artifacts: dict[str, str] = {}
+    expression_sources: dict[tuple[str, str], tuple[str, ...]] = {}
+    for line in lines:
+        text = line.strip()
+        if not text:
+            continue
+        try:
+            event = json.loads(text)
+        except json.JSONDecodeError:
+            continue
+        kind = str(event.get("kind") or "")
+        payload = event.get("payload") or {}
+        digest = str(payload.get("receipt_sha256") or "")
+        record = payload.get("record") or {}
+        if kind == "scientific_validation_evaluated":
+            validations.append(payload)
+        elif kind == "scientific_decision_recorded":
+            # A decision that cites the validation receipt has looked at
+            # the failed verdict and stood by its delivery. That is the
+            # scientist's call to make, and citing the receipt is how it
+            # is made without the host grading prose.
+            cited |= cited_receipts(record.get("evidence_refs") or ())
+        elif (
+            kind in {"result_quantities_extracted", "thermochemistry_derived"}
+            and digest
+        ):
+            # A thermochemistry derivation reads its result as surely as
+            # an extraction does: a zero-point energy of a rejected saddle
+            # stands on the verdict that rejected it.
+            artifact = str(
+                payload.get("artifact_sha256")
+                or record.get("artifact_sha256")
+                or ""
+            )
+            if artifact:
+                result_artifacts[digest] = artifact
+        elif kind == "quantity_expression_evaluated" and digest:
+            for dependency in record.get("output_dependencies") or ():
+                expression_sources[
+                    (digest, str(dependency.get("output_id") or ""))
+                ] = tuple(
+                    str(item)
+                    for item in dependency.get("source_receipt_sha256s") or ()
+                )
+    return _VerdictRecords(
+        validations=tuple(validations),
+        cited=frozenset(cited),
+        result_artifacts=result_artifacts,
+        expression_sources=expression_sources,
+    )
+
+
+def _merge_verdict_records(*parts: _VerdictRecords) -> _VerdictRecords:
+    """The goal's records, in stream order, each receipt once."""
+
+    validations: list[Mapping[str, Any]] = []
+    seen: set[str] = set()
+    cited: set[str] = set()
+    result_artifacts: dict[str, str] = {}
+    expression_sources: dict[tuple[str, str], tuple[str, ...]] = {}
+    for part in parts:
+        for item in part.validations:
+            digest = str(item.get("receipt_sha256") or "")
+            if digest and digest in seen:
+                continue
+            seen.add(digest)
+            validations.append(item)
+        cited |= part.cited
+        result_artifacts.update(part.result_artifacts)
+        expression_sources.update(part.expression_sources)
+    return _VerdictRecords(
+        validations=tuple(validations),
+        cited=frozenset(cited),
+        result_artifacts=result_artifacts,
+        expression_sources=expression_sources,
+    )
+
+
+def _goal_streams(
+    ledger: GoalLedger, workspace: Path | None, goal_id: str
+) -> tuple[Path, ...]:
+    """Every stream the goal's own spine names: planning sessions and runs."""
+
+    if workspace is None:
+        return ()
+    agent = Path(workspace) / ".chemsmart-agent"
+    streams: list[Path] = []
+    for entry in ledger.entries():
+        payload = entry.get("payload") or {}
+        if entry["kind"] == "session_stream_recorded":
+            run_id = str(payload.get("run_id") or "")
+            if run_id:
+                streams.append(agent / "runs" / run_id / "events.jsonl")
+        elif entry["kind"] == "run_recorded":
+            run = str(payload.get("run") or "")
+            if run:
+                streams.append(agent / Path(*run.split("/")) / "events.jsonl")
+    return tuple(dict.fromkeys(path for path in streams if path.is_file()))
+
+
 def _analysis_delivery(
     events_path: Path,
     *,
@@ -2783,8 +3400,16 @@ def _analysis_delivery(
     failed_artifact_sha256s: Sequence[str] = (),
     inherited_unreachable: Mapping[str, str] = {},
     goal_findings: Sequence[Mapping[str, Any]] = (),
+    goal_streams: Sequence[Path] = (),
 ) -> _AnalysisDelivery:
     """Read the delivery facts a settlement stands on.
+
+    ``goal_streams`` are the goal's other streams -- its earlier cycles'
+    planning sessions and runs. A settlement reads the plan's own failed
+    acceptance criteria across all of them: a verdict one cycle's run was
+    typed with is answered by the decision a later session records, and a
+    number this stream delivers from a result an earlier verdict rejected
+    stands on that verdict whichever stream typed it.
 
     Every field is a typed record the host itself wrote: the
     completion receipt with its stated limitations, the claim and
@@ -2795,13 +3420,14 @@ def _analysis_delivery(
     """
 
     completion_status = ""
+    completion_receipt = ""
+    completion_findings: tuple[str, ...] = ()
+    categorical_answers: dict[str, tuple[dict[str, Any], ...]] = {}
     prediction_rows: tuple[dict[str, Any], ...] = ()
     route_dispositions: tuple[dict[str, Any], ...] = ()
 
     declared_misses: tuple[str, ...] = ()
     limitations: tuple[str, ...] = ()
-    failed_verdicts: list[tuple[str, str, str]] = []
-    decision_refs: set[str] = set()
     claims = 0
     decisions = 0
     decision_uncertainties: list[str] = []
@@ -2844,6 +3470,7 @@ def _analysis_delivery(
     # uncertainty: rendered on that claim, where every reader of it sees it.
     uncertainty_references: set[str] = set()
     claim_rows: dict[str, dict[str, Any]] = {}
+    claim_names: list[tuple[str, str]] = []
     rejected_bindings: list[tuple[str, str]] = []
     expression_outputs: list[tuple[str, str, tuple[str, ...]]] = []
     artifact_by_receipt: dict[str, str] = {}
@@ -2974,11 +3601,6 @@ def _analysis_delivery(
                 text_ref = str(reference)
                 if text_ref.startswith("doubt:"):
                     doubt_refs.add(text_ref[len("doubt:") :])
-                # A decision that cites the validation receipt has looked
-                # at the failed verdict and stood by its delivery. That is
-                # the scientist's call to make, and citing the receipt is
-                # how it is made without the host grading prose.
-                decision_refs.add(text_ref.split(":")[-1])
         elif kind == "analysis_claims_recorded":
             claims += 1
             if digest:
@@ -3029,6 +3651,9 @@ def _analysis_delivery(
                 claim_id = str(claim.get("claim_id") or "")
                 if claim_id and claim_id != claim.get("quantity_id"):
                     claim_pairs.append((receipt_digest, claim_id))
+                claim_names.append(
+                    (claim_id, str(claim.get("quantity_id") or ""))
+                )
         elif kind == "workflow_node_launch_refused":
             stopped_by.append(
                 f"node {payload.get('node_id')} never launched: "
@@ -3116,6 +3741,26 @@ def _analysis_delivery(
                 )
         elif kind == "analysis_completion_evaluated":
             completion_status = str(payload.get("status") or "")
+            completion_receipt = digest
+            # What the gate certified for each declared category, the last
+            # completion's word: a claim under the category's id answers
+            # it exactly as a finding does (R10 Q23).
+            categorical_answers = {
+                str(observable_id): tuple(
+                    dict(word)
+                    for word in words or ()
+                    if isinstance(word, Mapping)
+                )
+                for observable_id, words in (
+                    payload.get("declared_categorical_answers") or {}
+                ).items()
+            }
+            completion_findings = tuple(
+                str(item)
+                for item in (
+                    (payload.get("record") or {}).get("findings") or ()
+                )
+            )
             prediction_rows = tuple(
                 dict(row)
                 for row in (
@@ -3139,33 +3784,6 @@ def _analysis_delivery(
         elif kind == "scientific_validation_evaluated":
             if digest:
                 receipts.append(digest)
-            if not bool(payload.get("all_rules_passed", True)):
-                node_id = str(payload.get("node_id") or "")
-                record = payload.get("record") or {}
-                bindings = {
-                    str(binding.get("input_id") or ""): (
-                        str(binding.get("source_receipt_sha256") or ""),
-                        str(binding.get("quantity_id") or ""),
-                    )
-                    for binding in record.get("input_bindings") or ()
-                }
-                for rule in record.get("rule_results") or ():
-                    if not bool(rule.get("passed", True)):
-                        failed_verdicts.append(
-                            (
-                                node_id,
-                                str(rule.get("rule_id") or ""),
-                                digest,
-                            )
-                        )
-                        # The rule read these receipts and rejected what
-                        # it found in them; everything else computed from
-                        # the same receipts describes the same rejected
-                        # structure.
-                        for input_id in rule.get("input_ids") or ():
-                            binding = bindings.get(str(input_id))
-                            if binding and binding[0]:
-                                rejected_bindings.append(binding)
         elif kind in {
             "result_quantities_extracted",
             "quantity_expression_evaluated",
@@ -3201,10 +3819,50 @@ def _analysis_delivery(
                             ),
                         )
                     )
-    unanswered = tuple(
-        f"{node_id}/{rule_id}"
-        for node_id, rule_id, digest in failed_verdicts
-        if digest not in decision_refs
+    # The plan's own acceptance criteria, judged by the one function the
+    # session's completion and the executor's completion also call. A
+    # verdict is answered when a recorded decision cites a receipt that
+    # states it -- in this stream or in any other stream of the goal, since
+    # a woken session answers the verdict its previous run was typed with.
+    here = _verdict_records(lines)
+    goal = _merge_verdict_records(
+        here, *(_verdict_records(_stream_lines(path)) for path in goal_streams)
+    )
+    verdicts = failed_criteria(
+        goal.validations,
+        cited=goal.cited,
+        result_artifacts=goal.result_artifacts,
+        expression_sources=goal.expression_sources,
+    )
+    here_receipts = {
+        str(item.get("receipt_sha256") or "") for item in here.validations
+    }
+    unanswered_criteria = tuple(
+        replace(
+            verdict,
+            receipt_sha256s=tuple(
+                receipt
+                for receipt in verdict.receipt_sha256s
+                if receipt in here_receipts
+            ),
+        )
+        for verdict in verdicts
+        if not verdict.answered
+        and here_receipts.intersection(verdict.receipt_sha256s)
+    )
+    unanswered = tuple(verdict.label for verdict in unanswered_criteria)
+    # The rule read these receipts and rejected what it found in them;
+    # everything else computed from the same receipts describes the same
+    # rejected structure -- unless a recorded decision answered the
+    # verdict, in which case the session has read the finding and stands
+    # by what it computed, and the numbers are its delivery, carrying it.
+    rejected_bindings.extend(
+        binding
+        for verdict in verdicts
+        if not verdict.answered
+        and here_receipts.intersection(verdict.receipt_sha256s)
+        for binding in verdict.bindings
+        if binding[0]
     )
     # Quantities standing on a node that did not meet the promise it was
     # launched under, split by whether the session had the host check what
@@ -3275,7 +3933,9 @@ def _analysis_delivery(
         claim_pairs=claim_pairs,
         rejected_bindings=rejected_bindings,
         expression_outputs=expression_outputs,
-        artifact_by_receipt=artifact_by_receipt,
+        # The verdict join reads every receipt that read a result,
+        # thermochemistry derivations included.
+        artifact_by_receipt=here.result_artifacts,
         inherited_rejected_artifacts=inherited_rejected_artifacts,
     )
     # The same walk, seeded with the artifacts of every node an anomaly
@@ -3288,6 +3948,34 @@ def _analysis_delivery(
         artifact_by_receipt=artifact_by_receipt,
         inherited_rejected_artifacts=flagged_artifact_sha256s,
     )
+    # The same walk once per failed criterion, over the whole goal's
+    # records: which numbers this stream delivers stand on the results
+    # that criterion judged. An answered verdict rides the word with the
+    # numbers it carries. An unanswered one typed in another stream holds
+    # every number of this stream standing on it: the planning path read
+    # only its own stream, so a woken session could deliver from results
+    # an earlier run's criterion had rejected, rewrite the criterion
+    # without the rules that failed, and settle achieved (h1b, ax41
+    # general round, 2026-09-02) -- while the run path, which carries
+    # rejections across cycles, would have held the same numbers stale.
+    goal_expressions = tuple(
+        (receipt, output_id, tuple(sources))
+        for (receipt, output_id), sources in goal.expression_sources.items()
+    )
+    answered_criteria: list[tuple[FailedCriterionV1, tuple[str, ...]]] = []
+    inherited_unanswered: list[tuple[FailedCriterionV1, tuple[str, ...]]] = []
+    for verdict in verdicts:
+        standing, _judged = _stale_quantity_ids(
+            claim_pairs=claim_pairs,
+            rejected_bindings=verdict.bindings,
+            expression_outputs=goal_expressions,
+            artifact_by_receipt=goal.result_artifacts,
+        )
+        typed_here = bool(here_receipts.intersection(verdict.receipt_sha256s))
+        if verdict.answered and (standing or typed_here):
+            answered_criteria.append((verdict, standing))
+        elif not verdict.answered and standing and not typed_here:
+            inherited_unanswered.append((verdict, standing))
     # An expression's exported outputs, as opposed to the intermediate
     # node_values it computed on the way: the receipt contract pins
     # output_dependencies' ids to outputs' quantity_ids, in order, so the
@@ -3345,6 +4033,21 @@ def _analysis_delivery(
         if finding_id not in retired_findings
     )
     answered_ids: set[str] = set()
+    # A declared category a claim answered under its own id, as the gate
+    # certified it; a finding answering the same id below speaks for it.
+    claimed_answers = {
+        observable_id: words
+        for observable_id, words in categorical_answers.items()
+        if words and not any(word.get("finding_id") for word in words)
+    }
+    for observable_id, words in claimed_answers.items():
+        answered_ids.add(observable_id)
+        claim_rows[observable_id] = {
+            "answer": words,
+            "claim_record_sha256": str(
+                words[0].get("claim_record_sha256") or ""
+            ),
+        }
     for row in standing_findings:
         receipts.append(row["receipt_sha256"])
         if row["answers_observable_id"] and row["answer"]:
@@ -3368,6 +4071,14 @@ def _analysis_delivery(
         # evidence under every word instead, as its own.
     return _AnalysisDelivery(
         findings=standing_findings,
+        claimed_answers={
+            observable_id: words
+            for observable_id, words in claimed_answers.items()
+            if not any(
+                row["answers_observable_id"] == observable_id and row["answer"]
+                for row in standing_findings
+            )
+        },
         ending=ending,
         terminal_reason=terminal_reason,
         sufficiency=carried + tuple(sufficiency_rows),
@@ -3375,7 +4086,12 @@ def _analysis_delivery(
         stopped_by=tuple(stopped_by),
         anomaly_output_ids=anomaly_ids,
         unanswered_verdicts=unanswered,
+        unanswered_criteria=unanswered_criteria,
+        answered_criteria=tuple(answered_criteria),
+        inherited_unanswered=tuple(inherited_unanswered),
         completion_status=completion_status,
+        completion_receipt_sha256=completion_receipt,
+        completion_findings=completion_findings,
         limitation_output_ids=limitations,
         claims=claims,
         decisions=decisions,
@@ -3390,6 +4106,7 @@ def _analysis_delivery(
             )
         ),
         claim_rows=dict(claim_rows),
+        claim_names=tuple(dict.fromkeys(claim_names)),
         delivered_quantity_ids=tuple(
             sorted(
                 {
@@ -4401,7 +5118,9 @@ class GoalDriver:
                 },
             )
 
-    def _settle_delivery(self, terminal: str) -> GoalLoopResultV1 | None:
+    def _settle_delivery(
+        self, terminal: str, extra_reasons: tuple[str, ...] = ()
+    ) -> GoalLoopResultV1 | None:
         if self.events_path is None:
             # Nothing durable to read a delivery from: the goal still ends
             # in a typed state, and the reason says why a human reads it.
@@ -4436,6 +5155,7 @@ class GoalDriver:
             terminal=terminal,
             workspace=self.workspace,
         )
+        reasons = tuple(reasons) + tuple(extra_reasons)
         try:
             stream = str(
                 self.events_path.parent.relative_to(
@@ -4781,6 +5501,14 @@ class GoalDriver:
                 self.workspace, self.goal_id
             ),
             declared_observables=_first_declarations(self.ledger),
+            # And across the goal's streams, as the settlement reads it: a
+            # number standing on a verdict another stream's decision
+            # answered is delivered there and was stale here, so this
+            # reader re-woke a goal for an observable the settlement
+            # calls delivered (R10 Q22).
+            goal_streams=_goal_streams(
+                self.ledger, self.workspace, self.goal_id
+            ),
         )
         if delivery.blocked_output_ids:
             return False
@@ -4818,28 +5546,55 @@ class GoalDriver:
             budgets.wall_seconds_remaining <= 0
         ):
             return False
+        # A claim that carries a declared id is not a claim "under another
+        # name", and neither is the second name it holds. G-h2's re-wake
+        # listed verdict-bs, verdict-complex and verdict-real as claims
+        # under other names: they were the quantity ids of the three claims
+        # that carried its three declared category questions (R10 Q22).
+        carrying = {
+            name
+            for pair in delivery.claim_names
+            if set(pair).intersection(declared)
+            for name in pair
+        }
         rendered = tuple(
             item
             for item in delivery.delivered_quantity_ids
-            if item not in declared
+            if item not in declared and item not in carrying
         )
         if not undelivered:
             self._open_requirement_rewake(terminal, delivery, unresolved)
             return True
+        # What the completion receipt says each one lacks, when it says
+        # it: the host held the sentence that answers the diagnosis ("a
+        # category is answered by a word the host read, bound by a
+        # finding") and the report withheld it.
+        misses = tuple(
+            text
+            for text in delivery.declared_observable_misses
+            if any(f"'{item}'" in text for item in undelivered)
+        )
         diagnosis = (
-            f"the previous cycle ended {terminal!r} ({delivery.ending}) "
-            "with these declared observables still undelivered by their "
-            "id in any cycle: "
-            + ", ".join(undelivered)
+            f"the previous cycle ended {terminal!r} ({delivery.ending}); "
+            + _undelivered_declared_named(delivery, undelivered)
             + (
-                "; it rendered claims under other names instead: "
+                "; its completion receipt says: " + " | ".join(misses)
+                if misses
+                else ""
+            )
+            + (
+                "; it rendered claims under other names: "
                 + ", ".join(rendered)
                 if rendered
-                else "; it rendered no claim"
+                else (
+                    ""
+                    if delivery.claims_rendered
+                    else "; it rendered no claim"
+                )
             )
             + (
                 "; no completion was certified"
-                if delivery.completion_status != "passed"
+                if not _delivery_certified(delivery)
                 else "; the completion certified the chain without them"
             )
             + "."
@@ -4852,19 +5607,35 @@ class GoalDriver:
                 "an executable plan for review."
             ),
             "diagnosis": diagnosis,
+            # Every ending the invariant admits, each with what it costs.
+            # The route named only the first two and the cost said "no
+            # engine call", while R10 Q15 g1 had been woken by a review the
+            # host refused over one unpreviewed node, with its whole grant
+            # in hand: the ending that answers such a diagnosis is the plan
+            # itself, repaired.
             "route": (
                 "claim each undelivered id from receipts in hand -- "
                 "extract_result_quantities, derive_thermochemistry, "
                 "evaluate_quantity_expression, record_analysis_claims with "
-                "claim_id set to the declared id -- or "
+                "claim_id set to the declared id, in the declared unit; a "
+                "category is answered the same way, by the word (or the "
+                "integer) the host read from the program's output claimed "
+                "with claim_id set to the declared id -- or "
                 "plan_scientific_workflow with no calculation_nodes, which "
                 "the host executes when planned; or record_scientific_"
                 "decision naming each id that cannot be delivered, with its "
-                "required producer and the receipts that show it"
+                "required producer and the receipts that show it; or, where "
+                "the calculation that produces them has not run, end with "
+                "an executable plan for review: repair what the diagnosis "
+                "names and give every initial node a green preview with "
+                "compile_command, and the host builds the review under the "
+                "goal's standing decision"
             ),
             "cost": (
-                "no engine call; this re-wake is charged one revision and "
-                "is the last for this goal"
+                "claiming, an analysis-only plan and a refusal cost no "
+                "engine call; an executable plan spends engine calls from "
+                "what remains. This re-wake is charged one revision and is "
+                "the only re-wake this goal is granted"
             ),
         }
         self.ledger.append(
@@ -4954,8 +5725,8 @@ class GoalDriver:
             "route": sufficiency_menu(states),
             "cost": (
                 "two of the three routes cost no engine call; this "
-                "re-wake is charged one revision and is the last for this "
-                "goal"
+                "re-wake is charged one revision and is the only re-wake "
+                "this goal is granted"
             ),
         }
         self.ledger.append(
@@ -5110,6 +5881,34 @@ class GoalDriver:
 
             decision = build_execution_wave_decision()
         if decision is not None and decision.state != "selected":
+            if (
+                str(getattr(decision, "workflow_id", "") or "")
+                and not tuple(getattr(decision, "ready_node_ids", ()) or ())
+                and self.events_path is not None
+                and not _session_wave_selections(self.events_path)
+            ):
+                # A park waits for a decision, and none can be made here:
+                # the workflow the session planned last holds nothing to
+                # select, the session selected no wave on any workflow,
+                # and a resumed pending decision stays pending. R10 Q15 g2
+                # (CUHK 2153334) parked this way for good -- a diagnostic
+                # probe had been reviewed, the session then planned an
+                # analysis-only refusal and recorded a refusal the host
+                # verified, and nothing ever read it. The goal settles on
+                # what the session's stream holds, and says which reviewed
+                # workflow did not run and why. A session that did select
+                # a wave a later plan replaced still parks naming it: that
+                # is the wave's boundary, not a missing decision.
+                self._settle_delivery(
+                    str(getattr(self.session, "terminal_state", "") or ""),
+                    extra_reasons=(
+                        "the reviewed workflow was not run: the session "
+                        "selected no wave, and the workflow it planned last "
+                        f"({decision.workflow_id or '(unnamed)'}) holds no "
+                        "calculation a wave could select",
+                    ),
+                )
+                return
             self._park_for_execution_wave_decision(
                 decision,
                 reason=(
@@ -6011,6 +6810,9 @@ class GoalDriver:
         run_delivery = _analysis_delivery(
             self.run_directory / "events.jsonl", **delivery_kwargs
         )
+        # What the executor refused to launch, in this run's own stream,
+        # kept before a chainless run is re-read from another stream.
+        launch_refusals = run_delivery.stopped_by
         # A run whose stream holds no completion receipt carried no
         # analysis chain: nothing it computed was read, so it delivered
         # nothing and certified nothing. The settlement read that empty
@@ -6023,12 +6825,20 @@ class GoalDriver:
         # its two falsified expectations never reached the word. The
         # goal's delivery is the one its latest completion receipt holds.
         run_completion = run_delivery.completion_status
-        # Two witnesses agree before the run is read as chainless: the
-        # executor's own word for a bundle with no toolchain is the empty
-        # analysis status, and the stream holds no completion receipt.
-        chainless = (
-            not str(getattr(self.execute_result, "analysis_status", "") or "")
-            and not run_delivery.completion_status
+        # Read from the run's own records, never from the executor's word.
+        # This used to need two witnesses -- the executor's empty analysis
+        # status and no receipt -- and the executor's word for an approved
+        # toolchain with no analysis node is "completed" (all() over
+        # nothing), so the first witness never agreed: every archived
+        # chainless run was such an empty chain, the six repaired above
+        # among them, and each still signed achieved. R10 Q21's g2-hooh
+        # (CUHK 2153668) was the seventh, over the words "no completion
+        # gate certified this delivery". A run whose stream holds no
+        # completion receipt and in which no analysis node ran -- none
+        # planned, or every one declared non-executable -- certified
+        # nothing, whatever its executor reported.
+        chainless = not run_delivery.completion_status and not (
+            _analysis_nodes_run(self.run_directory / "events.jsonl")
         )
         stands_on = ""
         if chainless:
@@ -6043,15 +6853,14 @@ class GoalDriver:
             if chainless
             else ()
         )
-        # Something was owed and no completion the goal holds passed: a
-        # partial chain, or none at all over declared observables.
-        uncertified = (
-            chainless
-            and run_delivery.completion_status != "passed"
-            and bool(
-                run_delivery.completion_status
-                or _required_declared_ids(self.ledger)
-            )
+        # Something was owed and the completion the delivery stands on did
+        # not pass: a partial chain, or none at all over declared
+        # observables. Asked of every run, as the planning path asks it
+        # (`_delivery_certified`), so an achieved word is never signed over
+        # an uncertified delivery by a path that forgot to look.
+        uncertified = not _delivery_certified(run_delivery) and bool(
+            run_delivery.completion_status
+            or _required_declared_ids(self.ledger)
         )
         self.rejected_artifacts.update(run_delivery.rejected_artifact_sha256s)
         if run_delivery.claims_rendered:
@@ -6132,16 +6941,39 @@ class GoalDriver:
             if chainless
             else ""
         )
+        # The uncertified word for a run that carried a chain names the
+        # receipt its own chain minted.
+        uncertified_reason = chainless_prefix or (
+            f"cycle {self.cycles}: this run's completion receipt "
+            f"{run_delivery.completion_receipt_sha256[:8]} is "
+            f"{run_delivery.completion_status or 'absent'}, so no "
+            "completion gate certified the delivery"
+        )
         # An observable the session refused, and an observable it
         # delivered whose precision it refused, settle by one rule: the
         # host verified both as unreachable, and the charter calls that
         # ending a deliverable. Only the first was ever read, so a goal
         # that ran engines and had its stated accuracy certified
         # unreachable settled achieved.
+        # An earlier cycle's claim this cycle's verified refusal superseded
+        # (`_claims_a_later_refusal_supersedes`): the refusal answers it.
+        superseded = (
+            _claims_a_later_refusal_supersedes(
+                session_delivery,
+                set(run_delivery.claim_rows)
+                | set(session_delivery.claim_rows),
+                _goal_delivered_ids(self.workspace, self.goal_id),
+                _first_declarations(self.ledger),
+                verified=refused,
+            )
+            if session_delivery is not None
+            else {}
+        )
         refused_ids = tuple(
             dict.fromkeys(
                 tuple(run_delivery.undelivered_declared_ids)
                 + tuple(run_delivery.refused_requirement_ids)
+                + tuple(superseded)
             )
         )
         if (
@@ -6159,15 +6991,26 @@ class GoalDriver:
                 + "; ".join(
                     f"{observable_id} -- "
                     f"{session_delivery.unreachable_bases.get(observable_id, '')}"
+                    + (
+                        _superseded_claim_named(superseded[observable_id])
+                        if observable_id in superseded
+                        else ""
+                    )
                     for observable_id in refused_ids
                 )
             )
+            carried, evidence = _what_the_delivery_carries(
+                run_delivery,
+                _goal_anomalies(self.ledger),
+                _settlement_evidence(session_delivery),
+                superseded,
+            )
             self.ledger.settle(
                 "unreachable_from_evidence",
-                reasons=(reason,),
-                evidence=_settlement_evidence(session_delivery),
+                reasons=(reason, *carried),
+                evidence=evidence,
             )
-            self._settled("unreachable_from_evidence", (reason,))
+            self._settled("unreachable_from_evidence", (reason, *carried))
             return
         if achieved and open_delivery and recovery_affordable:
             # Every required output arrived and a host-rendered verdict
@@ -6193,8 +7036,18 @@ class GoalDriver:
                     "unresolved_requirement_ids": list(open_requirements),
                     "engine_calls_remaining": budgets.engine_calls_remaining,
                     **(
-                        {"uncertified": chainless_prefix}
+                        {"uncertified": uncertified_reason}
                         if uncertified
+                        and (
+                            chainless
+                            or not (
+                                run_delivery.unanswered_verdicts
+                                or unrefreshed
+                                or run_delivery.unclaimed_output_ids
+                                or open_declared
+                                or open_requirements
+                            )
+                        )
                         else {}
                     ),
                     **({"refusals_reread": dict(reread)} if reread else {}),
@@ -6224,12 +7077,13 @@ class GoalDriver:
                 or open_requirements
             ):
                 reason = (
-                    chainless_prefix
+                    uncertified_reason
                     + ", and no revision remains to certify it"
                     + (
-                        "; these declared observables have no claim "
-                        "carrying their id in any cycle: "
-                        + ", ".join(open_declared)
+                        "; "
+                        + _undelivered_declared_named(
+                            run_delivery, open_declared
+                        )
                         if open_declared
                         else ""
                     )
@@ -6238,14 +7092,14 @@ class GoalDriver:
                     "returned_to_human", reasons=(reason, *reread_reasons)
                 )
                 self._settled(
-                    "returned_to_human", open_declared or (chainless_prefix,)
+                    "returned_to_human", open_declared or (uncertified_reason,)
                 )
                 return
             if run_delivery.unanswered_verdicts:
                 reason = (
                     f"cycle {self.cycles}: a validation verdict failed and "
                     "no budget remains to answer it: "
-                    + ", ".join(run_delivery.unanswered_verdicts)
+                    + _unanswered_verdicts_named(run_delivery)
                 )
                 open_items = run_delivery.unanswered_verdicts
             elif unrefreshed:
@@ -6275,10 +7129,11 @@ class GoalDriver:
                 open_items = open_requirements
             else:
                 reason = (
-                    f"cycle {self.cycles}: these declared observables have "
-                    "no claim carrying their id in any cycle, and no "
-                    "revision remains to claim them: "
-                    + ", ".join(run_delivery.undelivered_declared_ids)
+                    f"cycle {self.cycles}: "
+                    + _undelivered_declared_named(
+                        run_delivery, run_delivery.undelivered_declared_ids
+                    )
+                    + "; no revision remains to deliver them"
                     + (
                         "; " + " | ".join(run_delivery.open_declared_misses)
                         if run_delivery.open_declared_misses
@@ -6298,7 +7153,9 @@ class GoalDriver:
             return
         if achieved:
             goal_anomalies = _goal_anomalies(self.ledger)
-            word, why = _achieved_word(run_delivery, goal_anomalies)
+            word, why = _achieved_word(
+                run_delivery, goal_anomalies, superseded=superseded
+            )
             evidence = _settlement_evidence(run_delivery)
             if word == "achieved_with_observations":
                 evidence = _anomaly_evidence(evidence, goal_anomalies)
@@ -6397,12 +7254,23 @@ class GoalDriver:
             if state in REPAIRABLE_TERMINAL_STATES
         }
         if terminal_states and not repairable:
+            # A launch the executor refused is an event in the run's own
+            # stream, and the settlement quotes it: R10 Q15 g1 returned
+            # naming "pbnz-opt=not_launched, ts-search=not_launched" while
+            # the stream held why -- a stale input check of another
+            # program's bytes, false, which only the quote would have let a
+            # reader see.
             reason = (
                 f"cycle {self.cycles}: the run ended in a state no revision "
                 "can answer: "
                 + ", ".join(
                     f"{node_id}={state}"
                     for node_id, state in sorted(terminal_states.items())
+                )
+                + (
+                    "; " + "; ".join(launch_refusals)
+                    if launch_refusals
+                    else ""
                 )
             )
             self.ledger.settle("returned_to_human", reasons=(reason,))
@@ -6419,12 +7287,28 @@ class GoalDriver:
                 "analysis_status": str(
                     getattr(self.execute_result, "analysis_status", "") or ""
                 ),
-                "verdicts": [],
+                # What the run left open, read here exactly as the branch
+                # above reads it. Since the executor reads criteria (R10
+                # Q19) a claim standing on a failed criterion makes the
+                # chain partial, so every such run arrives here -- and
+                # this row wrote "verdicts": [] over L-S2's failed
+                # external-stability criterion (CUHK Slurm 2153514).
+                "verdicts": list(run_delivery.unanswered_verdicts),
                 "stale_quantity_ids": list(unrefreshed),
                 "unclaimed_output_ids": list(
                     run_delivery.unclaimed_output_ids
                 ),
+                "undelivered_declared_observable_ids": list(open_declared),
+                "unresolved_requirement_ids": list(open_requirements),
                 "engine_calls_remaining": budgets.engine_calls_remaining,
+                # A partial chain's row already says analysis_status
+                # partial; only a chainless run needs the sentence.
+                **(
+                    {"uncertified": chainless_prefix}
+                    if uncertified and chainless
+                    else {}
+                ),
+                **({"refusals_reread": dict(reread)} if reread else {}),
             },
         )
         self.phase = "plan"

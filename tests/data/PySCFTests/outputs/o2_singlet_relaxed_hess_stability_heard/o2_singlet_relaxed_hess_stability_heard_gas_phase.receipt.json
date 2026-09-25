@@ -1,0 +1,236 @@
+{
+  "applied_settings_sha256": "6f78c4ad79a1b185fb78e9144499f6049fca5b504c9397c9dcf7e901e087ef29",
+  "child_returncode": 0,
+  "engine_complete": true,
+  "environment_receipt_sha256": "d6507526aed3f6bfe19ed831741717be8f4e636cfc01aa3ee0a4ea1a8df5ce5e",
+  "fake": false,
+  "findings": [],
+  "frequency_validation": {
+    "admissible_mode_counts": null,
+    "atom_count": 2,
+    "expected_imaginary_mode_count": null,
+    "expected_mode_count": 1,
+    "findings": [],
+    "finite_mode_count": 1,
+    "frequency_unit": "cm^-1",
+    "geometry_class": "linear",
+    "imaginary_mode_cutoff_cm1": null,
+    "linearity_relative_tolerance": 0.0001,
+    "observed_imaginary_mode_count": null,
+    "observed_mode_count": 1,
+    "schema_version": "chemsmart.pyscf-frequency-validation.v1",
+    "soft_negative_mode_count": null,
+    "state": "validated",
+    "stationary_point_classification": "unclassified"
+  },
+  "input_artifact_kind": "pyscf_hdf5",
+  "input_artifact_path": "/lustre/project/xlzhang/jiseung/r10/q21/cli/o2fix/o2_singlet_opt_gas_phase.h5",
+  "input_artifact_sha256": "116a1214f1d49c184b583f5603f41b948c91b7b484329c18d22150ebfea83a05",
+  "input_geometry_sha256": "f8b41870bef50d87f9711cc146ba7bcc5b8849fada509725287cc4f2ab171949",
+  "input_receipt_sha256": "4696377a81eaf1786b60f0014e378de3e88946c90cb81342ff9d2f0436b9181f",
+  "process_observation": {
+    "findings": [],
+    "last_rss_mb": 166.55859375,
+    "memory_limit_exceeded": false,
+    "memory_limit_mb": 8192.0,
+    "memory_observation_state": "observed",
+    "memory_sample_count": 17,
+    "peak_rss_mb": 249.2109375,
+    "pid": 2071966,
+    "process_group_id": 2071966,
+    "process_group_owned": true,
+    "receipt_sha256": "449bd979c6f89f8a90c66aca4e21d02b32dd13f528718a830ea9c8712ba2a644",
+    "remaining_process_ids": [],
+    "returncode": 0,
+    "schema_version": "chemsmart.process-observation.v1",
+    "state": "exited",
+    "termination_confirmed": null,
+    "termination_requested": false,
+    "termination_scope": "not_required",
+    "termination_signal": "",
+    "timed_out": false,
+    "timeout_seconds": 86400.0,
+    "wall_seconds": 4.176510787103325
+  },
+  "project_yaml_sha256": "64a7b3234c7ac4f528dcbac74efdcfe6287fdeddc8e9333067100a75c25a5a62",
+  "property_findings": [],
+  "quarantined_targets": [],
+  "receipt_sha256": "b88c01f11379ecdd1feddc40620b82615bfdc6b589ea4e748d40c8f0b6f11ebc",
+  "requested_settings_sha256": "4e36d7ffe3a752e632277d903adf80676cd1290b1ae2c9aefad9c6ff7a87f4df",
+  "result_sha256": "13c51d678c4ac2b4b61d23ae4a4db0b3f961c79249ab5fb02765d881e20f62d9",
+  "result_validation": {
+    "advisories": [
+      {
+        "accuracy_authority": false,
+        "convention": "A term value is E(upper state) minus E(ground state) and is non-negative; a negative value means the states were ordered the wrong way round.",
+        "readiness_authority": false,
+        "rule_id": "term-value-orientation",
+        "rule_sha256": "a2845d3119e803ff43763c71e18335c930a5c6be6274a71f51f812b1a83749e3",
+        "schema_version": "chemsmart.deterministic-convention-rule.v1",
+        "scope": "result_validation",
+        "skill_id": "scientific-conventions",
+        "subject": "term value orientation"
+      }
+    ],
+    "applied_settings_sha256": "6f78c4ad79a1b185fb78e9144499f6049fca5b504c9397c9dcf7e901e087ef29",
+    "charge": 0,
+    "contract_validation": {
+      "current_version": "chemsmart.pyscf-result-contract.v10",
+      "new_execution_admissible": true,
+      "observed_version": "chemsmart.pyscf-result-contract.v10",
+      "state": "current",
+      "supported_versions": [
+        "chemsmart.pyscf-result-contract.v3",
+        "chemsmart.pyscf-result-contract.v4",
+        "chemsmart.pyscf-result-contract.v5",
+        "chemsmart.pyscf-result-contract.v6",
+        "chemsmart.pyscf-result-contract.v7",
+        "chemsmart.pyscf-result-contract.v8",
+        "chemsmart.pyscf-result-contract.v9",
+        "chemsmart.pyscf-result-contract.v10"
+      ]
+    },
+    "electronic_state_validation": {
+      "ecp_core_electrons": 0,
+      "expected_alpha_beta": [
+        8,
+        8
+      ],
+      "expected_electron_count": 16,
+      "observed_alpha_beta": [
+        8.0,
+        8.0
+      ],
+      "observed_electron_count": 16.0,
+      "orbital_representation": "restricted"
+    },
+    "findings": [],
+    "frequency_validation": {
+      "admissible_mode_counts": null,
+      "atom_count": 2,
+      "expected_imaginary_mode_count": null,
+      "expected_mode_count": 1,
+      "findings": [],
+      "finite_mode_count": 1,
+      "frequency_unit": "cm^-1",
+      "geometry_class": "linear",
+      "imaginary_mode_cutoff_cm1": null,
+      "linearity_relative_tolerance": 0.0001,
+      "observed_imaginary_mode_count": null,
+      "observed_mode_count": 1,
+      "schema_version": "chemsmart.pyscf-frequency-validation.v1",
+      "soft_negative_mode_count": null,
+      "state": "validated",
+      "stationary_point_classification": "unclassified"
+    },
+    "geometry_validation": {
+      "absolute_tolerance_angstrom": 1e-08,
+      "fixed_geometry_required": true,
+      "matches_input": true,
+      "unit": "Angstrom"
+    },
+    "hessian_validation": {
+      "all_finite": true,
+      "consistency": {
+        "absolute_tolerance_cm1": 0.5,
+        "algorithm": "independent-mass-weighted-projection-v1",
+        "maximum_absolute_difference_cm1": 1.7075283267331542e-06,
+        "recomputed_frequencies_cm1": [
+          1680.7273162290194
+        ],
+        "relative_tolerance": 0.0005,
+        "state": "verified",
+        "translation_rotation_rank": 5
+      },
+      "raw_antisymmetry_graded": false,
+      "raw_antisymmetry_limit_eh_per_bohr2": 1.7205255020886006e-05,
+      "raw_max_abs_antisymmetry_eh_per_bohr2": 2.3141211169530607e-13,
+      "raw_symmetrization_admissible": true,
+      "required": true,
+      "shape": [
+        2,
+        2,
+        3,
+        3
+      ],
+      "symmetric": true,
+      "symmetry_absolute_tolerance": 1e-07,
+      "symmetry_relative_tolerance": 2e-05
+    },
+    "jobtype": "hess",
+    "materialization_validation": {
+      "functional_definition": {
+        "environment_bound": true,
+        "environment_receipt_sha256": "d6507526aed3f6bfe19ed831741717be8f4e636cfc01aa3ee0a4ea1a8df5ce5e",
+        "libxc_version": "7.0.0",
+        "pyscf_version": "2.14.0",
+        "schema_version": "chemsmart.pyscf-functional-definition.v3",
+        "state": "environment_bound"
+      }
+    },
+    "multiplicity": 1,
+    "observed_stages": [
+      "scf",
+      "hess"
+    ],
+    "reference_validation": {
+      "declared_family": "rks",
+      "expected_family": "rks",
+      "mean_field_class": "pyscf.dft.rks.RKS",
+      "mean_field_mro": [
+        "pyscf.dft.rks.RKS",
+        "pyscf.dft.rks.KohnShamDFT",
+        "pyscf.scf.hf.RHF",
+        "pyscf.scf.hf.SCF",
+        "pyscf.lib.misc.StreamObject",
+        "builtins.object"
+      ],
+      "one_electron_semantics": false,
+      "orbital_representation": "restricted",
+      "runtime_family": "rks",
+      "state": "verified"
+    },
+    "requested_settings_sha256": "4e36d7ffe3a752e632277d903adf80676cd1290b1ae2c9aefad9c6ff7a87f4df",
+    "required_stages": [
+      "scf",
+      "hess"
+    ],
+    "schema_version": "chemsmart.pyscf-result-validation.v1",
+    "spin_diagnostic_validation": {
+      "effective_multiplicity": 1.0,
+      "interpretation": "numerically_matches_target_eigenvalue",
+      "numerical_equality_tolerance": 1e-07,
+      "observed_spin_square": 0.0,
+      "orbital_representation": "restricted",
+      "requested_multiplicity": 1,
+      "scientific_threshold_applied": false,
+      "spin_square_deviation": 0.0,
+      "state": "available",
+      "target_spin_square": 0.0
+    },
+    "state": "validated",
+    "status_validation": {
+      "failure_absent": true,
+      "observed_stage_set": [
+        "hess",
+        "scf"
+      ],
+      "required_stage_set": [
+        "hess",
+        "scf"
+      ],
+      "stage_set_exact": true
+    },
+    "symbols": [
+      "O",
+      "O"
+    ]
+  },
+  "run_id": "6b5c4930-3c1a-4b92-a5b9-5c33e39981b5",
+  "run_nonce": "a2f0558127182b9f2e43e5d87a6b7dc154766ed6e3e21ea1c19d151e801423da",
+  "schema_version": "chemsmart.pyscf-run.v1",
+  "scientific_validation_state": "validated",
+  "scientifically_validated": true,
+  "script_sha256": "4da6275ebc1d2db4cc9f0a2119d42b99639b2a2204578b29264d3b14503d6bb2",
+  "state": "validated"
+}

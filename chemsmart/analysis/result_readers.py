@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -660,6 +660,106 @@ def _effective_multiplicity(spin_square: float) -> float:
     if spin_square < 0.0:
         raise MissingQuantityError("negative <S^2> cannot define multiplicity")
     return float((1.0 + 4.0 * spin_square) ** 0.5)
+
+
+#: The determinant a result ran, in one vocabulary for every program:
+#: PySCF's own family names (``reference_family``), which Gaussian's
+#: ``SCF Done: E(UB3LYP)`` label and ORCA's ``HFTyp`` line are read into.
+SCF_REFERENCE_WORDS = ("rhf", "rks", "rohf", "roks", "uhf", "uks")
+#: The references that are spin eigenfunctions by construction: a
+#: restricted closed shell and a restricted open shell cannot break spin
+#: symmetry, whatever guess started them.
+SPIN_EIGENFUNCTION_REFERENCES = frozenset({"rhf", "rks", "rohf", "roks"})
+#: How far <S**2> must exceed the bound state's S(S+1) before the host
+#: calls an unrestricted solution's spin symmetry broken.  A collapsed
+#: (spin-symmetric) solution sits at the target to the precision the SCF
+#: converged -- 1e-10 to 1e-15 in PySCF and 0.0000 as Gaussian prints it --
+#: while the broken-symmetry singlets measured sit at 0.70-1.04 and the
+#: weakest real break measured, UHF's pi instability in planar ethylene,
+#: at 0.0335 (R10 Q18 O0, CUHK Slurm 2153330).  The number always rides
+#: beside the word, which is the host's reading of it and never a verdict
+#: on the chemistry: a broken solution may be a real diradical or an
+#: artefact of the method, and saying which is the session's.
+SPIN_SYMMETRY_BROKEN_THRESHOLD = 0.01
+
+
+def spin_symmetry_word(reference: str, spin_square: float, target: float):
+    """``broken`` or ``unbroken`` for an unrestricted singlet's <S**2>.
+
+    None for a reference that is a spin eigenfunction by construction
+    (whose <S**2> says nothing about symmetry breaking), for one no reader
+    stated, and for an open shell: there <S**2> above S(S+1) is spin
+    contamination of a state that has unpaired spin anyway, which the
+    measurement itself reports, not the open-shell singlet this word is
+    about.
+    """
+
+    word = str(reference or "").strip().lower()
+    if word not in SCF_REFERENCE_WORDS or word in (
+        SPIN_EIGENFUNCTION_REFERENCES
+    ):
+        return None
+    if abs(float(target)) > 1e-12:
+        return None
+    deviation = float(spin_square) - float(target)
+    return (
+        "broken"
+        if deviation >= SPIN_SYMMETRY_BROKEN_THRESHOLD
+        else ("unbroken")
+    )
+
+
+def spin_symmetry_record(reader: Any, output: Any) -> dict[str, Any] | None:
+    """What one result says about its own spin symmetry, or None.
+
+    The reference that ran and whether the program's own record shows the
+    broken-symmetry request applied -- both from the result's level, as
+    every other organ reads them -- and <S**2> against the bound state's
+    S(S+1) through the reader's own selectors, with the host's reading of
+    it.  These are the facts a session needs to tell a broken-symmetry
+    diradical from a solution that collapsed to the spin-symmetric one.
+    None where the level states no reference.
+    """
+
+    try:
+        level = reader.level_for_output(output) or {}
+    except Exception:  # noqa: BLE001 - a reader that cannot say says nothing
+        return None
+    reference = level.get("reference")
+    if reference not in SCF_REFERENCE_WORDS:
+        return None
+    record: dict[str, Any] = {
+        "reference": str(reference),
+        "broken_symmetry_requested": bool(level.get("broken_symmetry")),
+    }
+    followed = getattr(output, "broken_symmetry_record", None)
+    if isinstance(followed, Mapping):
+        # The program's own stability answer about the restricted solution
+        # it started from, where its translation asked (PySCF).
+        record["followed_instability"] = {
+            name: followed[name]
+            for name in (
+                "external_stable",
+                "external_lowest_eigenvalue",
+                "internal_stable",
+                "restricted_energy",
+                "unrestricted_energy",
+                "eigenvalue_unit",
+            )
+            if name in followed
+        }
+    try:
+        spin_square = float(reader.read(output, "spin_square")[0])
+        target = float(reader.read(output, "spin_square_target")[0])
+    except Exception:  # noqa: BLE001 - a restricted run prints no <S**2>
+        return record
+    record["spin_square"] = spin_square
+    record["spin_square_target"] = target
+    word = spin_symmetry_word(reference, spin_square, target)
+    if word is not None:
+        record["spin_symmetry"] = word
+        record["threshold"] = SPIN_SYMMETRY_BROKEN_THRESHOLD
+    return record
 
 
 def _connectivity_matrix(molecule: Any) -> list[list[int]]:
@@ -1428,6 +1528,17 @@ class ResultReaderV1:
         if self.resolve_reference_diagnostics is None:
             return None
         return self.resolve_reference_diagnostics(output)
+
+    def spin_symmetry_for_output(self, output: Any) -> dict[str, Any] | None:
+        """Which reference ran and whether its spin symmetry broke, or None.
+
+        One function for every program (:func:`spin_symmetry_record`), read
+        from the level and the <S**2> selectors this reader already serves,
+        so the sensor that raises a collapsed broken-symmetry request and a
+        session reading the same result see one answer.
+        """
+
+        return spin_symmetry_record(self, output)
 
     def __post_init__(self) -> None:
         jobtypes = tuple(item[0] for item in self.jobtype_selectors)
@@ -2260,6 +2371,33 @@ def _normalized_dispersion(value: Any) -> str:
     }.get(word, word)
 
 
+def _orca_scf_reference(output: Any) -> str | None:
+    """The determinant ORCA ran, from its own SCF settings block.
+
+    ORCA prints ``Hartree-Fock type HFTyp .... RHF|UHF|ROHF`` and, above
+    it, ``Density Functional Method .... DFT(GTOs)`` or ``Ab initio
+    Hamiltonian Method .... Hartree-Fock(GTOs)``; the last block printed
+    is the SCF the result's numbers come from.  None where neither was
+    printed.
+    """
+
+    family = None
+    kohn_sham = None
+    for line in getattr(output, "contents", ()) or ():
+        text = str(line)
+        match = re.search(r"Hartree-Fock type\s+HFTyp\s+\.+\s+(\S+)", text)
+        if match:
+            family = match.group(1).strip().casefold()
+            continue
+        if re.search(r"Density Functional\s+Method\s+\.+", text):
+            kohn_sham = True
+        elif re.search(r"Ab initio Hamiltonian\s+Method\s+\.+", text):
+            kohn_sham = False
+    if family not in {"rhf", "uhf", "rohf"} or kohn_sham is None:
+        return None
+    return family[:-2] + "ks" if kohn_sham else family
+
+
 def _orca_level(output: Any) -> dict[str, Any]:
     """The Hamiltonian an ORCA result computed with, from its own record.
 
@@ -2338,6 +2476,11 @@ def _orca_level(output: Any) -> dict[str, Any]:
             level["state_manifold"] = manifold
         if applied.get("nstates") is not None:
             level["nstates"] = int(applied["nstates"])
+    try:
+        requested = bool(getattr(output, "broken_symmetry", False))
+    except Exception:  # noqa: BLE001 - an unreadable echo requests nothing
+        requested = False
+    _add_reference_identity(level, _orca_scf_reference(output), requested)
     return level
 
 
@@ -2433,7 +2576,30 @@ def _gaussian_level(output: Any) -> dict[str, Any]:
         root = getattr(output, "excited_state_followed_root", None)
         if root is not None:
             level["excited_state_root"] = int(root)
+    try:
+        requested = bool(getattr(output, "broken_symmetry", False))
+    except Exception:  # noqa: BLE001 - an unreadable route requests nothing
+        requested = False
+    _add_reference_identity(level, _gaussian_scf_reference(output), requested)
     return level
+
+
+def _add_reference_identity(level, reference, broken_symmetry):
+    """State, on a level, the determinant that ran and the request behind it.
+
+    ``reference`` is the family the program itself printed (a word of
+    ``SCF_REFERENCE_WORDS``); ``broken_symmetry`` is true where the
+    program's own record shows the broken-symmetry request applied.  Both
+    are shown and never compared: a closed-shell molecule and a radical in
+    one reaction energy run different determinants by necessity, so the
+    reference is not a ``LEVEL_IDENTITY_FIELDS`` field, and an operation is
+    never told its operands differ in level because their states do.
+    """
+
+    if reference in SCF_REFERENCE_WORDS:
+        level["reference"] = reference
+    if broken_symmetry is True:
+        level["broken_symmetry"] = True
 
 
 def _orca_solvent(output: Any) -> str:
@@ -2706,6 +2872,51 @@ def _gaussian_functional(output: Any) -> str:
     return gaussian_functional_literal(
         label[1:] if label[:1] in "ru" else label
     )
+
+
+#: Gaussian's semiempirical labels in ``SCF Done: E(...)``: NDDO
+#: references, restricted or unrestricted like Hartree-Fock's.
+_GAUSSIAN_SEMIEMPIRICAL_LABELS = (
+    "am1",
+    "cndo",
+    "indo",
+    "mndo",
+    "pddg",
+    "pm3",
+    "pm6",
+    "pm7",
+    "zindo",
+)
+
+
+def _gaussian_scf_reference(output: Any) -> str | None:
+    """The determinant Gaussian ran, from its own ``SCF Done`` label.
+
+    ``E(RB3LYP)``, ``E(UB3LYP)``, ``E(ROB3LYP)``, ``E(RHF)``, ``E(UHF)``,
+    ``E(ROHF)``: the prefix is what Gaussian ran, whatever the route asked
+    for -- a bare method on a singlet runs restricted and on an open shell
+    unrestricted, and a restricted route with ``guess=mix`` stays restricted
+    (R10 Q18 O0, CUHK Slurm 2153330).  The functional reader strips this
+    prefix to name the functional; it is kept here.  None where the log
+    printed no ``SCF Done`` line.
+    """
+
+    label = None
+    for line in reversed(getattr(output, "contents", ()) or ()):
+        match = re.search(r"SCF Done:\s+E\(([^)]+)\)", str(line))
+        if match:
+            label = match.group(1).strip().casefold()
+            break
+    if not label:
+        return None
+    for prefix in ("ro", "u", "r"):
+        if label.startswith(prefix):
+            rest = label[len(prefix) :]
+            hartree_fock = (
+                rest == "hf" or rest in _GAUSSIAN_SEMIEMPIRICAL_LABELS
+            )
+            return f"{prefix}{'hf' if hartree_fock else 'ks'}"
+    return None
 
 
 def _route_ab_initio(output: Any) -> str:
@@ -5644,6 +5855,12 @@ def _pyscf_level(output: Any) -> dict[str, Any]:
         else "pyscf_auto" if str(requested).lower() == "auto" else None
     )
     _add_frozen_core_conventions(level, symbols, rule)
+    # The family the driver built and the validator held the runtime class
+    # to; the broken-symmetry singlet is the one uks/uhf at spin 0.
+    family = str(spec.get("reference_family") or "").strip().lower()
+    _add_reference_identity(
+        level, family or None, spec.get("broken_symmetry") is True
+    )
     return level
 
 
@@ -7627,6 +7844,90 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         requires_normal_termination=False,
     ),
 }
+
+
+#: What the structure a result's spectrum belongs to is, in the host's own
+#: word: minimum, first-order saddle, ... or not a stationary point.
+STATIONARY_POINT_KIND_SELECTOR = "stationary_point_kind"
+
+
+def _with_stationary_point_kind(reader: ResultReaderV1) -> ResultReaderV1:
+    """Serve the host's stationary-point word wherever the modes are served.
+
+    "Is it a minimum?" was the most asked categorical question in the
+    archive and had no word to be answered with: sessions counted modes by
+    expression or wrote a validation rule of their own and delivered its
+    0/1 verdict, each choosing a convention (R10 Q23). The word is the
+    judgement the host already makes (``terminal_states
+    .stationary_point_kind``: the stationary-point rule's -20 cm^-1
+    convention, and ``structure_stationarity`` -- the one function the
+    characterisation and a free energy ask whether a structure is
+    stationary), read from the same printed modes, beside
+    ``vibrational_frequencies`` on every job type that declares it and for
+    the structure those modes belong to.
+    """
+
+    frequencies = "vibrational_frequencies"
+    if frequencies not in reader.accessors:
+        return reader
+
+    def kind(output: Any) -> str | None:
+        from chemsmart.agent.terminal_states import stationary_point_kind
+        from chemsmart.analysis.result_quantities import (
+            structure_stationarity,
+        )
+
+        return stationary_point_kind(
+            tuple(getattr(output, "vibrational_frequencies", None) or ()),
+            structure_stationarity(reader.program, output).stationarity,
+        )
+
+    selector = STATIONARY_POINT_KIND_SELECTOR
+    state = reader.structural_state(frequencies)
+    provenance = reader.electronic_provenance(frequencies)
+    return replace(
+        reader,
+        accessors={**reader.accessors, selector: kind},
+        jobtype_selectors=tuple(
+            (
+                jobtype,
+                (
+                    tuple(sorted({*selectors, selector}))
+                    if frequencies in selectors
+                    else selectors
+                ),
+            )
+            for jobtype, selectors in reader.jobtype_selectors
+        ),
+        selector_structural_states=(
+            tuple(
+                sorted((*reader.selector_structural_states, (selector, state)))
+            )
+            if state != "stateless"
+            else reader.selector_structural_states
+        ),
+        selector_electronic_provenance=(
+            tuple(
+                sorted(
+                    (
+                        *reader.selector_electronic_provenance,
+                        (selector, provenance),
+                    )
+                )
+            )
+            if provenance != "stateless"
+            else reader.selector_electronic_provenance
+        ),
+        selector_declarations=(
+            *reader.selector_declarations,
+            (selector, "", "DIMENSIONLESS"),
+        ),
+    )
+
+
+for _program, _reader in tuple(RESULT_READERS.items()):
+    RESULT_READERS[_program] = _with_stationary_point_kind(_reader)
+del _program, _reader
 
 
 #: Physical dimension of each selector, in the shared quantity vocabulary.

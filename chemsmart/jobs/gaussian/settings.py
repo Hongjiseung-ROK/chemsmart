@@ -26,6 +26,8 @@ from chemsmart.io.gaussian.route import (
 )
 from chemsmart.jobs.settings import (
     MolecularJobSettings,
+    broken_symmetry_refusal,
+    broken_symmetry_request,
     canonical_functional_literal,
     functional_resolution_record,
 )
@@ -146,6 +148,48 @@ def describe_functional_resolution(functional=None, *, ab_initio=None):
         native=native,
         source="chemsmart.jobs.gaussian.settings.gaussian_native_functional",
     )
+
+
+def describe_broken_symmetry(settings, *, multiplicity=None):
+    """What Gaussian is told for ``broken_symmetry``, in one sentence, or "".
+
+    Read by the compile reply and the review, so the translation the route
+    makes is stated where the request is approved.  A singlet route that
+    carries ``guess=mix`` without the request is stated too: Gaussian keeps
+    it restricted -- the mixing can move it to another restricted solution
+    and never to an unrestricted one (R10 Q18 O0, CUHK Slurm 2153330) --
+    which is how a broken-symmetry intent ran restricted in R10 Q15 g1.
+    """
+
+    from chemsmart.io.gaussian.route import gaussian_method_spin_prefix
+    from chemsmart.jobs.settings import BROKEN_SYMMETRY_EVIDENCE_SENTENCE
+
+    values = settings if isinstance(settings, dict) else dict(settings)
+    if values.get("broken_symmetry") is True:
+        return (
+            "broken_symmetry: Gaussian runs the method unrestricted (the U "
+            "prefix) from guess=mix, the alpha HOMO and LUMO of its guess "
+            "mixed 50:50, on the singlet (Ms = 0); an exactly degenerate "
+            "frontier pair can send the mix to a higher solution, which "
+            "<S**2> alone does not show. " + BROKEN_SYMMETRY_EVIDENCE_SENTENCE
+        )
+    extra = str(values.get("additional_route_parameters") or "").lower()
+    method = str(values.get("functional") or values.get("ab_initio") or "")
+    if (
+        multiplicity is not None
+        and int(multiplicity) == 1
+        and re.search(r"(?<![a-z0-9_])guess\s*=\s*\(?[^\s)]*mix", extra)
+        and gaussian_method_spin_prefix(method) != "u"
+    ):
+        return (
+            "guess=mix on this singlet route runs restricted: Gaussian keeps "
+            "a restricted solution restricted (the mix can move it to "
+            "another restricted solution, never to an unrestricted one). "
+            "For the broken-symmetry open-shell singlet set broken_symmetry: "
+            "true, which writes the unrestricted method and its guess "
+            "together."
+        )
+    return ""
 
 
 _GAUSSIAN_NATIVE_DEF2_BASIS_TOKENS = {
@@ -336,6 +380,7 @@ class GaussianJobSettings(MolecularJobSettings):
         forces=False,
         input_string=None,
         dispersion=None,
+        broken_symmetry=None,
         **kwargs,
     ):
         """
@@ -373,6 +418,9 @@ class GaussianJobSettings(MolecularJobSettings):
             append_additional_info (str, optional): Additional input content.
             forces (bool): Calculate forces.
             input_string (str, optional): Custom input string.
+            broken_symmetry (bool, optional): Ask for the broken-symmetry
+                open-shell singlet (``chemsmart.jobs.settings``): the route
+                runs the method unrestricted with ``guess=mix``.
             **kwargs: Additional keyword arguments.
 
         Raises:
@@ -409,6 +457,7 @@ class GaussianJobSettings(MolecularJobSettings):
         self.additional_solvent_options = additional_solvent_options
         self.additional_opt_options_in_route = additional_opt_options_in_route
         self.append_additional_info = append_additional_info
+        self.broken_symmetry = broken_symmetry_request(broken_symmetry)
         self._route_string = None
 
         if gen_genecp_file is not None and "~" in gen_genecp_file:
@@ -798,6 +847,12 @@ class GaussianJobSettings(MolecularJobSettings):
             str: Complete route string for Gaussian input file.
         """
         if self.route_to_be_written is not None:
+            if getattr(self, "broken_symmetry", False):
+                raise ValueError(
+                    "broken_symmetry is written into the route ChemSmart "
+                    "builds; a route_to_be_written replaces that route, so "
+                    "the request would be silently dropped. Remove one."
+                )
             route_string = self._get_route_string_from_user_input()
         else:
             route_string = self._get_route_string_from_jobtype()
@@ -969,11 +1024,72 @@ class GaussianJobSettings(MolecularJobSettings):
             )
         return route_string
 
+    #: Why a job type of this class writes no broken-symmetry request, or
+    #: None where the route below writes it.
+    _BROKEN_SYMMETRY_REFUSAL = None
+
+    def _broken_symmetry_route(self, additional_route_parameters):
+        """The spin prefix and route words ``broken_symmetry`` writes.
+
+        ``("", ())`` when nothing is requested.  A request becomes
+        Gaussian's own mechanism: the method runs unrestricted (``U``
+        prefixed) from ``guess=mix``, which mixes the alpha HOMO and LUMO
+        of the guess 50:50.  On a restricted route ``guess=mix`` never
+        reaches an unrestricted solution (R10 Q18 O0, CUHK Slurm 2153330:
+        every restricted route stayed RHF/RB3LYP), which is why the prefix
+        and the guess are one request here and never two settings.
+        """
+
+        if not getattr(self, "broken_symmetry", False):
+            return "", ()
+        refusal = type(self)._BROKEN_SYMMETRY_REFUSAL or (
+            broken_symmetry_refusal(True, self.multiplicity)
+        )
+        if refusal is None and self.semiempirical is not None:
+            refusal = (
+                "broken_symmetry is written for HF, DFT and correlated "
+                "methods; ChemSmart writes no unrestricted semiempirical "
+                "route. Name a functional or ab_initio method."
+            )
+        if refusal is None and re.search(
+            r"(?<![a-z0-9_])guess\s*=",
+            str(additional_route_parameters or ""),
+            re.IGNORECASE,
+        ):
+            refusal = (
+                "broken_symmetry writes Gaussian's guess=mix, and the route "
+                f"parameters already name a guess ({additional_route_parameters!r}); "
+                "remove one of the two requests."
+            )
+        if refusal is None and str(self.ab_initio or "").strip().lower() in {
+            "rhf",
+            "rohf",
+        }:
+            refusal = (
+                "broken_symmetry runs the method unrestricted, and "
+                f"ab_initio {self.ab_initio!r} names a restricted reference; "
+                "name hf."
+            )
+        if refusal is not None:
+            raise ValueError(refusal)
+        return "u", ("guess=mix",)
+
+    @staticmethod
+    def _spin_prefixed(method, spin_prefix):
+        """*method* with the unrestricted prefix, written once."""
+
+        if not spin_prefix or str(method).strip().lower().startswith("u"):
+            return method
+        return f"{spin_prefix}{method}"
+
     def _get_level_of_theory_string(self):
         """Get level of theory string for route."""
         route_string = ""
         additional_route_parameters, additional_dispersion = (
             split_gaussian_dispersion_tokens(self.additional_route_parameters)
+        )
+        spin_prefix, broken_symmetry_words = self._broken_symmetry_route(
+            additional_route_parameters
         )
         functional_without_dispersion, functional_dispersion = (
             split_gaussian_dispersion_tokens(self.functional)
@@ -1034,9 +1150,10 @@ class GaussianJobSettings(MolecularJobSettings):
                     "Error: Basis set is required for ab initio methods."
                 )
             native_basis = gaussian_native_basis_token(self.basis)
-            route_string += f" {self.ab_initio} {native_basis}"
+            method = self._spin_prefixed(self.ab_initio, spin_prefix)
+            route_string += f" {method} {native_basis}"
             logger.debug(
-                f"Added ab initio method: {self.ab_initio} with basis: "
+                f"Added ab initio method: {method} with basis: "
                 f"{native_basis}"
             )
             spherical = gaussian_spherical_d_token(
@@ -1052,8 +1169,9 @@ class GaussianJobSettings(MolecularJobSettings):
                 raise ValueError(
                     "Error: Basis set is required for DFT methods."
                 )
-            functional = gaussian_native_functional(
-                functional_without_shorthand
+            functional = self._spin_prefixed(
+                gaussian_native_functional(functional_without_shorthand),
+                spin_prefix,
             )
             native_basis = gaussian_native_basis_token(self.basis)
             route_string += f" {functional} {native_basis}"
@@ -1078,6 +1196,9 @@ class GaussianJobSettings(MolecularJobSettings):
 
         else:
             raise ValueError("Error: No computational method provided.")
+
+        for word in broken_symmetry_words:
+            route_string += f" {word}"
 
         _, emitted_dispersion = split_gaussian_dispersion_tokens(route_string)
         if resolved_dispersion is not None and emitted_dispersion is None:
@@ -2484,6 +2605,14 @@ class GaussianLinkJobSettings(GaussianJobSettings):
         guess (str): Initial guess method ('mix', 'read', etc.).
     """
 
+    _BROKEN_SYMMETRY_REFUSAL = (
+        "A link job writes its own guess (guess=mix for its stability step, "
+        "guess=read for the next), so broken_symmetry is not written into "
+        "one. Request broken_symmetry on an ordinary sp, opt, ts or irc "
+        "stage, where the unrestricted route and its guess=mix are written "
+        "together."
+    )
+
     def __init__(
         self,
         link=True,
@@ -2756,6 +2885,12 @@ class GaussianTDDFTJobSettings(GaussianJobSettings):
         state_manifold (str): 'singlet', 'triplet', 'singlet_triplet' or
             'unrestricted'.
     """
+
+    _BROKEN_SYMMETRY_REFUSAL = (
+        "A td stage's manifolds are defined on a spin-adapted closed-shell "
+        "or an open-shell reference; the roots of a broken-symmetry singlet "
+        "are neither, so broken_symmetry is not written into a td stage."
+    )
 
     def __init__(
         self,
@@ -3206,6 +3341,16 @@ class GaussianQMMMJobSettings(GaussianJobSettings):
     def _get_route_string_from_jobtype(self):
         """Generate QM/MM route string with job
         type, freq, and ONIOM specification."""
+        if getattr(self, "broken_symmetry", False):
+            # The ONIOM route is built here, not from the level string that
+            # writes the unrestricted method and its guess, so a request
+            # would otherwise be dropped without a word.
+            raise ValueError(
+                "An ONIOM route names one method per layer, and ChemSmart "
+                "writes no broken-symmetry request into one; run the "
+                "broken-symmetry singlet as an ordinary sp, opt, ts or irc "
+                "stage."
+            )
         route_string = "#"
         if self.dieze_tag:
             route_string += self.dieze_tag
