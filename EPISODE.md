@@ -171,13 +171,19 @@ O2 (Gaussian):
   point 2. Repaired again in 73c4c351 (a ScanTS carries no recalculation);
   re-run as O3a.
 - O1b HOLDS: OptTS converged; one imaginary mode, -1122.72 cm-1 (band
-  [-1250, -1000]; the charter's ORCA HCN/HNC saddle at this level:
-  -1121.7), real modes 2091.3 and 2629.4; H-C 1.1969, H-N 1.3975 A (bands
-  [1.10, 1.25], [1.30, 1.50]). CORRECTED: this section first said -1076.84
-  cm-1, which my reader took from the output's first frequency block -- the
-  Calc_Hess Hessian at the guess -- not the converged saddle's (line 3834,
-  and hcnsaddle.hess). O3a's pre-registered comparison was written against
-  that misread number.
+  [-1250, -1000]; the charter's ORCA `B3LYP/G` HCN/HNC saddle is -1122.72
+  cm-1, PySCF's -1123.0, .agents/charter/pyscf.md), real modes 2091.3 and
+  2629.4; H-C 1.1969, H-N 1.3975 A (bands [1.10, 1.25], [1.30, 1.50]).
+  CORRECTED twice: (1) this line first cited "-1121.7" as the charter's;
+  that figure is the research graph's (negative.i_read_the_wrong_hessian_
+  block_by_eye, -1121.71, another OptTS log), not the charter's. (2) This
+  section first said -1076.84 cm-1, which my scratch reader took from the
+  output's first frequency block -- the Calc_Hess Hessian at the guess --
+  not the converged saddle's (line 3834, and hcnsaddle.hess). That is the
+  misreading the same graph node records from an earlier round ("ORCA
+  prints two blocks ... what ORCAOutput returns"), repeated here because I
+  read by regex instead of through ORCAOutput. O3a's pre-registered
+  comparison was written against the misread number.
 - O1c: the settings claim HOLDS, the physics prediction FAILED. ORCA's own
   IRC settings block reads back every stated control: "MaxIter .... 40"
   (default 20), "Direction .... Forward-only", "Initial displacement Hessian
@@ -245,6 +251,18 @@ code-commit.txt (73c4c351 + this EPISODE.md), 4 cores / 8 GB.
   of O1b (the guess's Hessian); against O1b's converged saddle the two
   agree to 0.85 cm-1. Both are reported; the corrected comparison is not a
   re-scored prediction.
+- O3a through the HOST's reader (ORCAOutput on this tree, after the
+  hand-read above): the output holds 10 Hessians (9 scan points + the
+  saddle) and 10 thermochemistry blocks but ONE "VIBRATIONAL FREQUENCIES"
+  table (line 4796, scan point 1, H-N 2.10 A); ORCA 6.1.1 prints only the
+  thermochemistry `freq.` lines (real modes) for the later ones. The
+  reader returns vibrational_frequencies [-574.58, 2427.41, 4207.65]
+  (scan point 1's), electronic_energy -93.34125806 and zero_point_energy
+  0.01511578 (scan point 1's, lines 4896-4897) beside gibbs_free_energy
+  -93.28613642 and the geometry and last SCF energy of the saddle (line
+  41626): one result object mixing two geometries. A PARSE DEFECT the
+  repaired ScanTS now reaches (found and left, below). O1b's OptTS output
+  reads correctly (-1122.72, 2091.27, 2629.38).
 - O3b (the control for O1c): its input differs from O1c's only by the five
   switch lines (`diff`: lines 10-14, nothing else). ORCA's settings block
   prints its defaults -- "Do parabolic fit if SD step is uphill .... YES",
@@ -261,7 +279,12 @@ code-commit.txt (73c4c351 + this EPISODE.md), 4 cores / 8 GB.
   (max|G| 0.09-0.12 Eh/bohr from step 4, no convergence in 40). So O1c's
   zigzag IS attributed to the stated switches, on this one controlled
   pair: the `false` values reached ORCA and changed its walk, which is the
-  walk they ask for. Not a defect of the host.
+  walk they ask for. Not a defect of the host. Reference: the research
+  graph's result.orca_irc_path_and_endpoints_20260921 (ORCA 6.1.1, CUHK
+  2142375/2142379/2142403) puts the optimised HNC minimum 34.11 kcal/mol
+  below the saddle (47.77 - 13.66); O3b's converged endpoint lies 34.14
+  kcal/mol below it (not optimised; that record does not name its B3LYP
+  variant).
 
 ## Census C0 re-read on the final code (73c4c351; results sha256 3b18e2fc...)
 
@@ -291,6 +314,18 @@ invert_constraints without frozen atoms).
 
 ## Found and left
 
+- The ORCA output reader misreads a ScanTS+Freq run (O3a, CUHK 2154022):
+  `_vibrational_frequency_blocks` (chemsmart/io/orca/output.py:574) opens
+  a section only at a "VIBRATIONAL FREQUENCIES" header, which ORCA 6.1.1
+  prints for the first of the run's Hessians alone, so the one section runs
+  from scan point 1 to the end of the file; `all_vibrational_frequencies`
+  (:3254) returns scan point 1's table and the thermochemistry accessors
+  read scan point 1's electronic energy and ZPE beside the saddle's Gibbs
+  energy. Reachable only since this episode made ScanTS run. Left: the
+  reader is result semantics, outside q31's radius, and its repair needs a
+  per-Hessian section and a source for the saddle's imaginary mode (the
+  .hess file; the .out prints only the real ones). Until then a ScanTS
+  stage's frequencies and thermochemistry are not evidence.
 - `append_additional_info` (Gaussian) is written and never read back by
   the input reader; the Agent path refuses it (Q28), the human path has no
   preview. Left.
@@ -328,6 +363,10 @@ invert_constraints without frozen atoms).
   per-element basis, an auxiliary/extrapolation basis beside an ORCA
   semiempirical method, a stated recalc_hess on an ORCA ScanTS.
 - ORCA sp `forces: true` now runs EnGrad.
+- An ORCA ScanTS now runs to its saddle, and the host parses its
+  frequencies and thermochemistry from the scan's first point (found and
+  left above): a newly reachable route whose typed evidence is wrong until
+  the reader is repaired.
 - Whether the host should keep writing `%scf maxiter 200` unstated.
 
 ## Status
