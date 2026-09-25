@@ -403,6 +403,57 @@ otherwise no real matched turn is taken.
   the turn that answers the notice (41 archived turns, the 41st being the
   text close that triggers it).
 
+## Matched turns 1 -- READ (CUHK Slurm 2154062, COMPLETED 14:37 HKT after
+1 h 23 min; code fccd4d89 verified on the node; G1's archive unchanged;
+deepseek-v4-flash-0731 via alibaba-token-plan; 24 samples, all with real
+turns, no transport error, no deadline: no infrastructure sample)
+
+P (cycle 4, the turn that answers the notice):
+- base (G1's tree, the notice G1 saw): 6 of 6 recorded
+  select_execution_wave, each with [ts-opt-freq, ts-irc, ts-sp-dlpno] -- the
+  wave G1 wrote as text. G1's prose answer did not recur in 6 draws of its
+  own context.
+- repaired: 6 of 6.
+- Prediction (base at most 2, repaired at least 5; falsified if the
+  difference is below 3): FALSIFIED, difference 0. For this model in this
+  context the notice naming its calls changes nothing measurable; with the
+  census (59 of 60) G1's prose is a rare draw, not a disposition.
+
+T (cycle 3, three real turns after the two refused bind_reached_geometry
+calls on the timed-out scans, each answered by its tree's host):
+- base: 0 of 6 read or bound a scan point. Routes taken: a new bracket
+  scan from the extended minimum (the archived cycle's own choice, whose
+  first step never converged), or a transition-state seed made by
+  stretching the product's ring bond (refused as a rigid ring edit, or
+  because the atoms named were not bonded).
+- repaired: 2 of 6 (samples 1 and 3) called inspect_run on the cycle-2
+  scan, read steps 1-10 and bound point 10 (C1...C6 2.325 A,
+  -233.464021633484 Eh) as the seed on the rising flank; sample 3 asked for
+  step 11 first and was refused with "the steps that converged are 1-10".
+  Of the other 4: sample 0 read the new route in the refusal and chose a
+  def2-SVP rescan; samples 2 and 5 cited the scans' failed-result record
+  ("inspectable evidence only; not admissible for quantity extraction or
+  geometry handoff", live_session.py:408-411) as closing the route; sample 4
+  quoted "a relaxed scan's structures are its points" and still went to the
+  ring-bond stretch.
+- Prediction (base at most 1, repaired at least 4; falsified if the
+  difference is below 3): FALSIFIED, 2 - 0 = 2. The direction is the
+  predicted one; 6 per arm cannot separate it from chance (Fisher, two-sided,
+  p about 0.45).
+- Model errors in the transcripts, not host words: repaired sample 1 said
+  step 11 "failed to converge" (the clock killed it: timeout_terminated);
+  repaired sample 3 called the thermally allowed 6-pi closure conrotatory
+  (C2) and planned to break the seed's mirror symmetry -- a thermal 6-pi
+  electrocyclisation is disrotatory, and Q20's O1e saddle is the
+  mirror-symmetric one (torsions +32.9/-32.9 deg).
+
+Milestone: C not earned (both behavioural predictions falsified as
+pre-registered). A claimed for the partial scan: a relaxed scan that stops
+early keeps its converged steps as constrained minima that are read,
+listed, bound and routed, shown by witnesses red on the base, replays in
+G1's own context, and the model's own use of the route in 2 of 6 real
+samples where the base tree offered no route.
+
 ## Jobs issued
 
 - 2026-09-25: replay 1, CUHK Slurm 2154046 (r10-q32-a), 4 cores, 2 h
@@ -411,10 +462,10 @@ otherwise no real matched turn is taken.
   fb0160375028, code fccd4d89.
 - 2026-09-25: replay 3, CUHK Slurm 2154056 (r10-q32-a), pre-registration
   68959aed2d54, code fccd4d89.
-- 2026-09-25 (next): matched turns 1 as pre-registered above (4 arms x 6,
-  interleaved sample by sample, a stub pass first), 4 cores, 6 h limit,
-  code fccd4d89; tools/matched_turns.py and replay_cycle.py uploaded to
-  r10/q32/tools.
+- 2026-09-25: matched turns 1, CUHK Slurm 2154062 (r10-q32-a), 4 cores,
+  6 h limit, pre-registration 4e71463ce825, code fccd4d89; tools
+  matched_turns.py and replay_cycle.py in r10/q32/tools. COMPLETED
+  14:37:27 HKT (1:22:32).
 
 ## Status
 
