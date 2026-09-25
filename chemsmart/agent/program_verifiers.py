@@ -955,6 +955,11 @@ def _pyscf_settings_round_trip(expectation, result):
                 result.name,
             )
         ]
+    # The expectation carries the settings the validation receipt records;
+    # a field it does not record (a non-scientific ``title``) was rebuilt
+    # here at its default, so the artifact's own value was reported as a
+    # mismatch the project never stated (R10 Q31 census).
+    declared = set(expected)
     return [
         _mismatch(
             f"settings.{item.field}",
@@ -964,6 +969,10 @@ def _pyscf_settings_round_trip(expectation, result):
         )
         for item in verify_provenance(settings, result)
         if item.rule_id != RULE_PROVENANCE_INCOMPLETE
+        and (
+            item.field in declared
+            or item.field not in PySCFJobSettings.default().__dict__
+        )
     ]
 
 
