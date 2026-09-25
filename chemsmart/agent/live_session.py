@@ -180,7 +180,13 @@ def _declared_pyscf_interpreter() -> Path | None:
 
 
 def _resolve_pyscf_interpreter() -> Path:
-    """Explicit override first, then the declaration, then this process."""
+    """Explicit override first, then the declaration, then this process.
+
+    Called where the interpreter is used, never at import: a module constant
+    read the user's server YAML once, before a caller -- a test's HOME fence
+    included -- could say which home is meant, while the declared-program
+    view beside it (``_declared_server_programs``) was read at use (R10 Q25).
+    """
 
     override = os.environ.get("CHEMSMART_PYSCF_INTERPRETER")
     if override:
@@ -191,7 +197,6 @@ def _resolve_pyscf_interpreter() -> Path:
     return Path(sys.executable).expanduser().resolve()
 
 
-_PYSCF_INTERPRETER = _resolve_pyscf_interpreter()
 logger = logging.getLogger(__name__)
 _PRIVATE_ROOT_NAME = ".chemsmart-agent"
 
@@ -3337,7 +3342,7 @@ def _local_program_server_blocks(
     # YAML with preview-safe values layered on top.
     blocks = [
         "PYSCF:\n"
-        f"  EXEFOLDER: {str(_PYSCF_INTERPRETER.parent)!r}\n"
+        f"  EXEFOLDER: {str(_resolve_pyscf_interpreter().parent)!r}\n"
         "  LOCAL_RUN: true\n"
         "  SCRATCH: false\n"
     ]
@@ -3485,10 +3490,11 @@ def _observe_environments() -> tuple[
         )
     receipts = []
     records = []
+    pyscf_interpreter = _resolve_pyscf_interpreter()
     for engine in ("cpu", "gpu"):
         try:
             receipt = probe_python_compute_environment(
-                _PYSCF_INTERPRETER, engine=engine
+                pyscf_interpreter, engine=engine
             )
             receipts.append(receipt)
             gpu = dict(receipt.gpu_evidence)

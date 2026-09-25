@@ -19,7 +19,7 @@ import json
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Callable, Iterable, Mapping
 
 CAPABILITY_KINDS = (
     "program_jobtype",
@@ -40,9 +40,28 @@ CAPABILITY_KINDS = (
 LADDER = ("declared", "wired", "advertised", "tested", "qualified")
 
 RELEASE_RECORD = Path(__file__).with_name("qualification") / "release.json"
-HOST_QUALIFICATION_STORE = (
-    Path.home() / ".chemsmart" / "agent" / "qualification.jsonl"
-)
+
+
+def host_qualification_store() -> Path:
+    """The host's qualification store, in the home this process has now.
+
+    Resolved when it is used, never at import. Bound as a module constant
+    and as the default of the functions below, it was fixed before any test
+    could move HOME, so the suite's achieved-goal test appended a
+    ``qualified`` row of its goal ``g`` to the developer's real store on
+    every run -- 655 of the store's 740 rows by 2026-09-25, each read by
+    ``chemsmart agent capabilities`` as host qualification (R10 Q25).
+    """
+
+    return Path.home() / ".chemsmart" / "agent" / "qualification.jsonl"
+
+
+def __getattr__(name: str):
+    # The constant's old name still answers -- resolved as it is read.
+    if name == "HOST_QUALIFICATION_STORE":
+        return host_qualification_store()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 #: ``@pytest.mark.capability(...)`` and nothing else. The bare form
 #: matched ``program_capability(...)`` and ``engine_capability(...)``
@@ -176,9 +195,13 @@ def load_release_records(path: Path = RELEASE_RECORD) -> dict[str, dict]:
 
 
 def load_host_qualifications(
-    path: Path = HOST_QUALIFICATION_STORE,
+    path: Path | None = None,
 ) -> dict[str, list[dict]]:
+    """Rows of a qualification store; the host's own when no path is given."""
+
     found: dict[str, list[dict]] = {}
+    if path is None:
+        path = host_qualification_store()
     try:
         lines = Path(path).read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -195,14 +218,15 @@ def load_host_qualifications(
 
 def record_host_qualification(
     entries: Iterable[Mapping[str, object]],
-    path: Path = HOST_QUALIFICATION_STORE,
+    path: Path | None = None,
 ) -> int:
-    """Append qualification entries to the host store; returns how many."""
+    """Append qualification entries to a store -- the host's own, resolved
+    now, when no path is given; returns how many."""
 
     rows = [json.dumps(dict(item), sort_keys=True) for item in entries]
     if not rows:
         return 0
-    path = Path(path)
+    path = host_qualification_store() if path is None else Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         for row in rows:
@@ -214,9 +238,17 @@ def build_capability_registry(
     *,
     tests_root: Path | None = None,
     release_path: Path = RELEASE_RECORD,
-    host_store: Path | None = HOST_QUALIFICATION_STORE,
+    host_store: Path | Callable[[], Path] | None = host_qualification_store,
 ) -> tuple[CapabilityV1, ...]:
-    """Every capability, from the registries that already own each kind."""
+    """Every capability, from the registries that already own each kind.
+
+    ``host_store`` is a store path, a function that resolves one when the
+    registry is built (the default: the host's own store), or None to read
+    no host store at all.
+    """
+
+    if callable(host_store):
+        host_store = host_store()
 
     from chemsmart.agent.capabilities import load_program_capabilities
     from chemsmart.agent.catalogue import (
@@ -623,11 +655,11 @@ def render_capability_matrix(records: Iterable[CapabilityV1]) -> str:
 
 __all__ = [
     "CAPABILITY_KINDS",
-    "HOST_QUALIFICATION_STORE",
     "LADDER",
     "RELEASE_RECORD",
     "CapabilityV1",
     "build_capability_registry",
+    "host_qualification_store",
     "load_host_qualifications",
     "load_release_records",
     "record_host_qualification",
