@@ -4257,11 +4257,11 @@ def build_stationary_point_characterisation(
     from chemsmart.analysis.result_quantities import structure_stationarity
 
     stationarity = structure_stationarity(normalized, output)
-    gradient = (
-        stationarity.max_abs_gradient_eh_per_bohr
-        if stationarity.basis == "measured_gradient"
-        else None
-    )
+    # The host's own measurement, whatever judged the structure: since
+    # R10 Q33 a result its program converged is judged by that program's
+    # check (xTB's gradient norm at its level), and the gradient the host
+    # reads there is still what this receipt records.
+    gradient = stationarity.max_abs_gradient_eh_per_bohr
     if stationarity.stationarity == "not_stationary":
         raise RoutedContractError(
             gate="result.order_needs_a_stationary_point",
@@ -4277,7 +4277,9 @@ def build_stationary_point_characterisation(
                     f"{HESS_STATIONARITY_GRADIENT_EH_PER_BOHR:g} "
                     "(geomeTRIC convergence_gmax), so this structure is not "
                     "a stationary point of this surface and has no order"
-                    if gradient is not None
+                    if stationarity.basis == "measured_gradient"
+                    # Any other reading names the criterion it applied,
+                    # a program's own check among them (R10 Q33).
                     else f"this structure is {stationarity.sentence()}, "
                     "and has no order"
                 )

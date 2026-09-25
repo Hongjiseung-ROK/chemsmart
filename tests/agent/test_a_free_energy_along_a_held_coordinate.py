@@ -468,12 +468,14 @@ def test_an_approved_chain_carries_it_to_the_executor(tmp_path):
 @pytest.mark.parametrize(
     "relative,printed,has",
     [
-        # Gaussian's own freq=projected at H2O2 held at 90 deg (R10 Q27
-        # oracle O1b, CUHK 2153717): the gradient's direction removed.
-        ("GaussianTests/projected_frequencies/g_sp90_gas_phase.log", 5, 6),
-        # A Gaussian optimisation with frozen atoms prints only the modes
-        # of the atoms that moved.
-        ("GaussianTests/outputs/frozen_coordinates_opt.log", 12, 36),
+        # Gaussian's own freq=projected at H2O2 held at 0 deg (R10 Q27
+        # oracle O1b, CUHK 2153717): the gradient's direction removed, an
+        # O-H stretch rather than the torsion.  The 90-deg job of the same
+        # oracle and a Gaussian optimisation with frozen atoms were the
+        # cases here; Gaussian's own check calls the first not stationary
+        # and the second froze ten atoms, so neither has a free energy of a
+        # stationary point (R10 Q33).
+        ("GaussianTests/projected_frequencies/g_sp0_gas_phase.log", 5, 6),
     ],
 )
 def test_a_spectrum_short_of_its_structure_says_what_it_lacks(
@@ -484,7 +486,8 @@ def test_a_spectrum_short_of_its_structure_says_what_it_lacks(
     Unless the host removed one itself and named it. A program can remove
     one before it prints, and the free energy derived from what it
     printed is then of fewer modes than the molecule has: the receipt
-    says so, with both counts.
+    says so, with both counts.  This one is the cis saddle, so its order
+    is certified and its torsion named before the derivation.
     """
 
     from chemsmart.agent.runtime.event_store import RuntimeEventStore
@@ -508,13 +511,22 @@ def test_a_spectrum_short_of_its_structure_says_what_it_lacks(
         task_spec_sha256s=("a" * 64,),
         approved_workspace=tmp_path / "workspace",
     )
-    receipt = host._derive_thermochemistry(
+    host._characterise_stationary_point(
         "turn-1",
+        {
+            "result_artifact_id": "gaussian-short",
+            "program": "gaussian",
+            "order_claimed": 1,
+        },
+    )
+    receipt = host._derive_thermochemistry(
+        "turn-2",
         {
             "program": "gaussian",
             "artifact_id": "gaussian-short",
             "temperature_k": 298.15,
             "pressure_atm": 1.0,
+            "reaction_coordinate_mode": 1,
         },
     )
     assert any(

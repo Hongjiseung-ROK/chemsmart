@@ -1,0 +1,15 @@
+! OptTS Freq B3LYP/G def2-svp
+# Number of processors
+%pal nprocs 4 end
+# Memory per core
+%maxcore 1500
+%geom
+  Calc_Hess True  # calc initial Hessian
+  NumHess False  # Request numerical Hessian (if analytical not available)
+  Recalc_Hess 5   # Recalculate the Hessian every 5 step
+end
+* xyz 0 1
+C        0.0000000000    0.0000000000    0.0000000000
+N        1.1900000000    0.0000000000    0.0000000000
+H        0.4500000000    1.1000000000    0.0000000000
+*

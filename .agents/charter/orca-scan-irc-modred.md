@@ -125,3 +125,17 @@ route, so it dropped the coordinate and compiled a plain optimisation,
 which relaxes straight off the coordinate it had been asked to hold. A
 refused job option now names the job types of that program whose live
 Click scope carries it.
+
+ORCA ScanTS runs from a project (R10 Q31). It must carry no Hessian
+recalculation: with the class default Recalc_Hess 5, ORCA 6.1.1 stopped
+at the scan's second point (CUHK 2154008). From a project it reaches the
+saddle, within 0.004 A and 3.5e-7 Eh of an OptTS from the same start
+(CUHK 2154022). ORCA prints a frequency table there for its first
+Hessian only: one "VIBRATIONAL FREQUENCIES" header in ten thermochemistry
+blocks. An ORCA result with several Hessians is therefore read at its
+last one, and a quantity ORCA did not print for that Hessian is refused
+by name, never read from another. So the host serves a ScanTS result's
+saddle energy and free energy and refuses its frequencies, which live
+only in the .hess. The same keying had read an OptTS result's normal
+modes and G - E(el) from its guess Hessian, while its frequencies were
+the saddle's.

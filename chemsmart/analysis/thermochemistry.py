@@ -1357,8 +1357,11 @@ class Thermochemistry:
         if self.molecule.is_monoatomic:
             return []
         if self.program == "orca":
+            # ``frequencies`` is None when ORCA printed no table for the
+            # Hessian its last thermochemistry block describes (a ScanTS
+            # with Freq prints one for scan point 1 only; R10 Q31).
             section = self.file_object._last_complete_thermochemistry_section
-            if section is None:
+            if section is None or section.frequencies is None:
                 return None
             return [
                 frequency

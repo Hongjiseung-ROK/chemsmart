@@ -69,7 +69,7 @@ logger = logging.getLogger(__name__)
     "-M",
     "--monitor-internals/--no-monitor-internals",
     type=bool,
-    default=False,
+    default=None,
     help="Monitor internals to print out up to three internal " "coordinates",
 )
 @click.option(
@@ -107,26 +107,26 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--adapt-scale-displ/--no-adapt-scale-displ",
     type=bool,
-    default=False,
+    default=None,
     help="Modify Scale_Displ_SD when the step size becomes smaller "
     "or larger.",
 )
 @click.option(
     "--sd-parabolicfit/--no-sd-parabolicfit",
     type=bool,
-    default=False,
+    default=None,
     help="Do a parabolic fit for finding an optimal SD step length.",
 )
 @click.option(
     "--interpolate-only/--no-interpolate-only",
     type=bool,
-    default=False,
+    default=None,
     help="Only allow interpolation for parabolic fit, not " "extrapolation.",
 )
 @click.option(
     "--do-sd-corr/--no-do-sd-corr",
     type=bool,
-    default=False,
+    default=None,
     help="Do SD correction to 1st step.",
 )
 @click.option(
@@ -139,7 +139,7 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--sd-corr-parabolicfit/--no-sd-corr-parabolicfit",
     type=bool,
-    default=False,
+    default=None,
     help="Do a parabolic fit for finding an optimal correction step "
     "length.",
 )
@@ -176,6 +176,7 @@ def irc(
     inithess,
     hess_filename,
     hessmode,
+    monitor_internals,
     init_displ,
     scale_init_displ,
     de_init_displ,
@@ -251,6 +252,11 @@ def irc(
     if hessmode is not None:
         irc_settings.hessmode = hessmode
         logger.debug(f"Set Hessian mode: {hessmode}")
+    # It was absent from this signature, so Click handed it to the job's
+    # keyword arguments and ``-M`` changed nothing.
+    if monitor_internals is not None:
+        irc_settings.monitor_internals = monitor_internals
+        logger.debug(f"Set monitor internals: {monitor_internals}")
     if init_displ is not None:
         irc_settings.init_displ = init_displ
         logger.debug(f"Set initial displacement type: {init_displ}")

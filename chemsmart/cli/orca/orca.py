@@ -210,8 +210,10 @@ def click_orca_settings_options(f):
     )
     @click.option(
         "--forces/--no-forces",
-        default=False,
-        help="Enable forces calculation.",
+        # None is "not typed": the group merges a typed value into every
+        # job, so a False default replaced a project's forces on each run.
+        default=None,
+        help="Enable forces calculation. Default: the project's forces.",
     )
     @functools.wraps(f)
     def wrapper_common_options(*args, **kwargs):

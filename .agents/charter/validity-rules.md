@@ -132,13 +132,26 @@ A free energy is defined at a stationary point, and one function now
 says whether a structure is one (R10 Q21, `structure_stationarity`).
 It serves the free-energy derivation, the stationary-point
 characterisation and the verification of a refusal. Before, three host
-organs answered that question three ways. Its evidence, in order:
+organs answered that question three ways. Its evidence, in order (as
+R10 Q33 reordered it):
 - a single atom;
-- a measured gradient at or below 4.5e-4 Eh/Bohr;
-- a held coordinate, then a driven coordinate (either one means not
-  stationary);
-- the program's own convergence marker;
+- a held, frozen or driven coordinate, read from the program's own
+  record, checkpoint-carried constraints included; any one means not
+  stationary;
+- a search's own non-convergence: not stationary;
+- the check of the program that judged the structure, in that program's
+  coordinates: Gaussian's force rows at the structure the modes belong
+  to, ORCA's and xTB's printed verdict;
+- a measured Cartesian gradient at or below 4.5e-4 Eh/Bohr, only where
+  the program printed no check;
+- the search's own convergence marker;
 - otherwise "unmeasured".
+Why the program's check comes first: Gaussian and ORCA converge on
+forces in redundant internal coordinates, and a Cartesian threshold
+would have refused minima they converged properly. One Gaussian minimum
+has a largest Cartesian component of 4.91e-4 Eh/Bohr with an internal
+maximum force of 2.93e-4. Opt=tight changes the free energies at such
+points by at most 0.0013 kcal/mol (CUHK 2154086).
 A free energy at a structure shown not to be stationary is refused
 (gate `thermochemistry.free_energy_needs_a_stationary_point`) with a
 route, and every free-energy receipt states what it stands on. The gate
@@ -177,8 +190,14 @@ period of the rotor. The receipt states:
 Every harmonic receipt now names the torsions it counted as oscillators,
 with the route. On H2O2, methanol and ethane the rotor meets the
 reference standard entropies where the harmonic oscillator misses them,
-in ORCA and Gaussian alike (CUHK 2153801, 2153802). A held-point
-projection is not a rotor for a symmetric top. Removing one H-C-C-H
-dihedral's normal also softened ethane's CH3 rock, 999.6 -> 723.5 cm-1,
-so the free-energy-profile variant is not served. The same limit applies
-to `projected_coordinates` on such a dihedral.
+in ORCA and Gaussian alike (CUHK 2153801, 2153802).
+
+A held dihedral whose end carries more than one atom off the bond is
+removed as that group's rigid turn, not as the dihedral's own normal
+(R10 Q33). One H-C-C-H normal lies along ethane's methyl turn by only
+0.29 (squared cosine), against 0.72 for methanol and 1.00 for H2O2.
+Removing it softened a CH3 rock (999.6 -> 723.5 cm-1) and moved the
+kept-mode free energy by about 1 kcal/mol. Every such receipt states the
+overlap, and the strain one held dihedral leaves (at most 0.08 kcal/mol
+for ethane). With the rigid turn, the free-energy-profile rotor meets
+the scan's rotor on all three molecules, within 0.4 J/(K mol).

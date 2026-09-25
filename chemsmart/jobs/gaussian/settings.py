@@ -519,6 +519,43 @@ GAUSSIAN_INTEGRATION_GRIDS = (
 #: else, because no other Gaussian job runs that optimiser.
 GAUSSIAN_OPTIMISING_JOBTYPES = ("opt", "ts", "modred", "scan")
 
+#: The optimiser's controls: written inside the ``opt`` word
+#: (``_opt_route_word``), so a stage that runs no optimiser writes none.
+GAUSSIAN_OPTIMISER_FIELDS = ("geom_maxiter", "additional_opt_options_in_route")
+
+
+#: The reaction path's controls: written inside the ``irc(...)`` word, so
+#: only a path writes them (a link job carries them for an IRC target).
+GAUSSIAN_PATH_FIELDS = (
+    "direction",
+    "flat_irc",
+    "maxcycles",
+    "maxpoints",
+    "predictor",
+    "recalc_step",
+    "recorrect",
+    "stepsize",
+)
+
+
+def settings_not_written_for(jobtype):
+    """The settings the writer writes for no stage of *jobtype*.
+
+    A project's phase section feeds every stage, so an optimiser control
+    stated beside the level of theory reaches a single point too, which
+    runs no optimiser and whose route correctly carries none; and a link
+    job's settings carry the path controls whatever its target is. The
+    preview asks this, the writer's own table, instead of demanding a
+    control in an input that cannot hold it.
+    """
+
+    fields = ()
+    if jobtype not in GAUSSIAN_OPTIMISING_JOBTYPES:
+        fields += GAUSSIAN_OPTIMISER_FIELDS
+    if jobtype not in ("irc", "ircf", "ircr"):
+        fields += GAUSSIAN_PATH_FIELDS
+    return fields
+
 
 def _normalize_gaussian_word(value, allowed, field_name):
     """The lower-case Gaussian word for a typed setting, or a refusal."""
@@ -552,6 +589,22 @@ def _normalize_geom_maxiter(value):
             f"least 1, got {value!r}"
         )
     return cycles
+
+
+def _normalize_dieze_tag(value):
+    """The print level after the route's ``#``: ``n``, ``p``, ``t`` or None.
+
+    The field holds the letter; the route writes ``#`` before it. Both
+    spellings arrive -- a project writes ``p`` or ``#p``, and the input
+    reader returns the route's first two characters, ``#p`` -- and the
+    ``#``-spelling was written as ``##p``, which Gaussian does not read as
+    a print level (R10 Q31 census). An empty tag is the plain ``#``.
+    """
+
+    if value is None:
+        return None
+    letter = str(value).strip().lstrip("#").strip().lower()
+    return letter or None
 
 
 def _irc_whole_number(value, name, positive=True):
@@ -1007,7 +1060,7 @@ class GaussianJobSettings(MolecularJobSettings):
             **kwargs,
         )
         self.chk = chk
-        self.dieze_tag = dieze_tag
+        self.dieze_tag = _normalize_dieze_tag(dieze_tag)
         self.additional_solvent_options = additional_solvent_options
         self.additional_opt_options_in_route = additional_opt_options_in_route
         self.append_additional_info = append_additional_info
@@ -1415,6 +1468,9 @@ class GaussianJobSettings(MolecularJobSettings):
         Returns:
             str: Complete route string for Gaussian input file.
         """
+        refusal = self._per_element_basis_refusal()
+        if refusal is not None:
+            raise ValueError(refusal)
         if self.route_to_be_written is not None:
             if getattr(self, "broken_symmetry", False):
                 raise ValueError(
@@ -1919,6 +1975,40 @@ class GaussianJobSettings(MolecularJobSettings):
             route_string += " pop=nboread"  # write bond order matrix
             logger.debug("Added WBI-specific pop=nboread keyword")
         return route_string
+
+    def _per_element_basis_refusal(self):
+        """Why the per-element basis stated cannot be written, or None.
+
+        Gaussian writes a per-element basis as a Gen/GenECP section: the
+        elements named in ``heavy_elements`` get ``heavy_elements_basis``,
+        and the others ``light_elements_basis`` (which one a structure
+        needs is the writer's to check, with the structure in hand). One
+        half of the pair without the other has no section to write:
+        ``heavy_elements_basis`` alone -- the half the capability
+        advertises -- validated and then died inside the writer replacing
+        the route basis with None (R10 Q31 census).
+        """
+
+        pair = (
+            ("heavy_elements", self.heavy_elements),
+            ("heavy_elements_basis", self.heavy_elements_basis),
+        )
+        missing = [name for name, value in pair if value is None]
+        if len(missing) != 1:
+            return None
+        present = (
+            "heavy_elements"
+            if missing[0] != "heavy_elements"
+            else ("heavy_elements_basis")
+        )
+        return (
+            f"{present} was set without {missing[0]}. A Gaussian "
+            "per-element basis is written as a Gen/GenECP section and "
+            "needs both: the elements that get the exception "
+            "(heavy_elements) and the set they get (heavy_elements_basis), "
+            "with light_elements_basis for every other element. Add "
+            f"{missing[0]}, or state one basis for every element as basis."
+        )
 
     @property
     def _genecp_elements_specified(self):
@@ -3394,6 +3484,12 @@ class GaussianLinkJobSettings(GaussianJobSettings):
                 link_route_string += " geom=check"
             if "guess=read" not in link_route_string:
                 link_route_string += " guess=read"
+            # A route section begins with ``#``; the target route a project
+            # states as words (``link_route: opt freq``) was written without
+            # one, which Gaussian does not read as a route (R10 Q31 census).
+            if not link_route_string.lstrip().startswith("#"):
+                tag = f"#{self.dieze_tag}" if self.dieze_tag else "#"
+                link_route_string = f"{tag} {link_route_string.strip()}"
             logger.debug(
                 f"Link route for settings {self}: {link_route_string}"
             )

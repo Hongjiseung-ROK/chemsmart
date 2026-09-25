@@ -109,8 +109,8 @@ def click_gaussian_settings_options(f):
     )
     @click.option(
         "--forces/--no-forces",
-        default=False,
-        help="Whether to calculate forces.",
+        default=None,
+        help="Whether to calculate forces. Default: the project's forces.",
     )
     @functools.wraps(f)
     def wrapper_common_options(*args, **kwargs):
@@ -696,7 +696,7 @@ def gaussian(
     if dieze_tag is not None:
         job_settings.dieze_tag = dieze_tag
         keywords += ("dieze_tag",)
-    if forces:
+    if forces is not None:
         job_settings.forces = forces
         keywords += ("forces",)
 
