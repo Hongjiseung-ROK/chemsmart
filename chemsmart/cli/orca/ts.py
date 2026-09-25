@@ -7,7 +7,6 @@ including OptTS and ScanTS approaches with comprehensive Hessian handling
 options.
 """
 
-import ast
 import logging
 
 import click
@@ -230,13 +229,14 @@ def ts(
             check_scan_coordinates_orca(
                 coordinates, dist_start, dist_end, num_steps
             )
-            coordinates = ast.literal_eval(coordinates)
-            scan_info = {
-                "coordinates": coordinates,
-                "dist_start": dist_start,
-                "dist_end": dist_end,
-                "num_steps": num_steps,
-            }
+            from chemsmart.jobs.orca.settings import orca_scan_block
+
+            # The writer's own form; this built {"coordinates", scalars}
+            # and the writer, reading "coords" and lists, failed on every
+            # ScanTS given on the command line (R10 Q20).
+            scan_info = orca_scan_block(
+                coordinates, dist_start, dist_end, num_steps
+            )
             ts_settings.scants_modred = scan_info
             logger.info(f"Configured ScanTS with scan info: {scan_info}")
         elif ts_settings.scants_modred is None:

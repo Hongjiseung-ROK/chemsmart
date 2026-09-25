@@ -2805,6 +2805,82 @@ class ORCApKaJobSettings(ORCAJobSettings):
         return ref_acid_sp_settings, ref_cb_sp_settings
 
 
+def orca_scan_block(coordinates, dist_start, dist_end, num_steps):
+    """The ``%geom Scan`` specification the ORCA writer reads.
+
+    ``{"coords", "dist_start", "dist_end", "num_steps"}``, one entry per
+    driven coordinate: 1-indexed atoms, the two endpoints as floats and a
+    point count as an integer. The command line gives each as words
+    (``"[[1,2]]"``, ``"0.9"``) and a project as YAML values, one number
+    standing for every coordinate. One owner, because the saddle search's
+    ScanTS built its own dictionary under another key
+    (``"coordinates"``, scalar endpoints) and the writer then failed on
+    every ScanTS the command was asked for (R10 Q20, R10 Q31).
+    """
+
+    import ast
+
+    def value(item):
+        return ast.literal_eval(item) if isinstance(item, str) else item
+
+    def listed(item):
+        item = value(item)
+        return list(item) if isinstance(item, (list, tuple)) else [item]
+
+    coords = value(coordinates)
+    if not isinstance(coords, (list, tuple)) or not coords:
+        raise ValueError(
+            f"A scan needs its coordinates as a list of 1-indexed atoms, got "
+            f"{coordinates!r}."
+        )
+    coords = [
+        list(item) if isinstance(item, tuple) else item for item in coords
+    ]
+    count = len(coords) if isinstance(coords[0], list) else 1
+    starts = [float(item) for item in listed(dist_start)]
+    ends = [float(item) for item in listed(dist_end)]
+    steps = [int(item) for item in listed(num_steps)]
+    starts, ends, steps = (
+        values * count if len(values) == 1 and count > 1 else values
+        for values in (starts, ends, steps)
+    )
+    if not len(starts) == len(ends) == len(steps) == count:
+        raise ValueError(
+            f"A scan of {count} coordinate(s) needs as many starts, ends and "
+            f"point counts; got {len(starts)}, {len(ends)} and {len(steps)}."
+        )
+    return {
+        "coords": coords,
+        "dist_start": starts,
+        "dist_end": ends,
+        "num_steps": steps,
+    }
+
+
+def _normalize_scan_block(block):
+    """A project's ScanTS specification in the writer's form, or None."""
+
+    if block is None:
+        return None
+    if not isinstance(block, dict):
+        raise ValueError(
+            "scants_modred takes coords (or coordinates), dist_start, "
+            f"dist_end and num_steps, got {block!r}."
+        )
+    coordinates = block.get("coords", block.get("coordinates"))
+    normalized = orca_scan_block(
+        coordinates,
+        block.get("dist_start"),
+        block.get("dist_end"),
+        block.get("num_steps"),
+    )
+    if block.get("constrained_coordinates") is not None:
+        normalized["constrained_coordinates"] = block[
+            "constrained_coordinates"
+        ]
+    return normalized
+
+
 class ORCATSJobSettings(ORCAJobSettings):
     """
     Settings for ORCA transition state calculations.
@@ -2871,9 +2947,8 @@ class ORCATSJobSettings(ORCAJobSettings):
         self.tssearch_type = (
             tssearch_type  # methods for TS search: OptTS, ScanTS
         )
-        self.scants_modred = (
-            scants_modred  # modred for scanTS (as in a scan job)
-        )
+        # modred for scanTS (as in a scan job), in the form the writer reads
+        self.scants_modred = _normalize_scan_block(scants_modred)
         self.full_scan = full_scan  # full scan or not;  do or not abort scan after highest point is reached
 
     @property

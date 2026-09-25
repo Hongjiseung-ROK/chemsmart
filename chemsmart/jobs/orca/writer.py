@@ -1032,8 +1032,12 @@ class ORCAInputWriter(InputWriter):
         # Hessian options. A TS search needs a real starting Hessian: the one
         # it was given, or else one computed in its first step -- never
         # both, because Calc_Hess asks ORCA to compute exactly what the
-        # read Hessian was supplied to replace.
-        if hessian is None:
+        # read Hessian was supplied to replace. A ScanTS takes its starting
+        # Hessian from the scan's highest point, and ORCA stopped at the
+        # scan's first step looking for a Hessian file when Calc_Hess was
+        # written beside it (R10 Q20, CUHK Slurm 2153578).
+        scants = str(self.settings.tssearch_type or "").lower() == "scants"
+        if hessian is None and not scants:
             f.write("  Calc_Hess True  # calc initial Hessian\n")
         f.write(
             f"  NumHess {self.settings.numhess}  # Request numerical Hessian (if analytical not available)\n"
