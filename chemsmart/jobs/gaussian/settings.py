@@ -353,6 +353,22 @@ def _normalize_geom_maxiter(value):
     return cycles
 
 
+def _normalize_dieze_tag(value):
+    """The print level after the route's ``#``: ``n``, ``p``, ``t`` or None.
+
+    The field holds the letter; the route writes ``#`` before it. Both
+    spellings arrive -- a project writes ``p`` or ``#p``, and the input
+    reader returns the route's first two characters, ``#p`` -- and the
+    ``#``-spelling was written as ``##p``, which Gaussian does not read as
+    a print level (R10 Q31 census). An empty tag is the plain ``#``.
+    """
+
+    if value is None:
+        return None
+    letter = str(value).strip().lstrip("#").strip().lower()
+    return letter or None
+
+
 def _irc_whole_number(value, name, positive=True):
     """An IRC ``irc(...)`` option as the integer Gaussian reads, or None."""
 
@@ -806,7 +822,7 @@ class GaussianJobSettings(MolecularJobSettings):
             **kwargs,
         )
         self.chk = chk
-        self.dieze_tag = dieze_tag
+        self.dieze_tag = _normalize_dieze_tag(dieze_tag)
         self.additional_solvent_options = additional_solvent_options
         self.additional_opt_options_in_route = additional_opt_options_in_route
         self.append_additional_info = append_additional_info
