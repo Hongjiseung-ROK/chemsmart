@@ -1456,12 +1456,13 @@ REPAIR_MENU: Mapping[str, str] = {
         "reached geometry says which."
     ),
     "failed_nonconverged_scan_step": (
-        "A scan step failed to converge: the surface reached so far is "
-        "readable as it stands, and bind_scan_point_geometry carries a "
-        "converged point of a completed scan forward. Where the scan "
-        "itself did not complete, bind_reached_geometry carries the "
-        "structure the run reached. Or loosen the step's own "
-        "optimisation controls."
+        "A scan step failed to converge. Every step before it that "
+        "converged is a point of the surface -- a constrained minimum at "
+        "its held value, never a saddle: inspect_run on the result lists "
+        "them with their energies, and bind_scan_point_geometry carries any "
+        "of them forward. The step that failed is not a point, even where "
+        "the program wrote a file for it, and bind_reached_geometry does "
+        "not read a scan. Or loosen the step's own optimisation controls."
     ),
     "failed_nonconverged_excited_state": (
         "The response solver left a root unconverged, or the followed root "
@@ -1485,9 +1486,14 @@ REPAIR_MENU: Mapping[str, str] = {
         "result is the finding rather than the iteration cap."
     ),
     "timeout_terminated": (
-        "The engine ran out of the time the envelope granted. Restart "
-        "from the geometry the run reached -- bind_reached_geometry "
-        "carries it forward -- inside the remaining budget, or reduce "
+        "The engine ran out of the time the envelope granted. An "
+        "optimisation moved and was cut off: restart from the geometry it "
+        "reached -- bind_reached_geometry carries it forward -- inside the "
+        "remaining budget. A relaxed scan keeps every step that converged "
+        "before the clock, each a constrained minimum at its held value "
+        "and none a saddle: inspect_run on the result lists them with "
+        "their energies, and bind_scan_point_geometry carries any of them "
+        "forward (bind_reached_geometry does not read a scan). Or reduce "
         "the method's cost within the approved conditions; conditions "
         "themselves may not move."
     ),
@@ -1503,7 +1509,10 @@ REPAIR_MENU: Mapping[str, str] = {
         "that names a setting is repaired in project YAML, one that "
         "names the molecule is a new decision for the human. An input-check "
         "abort reached no chemistry: nothing was reached to restart from, "
-        "and the repair is the field the engine named."
+        "and the repair is the field the engine named. A relaxed scan keeps "
+        "every step that converged before the error: inspect_run on the "
+        "result lists them, and bind_scan_point_geometry carries any of "
+        "them forward."
     ),
     "failed_result_validation": (
         "The program finished normally and the host's check of its result "
@@ -2046,6 +2055,47 @@ def _session_wave_selections(
             }
         )
     return tuple(selections)
+
+
+def _pending_decision_answered_in_text(events_path: Path | None) -> bool:
+    """Whether the session was told once that a decision was pending, made
+    no decision call after it, and ended on a turn with no tool call.
+
+    Read from the session's own stream: the notice event the loop wrote,
+    the calls that succeeded after it, and the last provider turn. It says
+    how the session ended and nothing about what its text said -- the
+    host reads no decision from text, and says so where it parks.
+    """
+
+    from chemsmart.agent.exposure import EXECUTION_DECISION_TOOLS
+
+    if events_path is None:
+        return False
+    try:
+        lines = events_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return False
+    told = False
+    decided = False
+    last_turn_called: bool | None = None
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        kind = event.get("kind")
+        payload = event.get("payload") or {}
+        if kind == "execution_wave_decision_pending":
+            told, decided = True, False
+        elif kind == "tool_succeeded" and told:
+            decided = (
+                decided or payload.get("tool") in EXECUTION_DECISION_TOOLS
+            )
+        elif kind == "provider_turn_observed" and (
+            "tool_calls_present" in payload
+        ):
+            last_turn_called = bool(payload.get("tool_calls_present"))
+    return told and not decided and last_turn_called is False
 
 
 def _session_dispositions(events_path: Path | None) -> tuple[dict, ...]:
@@ -6494,9 +6544,23 @@ class GoalDriver:
         ]
         planned = str(decision.workflow_id or "") or "(unnamed)"
         if not replaced:
+            # "No decision" was the whole word even when the session had
+            # been told, once, that a decision was pending and then ended
+            # on text -- R10 Q20 G1's cycle 4 wrote its wave that way (CUHK
+            # 2153658). The park says how the session ended; it never says
+            # what the text meant, because no text is read as a decision.
+            told = (
+                "; the session was told once that the decision was pending "
+                "and ended on text, calling neither select_execution_wave "
+                "nor continue_execution_reasoning, and the host reads no "
+                "decision from text"
+                if _pending_decision_answered_in_text(self.events_path)
+                else ""
+            )
             return (
                 "the Agent made no execution-boundary decision on workflow "
                 + planned
+                + told
             )
         last = replaced[-1]
         return (

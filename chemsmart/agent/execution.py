@@ -4566,6 +4566,20 @@ def build_reached_geometry(
     ]
     if not geometry_selectors:
         jobtype = str(getattr(output, "jobtype", "") or "") or "unknown"
+        # A scan reaches a surface, not a structure, and its structures
+        # are its points. R10 Q20 G1's cycle 3 met this refusal on two
+        # timed-out scans holding 14 and 10 converged points and was told
+        # only about single points and Hessians (CUHK 2153658).
+        scan_route = (
+            " A relaxed scan's structures are its points: inspect_run on "
+            "this result lists every step that converged, each a "
+            "constrained minimum at its held value, and "
+            "bind_scan_point_geometry carries any of them forward, from a "
+            "completed scan or one that stopped early."
+            if jobtype.strip().lower() == "scan"
+            or (getattr(output, "scan_step_count", 0) or 0)
+            else ""
+        )
         raise ContractError(
             f"{normalized} declares no geometry selector in the "
             f"'as_reached' structural state for jobtype {jobtype!r}, so "
@@ -4574,8 +4588,9 @@ def build_reached_geometry(
             "nothing beyond what it was handed: bind the supplied "
             "structure or the producing optimisation's geometry instead; "
             "where a trajectory artifact exists, bind it as a geometry "
-            "artifact. Selectors "
-            f"this jobtype declares in a structural state: "
+            "artifact."
+            + scan_route
+            + " Selectors this jobtype declares in a structural state: "
             + (
                 ", ".join(
                     f"{name} ({reader.structural_state(name)})"

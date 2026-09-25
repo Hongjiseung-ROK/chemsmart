@@ -1586,6 +1586,84 @@ def _scan_boundary_sensor(
     }
 
 
+#: What a point of a relaxed scan is, said wherever one is carried.
+SCAN_POINT_IS = (
+    "a converged point of a relaxed scan: a constrained minimum at the held "
+    "coordinate's value, not a saddle and not a minimum of the full "
+    "surface; it can seed an optimisation or a saddle search, and a barrier "
+    "needs the saddle itself"
+)
+
+
+def _converged_scan_points(output: Any) -> tuple[Mapping[str, Any], ...]:
+    """Every converged point of a relaxed scan, completed or stopped early.
+
+    A completed scan's points are its surface table's rows; a scan with no
+    table -- ORCA prints one only after the last step -- offers the steps
+    its reader read as converged. Gaussian's records are converged points
+    either way.
+    """
+
+    records = tuple(getattr(output, "scan_point_records", ()) or ())
+    if records:
+        return records
+    return tuple(getattr(output, "scan_points_converged", ()) or ())
+
+
+def _scan_stopped_early(output: Any) -> dict[str, Any] | None:
+    """What a relaxed scan the program did not finish established, or None.
+
+    The program's own word decides it: a scan that terminated normally
+    finished. Otherwise the steps it started, the points it planned, and
+    each step that converged with its held value and energy -- the partial
+    surface, exactly as far as it goes.
+    """
+
+    if getattr(output, "normal_termination", None) is True:
+        return None
+    try:
+        started = int(getattr(output, "scan_step_count", 0) or 0)
+    except (TypeError, ValueError):
+        return None
+    if not started:
+        return None
+    points = _converged_scan_points(output)
+    coordinate = getattr(output, "scan_coordinate", None) or {}
+    planned = (
+        coordinate.get("points") if isinstance(coordinate, Mapping) else 0
+    )
+    return {
+        "steps_started": started,
+        "points_planned": int(planned or 0) or None,
+        "converged_steps": [int(point["index"]) for point in points],
+        "converged_points": [
+            {
+                "index": int(point["index"]),
+                "coordinate": point.get("coordinate"),
+                "energy_hartree": point.get("energy"),
+            }
+            for point in points
+        ],
+        "what_they_are": SCAN_POINT_IS,
+    }
+
+
+def _step_ranges(steps: Sequence[int]) -> str:
+    """``[1, 2, 3, 7]`` as ``1-3, 7``; ``none`` for no step."""
+
+    if not steps:
+        return "none"
+    runs: list[list[int]] = []
+    for step in sorted(steps):
+        if runs and step == runs[-1][-1] + 1:
+            runs[-1].append(step)
+        else:
+            runs.append([step])
+    return ", ".join(
+        f"{run[0]}-{run[-1]}" if len(run) > 1 else str(run[0]) for run in runs
+    )
+
+
 def _basin_sensor_inputs(
     input_artifact: TrustedArtifactRefV1 | None, output: Any, jobtype: str
 ) -> dict[str, Any]:
@@ -4796,8 +4874,14 @@ class CommandCompiledToolHostV1:
             from chemsmart.agent.rules import rules_by_id
 
             ready = ", ".join(decision.ready_node_ids)
+            # The notice names the calls that answer it. Told only to
+            # "choose", R10 Q20 G1's cycle-4 session wrote its wave as text
+            # and the goal parked with its budget unspent (CUHK 2153658).
+            # Nothing the session writes is read as the decision.
             text = (
                 rules_by_id()["wake.execution_wave_decision_pending"].text
+                + " "
+                + rules_by_id()["wake.execution_decision_is_a_call"].text
                 + " Workflow "
                 + decision.workflow_id
                 + " currently reports ready: "
@@ -5418,7 +5502,7 @@ class CommandCompiledToolHostV1:
         }
 
     def _bind_scan_point_geometry(self, turn_id: str, values: dict) -> Any:
-        """Register one chosen point of a completed scan as a geometry input.
+        """Register one chosen point of a relaxed scan as a geometry input.
 
         A relaxed scan ends at a surface. ChemSmart writes the structure it
         converged at every point, but those files were opaque
@@ -5438,6 +5522,12 @@ class CommandCompiledToolHostV1:
         coordinate and energy. The geometry that comes back is an ordinary
         trusted input, so using it is a changed molecular input and therefore a
         new workflow with its own review, exactly as the charter requires.
+
+        A scan the clock or an error stopped keeps every step that converged
+        before it, and those steps are points like any other: R10 Q20 G1's
+        two ORCA scans were refused here after 14 and 10 converged steps
+        (CUHK 2153658), because ORCA prints its table only after the last
+        step. The source keeps its ending and says so beside the point.
         """
 
         source = self._artifact(values["artifact_id"])
@@ -5448,17 +5538,30 @@ class CommandCompiledToolHostV1:
                 f"{source.artifact_id!r} is {source.kind}"
             )
         parsed = reader.open_output(Path(source.path))
-        records = tuple(getattr(parsed, "scan_point_records", ()) or ())
+        records = _converged_scan_points(parsed)
+        stopped = _scan_stopped_early(parsed)
         if not records:
             raise ContractError(
                 f"{source.artifact_id!r} records no scan surface, so it has "
                 "no points to choose between"
+                if stopped is None
+                else f"{source.artifact_id!r} is a scan that stopped during "
+                f"step {stopped['steps_started']} and no step converged "
+                "before it, so it has no point to carry forward"
             )
         requested = int(values["point_index"])
         chosen = next(
             (item for item in records if item["index"] == requested), None
         )
         if chosen is None:
+            if stopped is not None:
+                raise ContractError(
+                    "this scan stopped during step "
+                    f"{stopped['steps_started']}; the steps that converged "
+                    f"are {_step_ranges(stopped['converged_steps'])}, each a "
+                    "constrained minimum at its held value, and step "
+                    f"{requested} is not one of them, so it is not a point"
+                )
             raise ContractError(
                 f"this scan has points 1 to {len(records)}; there is no "
                 f"point {requested}"
@@ -5497,6 +5600,11 @@ class CommandCompiledToolHostV1:
                 "for it, so it cannot be carried forward"
             )
         self.artifacts[artifact.artifact_id] = artifact
+        from chemsmart.agent.execution import _recorded_ending_for
+
+        _node_id, ending = _recorded_ending_for(
+            self.run_evidence_root, source.sha256
+        )
         return {
             "schema_version": "chemsmart.scan-point-geometry.v1",
             "artifact": artifact,
@@ -5506,6 +5614,27 @@ class CommandCompiledToolHostV1:
             "point_count": len(records),
             "coordinate": chosen.get("coordinate"),
             "energy_hartree": chosen.get("energy"),
+            "point_is": SCAN_POINT_IS,
+            "source_normal_termination": (
+                getattr(parsed, "normal_termination", None) is True
+            ),
+            # The ending this workspace's streams recorded for the source;
+            # empty when it holds no record of that run.
+            "source_recorded_terminal_state": ending,
+            **(
+                {
+                    "scan_stopped_early": {
+                        key: stopped[key]
+                        for key in (
+                            "steps_started",
+                            "points_planned",
+                            "converged_steps",
+                        )
+                    }
+                }
+                if stopped is not None
+                else {}
+            ),
             "selection_owner": "model",
             "next_action": (
                 "bind this geometry's charge and multiplicity, then plan the "
@@ -19187,12 +19316,17 @@ class CommandCompiledToolHostV1:
             if inspection_values_enabled()
             else {}
         )
+        # A scan the program did not finish is refused by every selector,
+        # which need a normally terminated result; what it established is
+        # still its printed evidence, so it is shown as exactly that.
+        stopped = _scan_stopped_early(output)
         return {
             "artifact_id": artifact.artifact_id,
             "program": program,
             "parser_id": reader.parser_id,
             "jobtype": jobtype,
             **shown,
+            **({"scan_stopped_early": stopped} if stopped is not None else {}),
             "available_selectors": available,
             # A selector this artifact resolves is still refused unless the
             # job type declares it, because a declaration is a claim about

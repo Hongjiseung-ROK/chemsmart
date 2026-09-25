@@ -1698,6 +1698,44 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     # R10 Q3 knowledge: end
     # R10 Q4 composition: append rules below this line
+    _r(
+        "recovery.scan_points_that_converged",
+        # Onto the tool that carries a point, read when its schema loads.
+        "tool:bind_scan_point_geometry",
+        "T4",
+        "A relaxed scan that stopped early -- the clock, a step that would "
+        "not converge, a program error -- keeps every step that converged "
+        "before it, and each is a point like any other: a constrained "
+        "minimum at its held value, never a saddle. inspect_run on the "
+        "result lists them with their energies; a step that did not "
+        "converge is not a point, even where the program wrote a file for "
+        "it. Where the converged energies rise and then fall, the ridge "
+        "along that coordinate lies around their highest point; where they "
+        "only rise, the scan stopped before the ridge. The source keeps its "
+        "ending and satisfies no producer edge.",
+        "R10 Q20 G1 (CUHK 2153658): two ORCA scans timed out after 14 and "
+        "10 converged steps, the second 0.07 A from the saddle cycle 3 went "
+        "looking for, and the host offered neither; R10 Q4 g1 lost 17 "
+        "converged steps after 18010 s, two ax41 goals 11 and 10",
+    ),
+    _r(
+        "wake.execution_decision_is_a_call",
+        # Beside wake.execution_wave_decision_pending, in the one notice.
+        "wake:close",
+        "T0",
+        "Only a call records it: select_execution_wave with this "
+        "workflow_id and the node_ids you choose, or "
+        "continue_execution_reasoning with this workflow_id to defer "
+        "dispatch. The host reads no decision from text, and a session "
+        "that ends without one of those calls leaves the goal parked with "
+        "its budget unspent.",
+        "R10 Q20 G1 (CUHK 2153658), cycle 4: told a decision was pending "
+        "in words that named no tool, the session answered 'Wave "
+        "selection: [ts-opt-freq, ts-irc, ts-sp-dlpno]' in text and the "
+        "goal parked with 23 engine calls and 13,323 s unspent, while each "
+        "of the other 59 archived sessions shown the notice with the tool "
+        "in view answered with the call (R10 Q32 census)",
+    ),
     # R10 Q4 composition: end
 )
 

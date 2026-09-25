@@ -162,7 +162,7 @@ class ORCAOutput(ORCAFileMixin):
 
     @cached_property
     def scan_point_records(self):
-        """Each relaxed-scan point, joined to the geometry ORCA wrote for it.
+        """Each point of a completed relaxed scan, joined to its geometry file.
 
         The surface alone answers "how does the energy vary"; it cannot answer
         "and give me that structure". ORCA writes one file per point beside the
@@ -174,8 +174,11 @@ class ORCAOutput(ORCAFileMixin):
         on it, and carry that structure forward. The choice stays theirs: this
         reports every point and ranks none.
 
-        A point whose file is absent still appears, with ``geometry_file`` as
-        ``None``, because a truncated scan's converged points are real data.
+        These are the rows of ORCA's own surface table, which ORCA prints
+        only when the whole scan has finished; a point whose file is absent
+        still appears, with ``geometry_file`` as ``None``. A scan that
+        stopped early has no table and no records here: its converged points
+        are :attr:`scan_points_converged`.
         """
 
         profile = self.scan_profile
@@ -209,9 +212,11 @@ class ORCAOutput(ORCAFileMixin):
         Energies stay in hartree, the unit ORCA prints, so the caller converts
         once with the rest of its arithmetic rather than twice.
 
-        Returns an empty tuple for a run that is not a scan, and only the
-        points ORCA actually reached for one that stopped early -- a truncated
-        surface is partial evidence rather than no evidence.
+        Returns an empty tuple for a run that is not a scan, and for a scan
+        that stopped early: ORCA prints this table only once the last step
+        has finished (ORCA 6.1.1, every archived scan killed by the clock or
+        by an error has none). What such a scan did establish is read step
+        by step in :attr:`scan_points_converged`.
         """
 
         number = r"[-+]?\d+\.\d+"
@@ -256,6 +261,137 @@ class ORCAOutput(ORCAFileMixin):
             if match is not None
         ]
         return max(steps) if steps else 0
+
+    @cached_property
+    def scan_points_converged(self):
+        """Every step of a relaxed scan whose constrained optimisation converged.
+
+        Read step by step, so a scan the clock or an error stopped keeps what
+        it established: ORCA prints its surface table only after the last
+        step, and four goals lost 10 to 17 converged points per scan, hours
+        of node time, to a table that never came (R10 Q20 G1, R10 Q4 g1, two
+        ax41 cyclohexane goals).
+
+        A step counts when ORCA printed ``THE OPTIMIZATION HAS CONVERGED``
+        inside it and then its final evaluation at the constrained
+        stationary point: the energy is that evaluation's ``FINAL SINGLE
+        POINT ENERGY`` and the structure the coordinates it printed. That is
+        a constrained minimum at the held value, never a saddle. A step that
+        did not converge -- killed, or out of iterations -- is not a point,
+        even though ORCA writes ``<stem>.NNN.xyz`` for a step that ran out of
+        iterations (6 of 25 archived truncated scans hold one), so the file
+        is never taken as evidence of convergence; for a converged step it
+        is named when present. On all 36 completed ORCA 6.1.1 scans archived
+        on CUHK and ax41 these rows equal ORCA's own 'Actual Energy' table,
+        coordinate and energy.
+
+        Returns records ``{index, coordinate, energy, geometry_file,
+        structure}``, ``index`` being ORCA's own 1-based step number; an
+        empty tuple for a run that is not a one-coordinate scan.
+        """
+
+        step_marker = re.compile(
+            r"RELAXED SURFACE SCAN STEP\s+(\d+)", re.IGNORECASE
+        )
+        held_value = re.compile(
+            r"^[\s*]*(?:Bond|Angle|Dihedral)\s*\([\d,\s]+\)\s*:\s*"
+            r"([-+]?\d+(?:\.\d+)?)",
+            re.IGNORECASE,
+        )
+        final_energy = re.compile(
+            r"FINAL SINGLE POINT ENERGY\s+([-+]?\d+\.\d+)"
+        )
+        atom_row = re.compile(
+            r"^\s*([A-Za-z]{1,3})\s+([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)"
+            r"\s+([-+]?\d+\.\d+)\s*$"
+        )
+        lines = self.contents
+        starts = [
+            (index, int(match.group(1)))
+            for index, match in (
+                (i, step_marker.search(line)) for i, line in enumerate(lines)
+            )
+            if match is not None
+        ]
+        stem, _extension = os.path.splitext(self.filename)
+        records = []
+        for position, (start, step) in enumerate(starts):
+            end = (
+                starts[position + 1][0]
+                if position + 1 < len(starts)
+                else len(lines)
+            )
+            values = []
+            for line in lines[start + 1 : min(end, start + 8)]:
+                match = held_value.match(line)
+                if match is not None:
+                    values.append(float(match.group(1)))
+                elif values:
+                    break
+            if len(values) > 1:
+                # A surface over several coordinates at once: which row is
+                # which point of the grid is not read here, as it is not
+                # from ORCA's table either.
+                return ()
+            converged_at = next(
+                (
+                    i
+                    for i in range(start, end)
+                    if "THE OPTIMIZATION HAS CONVERGED" in lines[i]
+                ),
+                None,
+            )
+            if converged_at is None:
+                continue
+            evaluated_at = next(
+                (
+                    i
+                    for i in range(converged_at, end)
+                    if "FINAL ENERGY EVALUATION AT THE STATIONARY POINT"
+                    in lines[i]
+                ),
+                None,
+            )
+            if evaluated_at is None:
+                continue
+            energy = None
+            coordinates_at = None
+            for i in range(evaluated_at, end):
+                if (
+                    coordinates_at is None
+                    and "CARTESIAN COORDINATES (ANGSTROEM)" in lines[i]
+                ):
+                    coordinates_at = i
+                match = final_energy.search(lines[i])
+                if match is not None:
+                    energy = float(match.group(1))
+                    break
+            if energy is None or coordinates_at is None:
+                continue
+            symbols, positions = [], []
+            for line in lines[coordinates_at + 2 : end]:
+                match = atom_row.match(line)
+                if match is None:
+                    break
+                symbols.append(match.group(1))
+                positions.append([float(match.group(k)) for k in (2, 3, 4)])
+            if not symbols:
+                continue
+            candidate = f"{stem}.{step:03d}.xyz"
+            records.append(
+                {
+                    "index": step,
+                    "coordinate": values[0] if values else None,
+                    "energy": energy,
+                    "geometry_file": (
+                        candidate if os.path.isfile(candidate) else None
+                    ),
+                    "structure": Molecule(
+                        symbols=symbols, positions=np.array(positions)
+                    ),
+                }
+            )
+        return tuple(records)
 
     @cached_property
     def has_forces(self):
