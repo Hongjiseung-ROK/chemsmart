@@ -1698,6 +1698,26 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     # R10 Q3 knowledge: end
     # R10 Q4 composition: append rules below this line
+    _r(
+        "recovery.scan_points_that_converged",
+        # Onto the tool that carries a point, read when its schema loads.
+        "tool:bind_scan_point_geometry",
+        "T4",
+        "A relaxed scan that stopped early -- the clock, a step that would "
+        "not converge, a program error -- keeps every step that converged "
+        "before it, and each is a point like any other: a constrained "
+        "minimum at its held value, never a saddle. inspect_run on the "
+        "result lists them with their energies; a step that did not "
+        "converge is not a point, even where the program wrote a file for "
+        "it. Where the converged energies rise and then fall, the ridge "
+        "along that coordinate lies around their highest point; where they "
+        "only rise, the scan stopped before the ridge. The source keeps its "
+        "ending and satisfies no producer edge.",
+        "R10 Q20 G1 (CUHK 2153658): two ORCA scans timed out after 14 and "
+        "10 converged steps, the second 0.07 A from the saddle cycle 3 went "
+        "looking for, and the host offered neither; R10 Q4 g1 lost 17 "
+        "converged steps after 18010 s, two ax41 goals 11 and 10",
+    ),
     # R10 Q4 composition: end
 )
 

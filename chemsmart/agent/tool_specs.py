@@ -341,12 +341,14 @@ def _legacy_tool_definitions(
         _tool(
             "bind_scan_point_geometry",
             (
-                "Carry one point of a completed relaxed scan forward as a "
-                "geometry input. You choose the point -- read the surface "
+                "Carry one point of a relaxed scan forward as a geometry "
+                "input. You choose the point -- read a completed surface "
                 "first through scan_point_indices, scan_coordinate_values "
-                "and scan_energies, then name the 1-based index of the "
-                "structure you want; the host records which result and which "
-                "point it came from, at what coordinate and energy. Using "
+                "and scan_energies (inspect_run on a scan that stopped early "
+                "lists the steps that converged), then name the 1-based "
+                "index of the structure you want; the host records which "
+                "result and which point it came from, at what coordinate "
+                "and energy, and the source's own ending. Using "
                 "the returned geometry is a changed molecular input, so the "
                 "stage that consumes it is a new workflow needing its own "
                 "review. When the point you want is an ORCA scan's "
@@ -354,8 +356,8 @@ def _legacy_tool_definitions(
                 "second workflow: declare the consumer's geometry input as a "
                 "producer edge from the scan node, and one approval covers "
                 "scan and consumer; a Gaussian scan's points are carried by "
-                "this tool. artifact_id must identify a completed scan "
-                "result already registered in this workspace."
+                "this tool. artifact_id must identify a scan result already "
+                "registered in this workspace."
             ),
             {
                 "artifact_id": _string(),

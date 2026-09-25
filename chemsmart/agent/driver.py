@@ -1456,12 +1456,13 @@ REPAIR_MENU: Mapping[str, str] = {
         "reached geometry says which."
     ),
     "failed_nonconverged_scan_step": (
-        "A scan step failed to converge: the surface reached so far is "
-        "readable as it stands, and bind_scan_point_geometry carries a "
-        "converged point of a completed scan forward. Where the scan "
-        "itself did not complete, bind_reached_geometry carries the "
-        "structure the run reached. Or loosen the step's own "
-        "optimisation controls."
+        "A scan step failed to converge. Every step before it that "
+        "converged is a point of the surface -- a constrained minimum at "
+        "its held value, never a saddle: inspect_run on the result lists "
+        "them with their energies, and bind_scan_point_geometry carries any "
+        "of them forward. The step that failed is not a point, even where "
+        "the program wrote a file for it, and bind_reached_geometry does "
+        "not read a scan. Or loosen the step's own optimisation controls."
     ),
     "failed_nonconverged_excited_state": (
         "The response solver left a root unconverged, or the followed root "
@@ -1485,9 +1486,14 @@ REPAIR_MENU: Mapping[str, str] = {
         "result is the finding rather than the iteration cap."
     ),
     "timeout_terminated": (
-        "The engine ran out of the time the envelope granted. Restart "
-        "from the geometry the run reached -- bind_reached_geometry "
-        "carries it forward -- inside the remaining budget, or reduce "
+        "The engine ran out of the time the envelope granted. An "
+        "optimisation moved and was cut off: restart from the geometry it "
+        "reached -- bind_reached_geometry carries it forward -- inside the "
+        "remaining budget. A relaxed scan keeps every step that converged "
+        "before the clock, each a constrained minimum at its held value "
+        "and none a saddle: inspect_run on the result lists them with "
+        "their energies, and bind_scan_point_geometry carries any of them "
+        "forward (bind_reached_geometry does not read a scan). Or reduce "
         "the method's cost within the approved conditions; conditions "
         "themselves may not move."
     ),
@@ -1503,7 +1509,10 @@ REPAIR_MENU: Mapping[str, str] = {
         "that names a setting is repaired in project YAML, one that "
         "names the molecule is a new decision for the human. An input-check "
         "abort reached no chemistry: nothing was reached to restart from, "
-        "and the repair is the field the engine named."
+        "and the repair is the field the engine named. A relaxed scan keeps "
+        "every step that converged before the error: inspect_run on the "
+        "result lists them, and bind_scan_point_geometry carries any of "
+        "them forward."
     ),
     "failed_result_validation": (
         "The program finished normally and the host's check of its result "

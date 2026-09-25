@@ -11,8 +11,10 @@ lost 17 after 18010 s, and two ax41 goals lost 11 and 10.
 What is pinned: a step whose constrained optimisation converged is a point,
 read from ORCA's own output, and it is a constrained minimum at its held
 value; a step that did not converge is not a point even where ORCA wrote its
-file; a completed scan's steps are its table's rows. Driven on the real
-outputs of that goal.
+file; a completed scan's steps are its table's rows; the public binding
+carries a converged point of a scan that stopped early and says what the
+source was and what the point is; and inspecting such a result shows the
+points. Driven on the real outputs of that goal.
 """
 
 from __future__ import annotations
@@ -22,8 +24,17 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from chemsmart.agent._contracts import (
+    ContractError,
+    TrustedArtifactRefV1,
+    file_sha256,
+)
+from chemsmart.agent.exposure import build_exposure
+from chemsmart.agent.runtime.event_store import RuntimeEventStore
+from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from chemsmart.io.molecules.structure import Molecule
 from chemsmart.io.orca.output import ORCAOutput
+from tests.agent.neutral_workflow_fixture import build_neutral_workflow_fixture
 
 pytestmark = pytest.mark.capability("tool:bind_scan_point_geometry")
 
@@ -41,6 +52,34 @@ _STEP_FAILED = (
 )
 #: A completed 13-point scan (R10 Q7's CLI oracle).
 _COMPLETED = _ORCA / "scan_completed" / "h2o2_o_scan.out"
+
+
+def _host(tmp_path, *results):
+    fixture = build_neutral_workflow_fixture(tmp_path / "fixture")
+    artifacts = {
+        artifact_id: TrustedArtifactRefV1(
+            artifact_id=artifact_id,
+            kind="orca_output",
+            sha256=file_sha256(path),
+            size_bytes=path.stat().st_size,
+            path=str(path),
+            cli_value=str(path),
+        )
+        for artifact_id, path in results
+    }
+    inputs = dict(fixture.host_inputs)
+    inputs["artifacts"] = {**inputs["artifacts"], **artifacts}
+    return CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "events" / "runtime.jsonl", session_id="session"
+        ),
+        task_spec_sha256s=(fixture.public_context.task_spec_sha256,),
+        approved_workspace=tmp_path / "workspace",
+        exposure=build_exposure("host_search").with_pinned(
+            ("bind_scan_point_geometry", "inspect_run")
+        ),
+        **inputs,
+    )
 
 
 def test_each_step_that_converged_before_the_clock_is_a_point():
@@ -96,3 +135,91 @@ def test_a_completed_scan_read_step_by_step_is_its_own_table():
         )
         assert point["energy"] == pytest.approx(row["energy"], abs=5e-8)
         assert point["geometry_file"] == row["geometry_file"]
+
+
+@pytest.mark.capability("rule:recovery.scan_points_that_converged")
+def test_a_converged_point_of_a_scan_the_clock_stopped_binds(tmp_path):
+    host = _host(tmp_path, ("orca-result-scan-r2", _TIMED_OUT))
+
+    reply = host.dispatch(
+        turn_id="turn-1",
+        tool_name="bind_scan_point_geometry",
+        arguments={
+            "artifact_id": "orca-result-scan-r2",
+            "point_index": 10,
+            "program": "orca",
+        },
+    )
+
+    assert reply["status"] == "ok", reply
+    result = reply["result"]
+    assert result["point_index"] == 10
+    assert result["coordinate"] == pytest.approx(2.325)
+    assert result["energy_hartree"] == pytest.approx(-233.464021633484)
+    # The source keeps its ending and the point says what it is.
+    assert result["source_normal_termination"] is False
+    stopped = result["scan_stopped_early"]
+    assert stopped["steps_started"] == 11
+    assert stopped["points_planned"] == 13
+    assert stopped["converged_steps"] == list(range(1, 11))
+    assert "constrained minimum" in result["point_is"]
+    assert "not a saddle" in result["point_is"]
+    bound = host.artifacts[result["artifact"]["artifact_id"]]
+    expected = ORCAOutput(str(_TIMED_OUT)).scan_points_converged[-1]
+    carried = Molecule.from_filepath(bound.path)
+    assert np.allclose(
+        carried.positions, expected["structure"].positions, atol=1e-6
+    )
+
+
+def test_a_step_the_scan_did_not_finish_is_refused_with_the_steps_that_did(
+    tmp_path,
+):
+    host = _host(
+        tmp_path,
+        ("orca-result-scan-r2", _TIMED_OUT),
+        ("orca-result-scan-r3", _STEP_FAILED),
+    )
+
+    with pytest.raises(ContractError, match=r"converged are 1-10.*step 11"):
+        host.dispatch(
+            turn_id="turn-1",
+            tool_name="bind_scan_point_geometry",
+            arguments={
+                "artifact_id": "orca-result-scan-r2",
+                "point_index": 11,
+                "program": "orca",
+            },
+        )
+    with pytest.raises(ContractError, match="no step converged"):
+        host.dispatch(
+            turn_id="turn-1",
+            tool_name="bind_scan_point_geometry",
+            arguments={
+                "artifact_id": "orca-result-scan-r3",
+                "point_index": 1,
+                "program": "orca",
+            },
+        )
+
+
+def test_inspecting_a_scan_that_stopped_early_shows_its_converged_points(
+    tmp_path,
+):
+    host = _host(tmp_path, ("orca-result-scan-r2", _TIMED_OUT))
+
+    reply = host.dispatch(
+        turn_id="turn-1",
+        tool_name="inspect_run",
+        arguments={"artifact_id": "orca-result-scan-r2", "program": "orca"},
+    )
+
+    assert reply["status"] == "ok", reply
+    partial = reply["result"]["scan_stopped_early"]
+    assert partial["steps_started"] == 11
+    assert [row["index"] for row in partial["converged_points"]] == list(
+        range(1, 11)
+    )
+    last = partial["converged_points"][-1]
+    assert last["coordinate"] == pytest.approx(2.325)
+    assert last["energy_hartree"] == pytest.approx(-233.464021633484)
