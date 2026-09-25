@@ -116,6 +116,10 @@ ORCA_OPTIMISING_JOBTYPES = ("opt", "modred", "scan", "ts")
 #: The optimiser's controls written only on an optimising stage's route.
 ORCA_OPTIMISER_ROUTE_FIELDS = ("opt_convergence",)
 
+#: The stages that compute and print the gradient at every step of their
+#: own, so a project's ``forces`` adds nothing to their input.
+ORCA_GRADIENT_DRIVEN_JOBTYPES = (*ORCA_OPTIMISING_JOBTYPES, "irc", "neb")
+
 
 def settings_not_written_for(jobtype):
     """The settings the writer writes for no stage of *jobtype*.
@@ -123,13 +127,17 @@ def settings_not_written_for(jobtype):
     A project's phase section feeds every stage, so an optimiser preset
     stated beside the level of theory reaches a single point, a response
     calculation or a reaction path too, none of which runs the optimiser
-    and whose route correctly carries none. The preview asks this, the
-    writer's own table, instead of demanding the preset there.
+    and whose route correctly carries none; and ``forces`` reaches the
+    stages that compute the gradient at every step anyway. The preview
+    asks this, the writer's own table, instead of demanding either there.
     """
 
-    if jobtype in ORCA_OPTIMISING_JOBTYPES:
-        return ()
-    return ORCA_OPTIMISER_ROUTE_FIELDS
+    fields = ()
+    if jobtype not in ORCA_OPTIMISING_JOBTYPES:
+        fields += ORCA_OPTIMISER_ROUTE_FIELDS
+    if jobtype in ORCA_GRADIENT_DRIVEN_JOBTYPES:
+        fields += ("forces",)
+    return fields
 
 
 def _normalize_orca_opt_convergence(value):
@@ -1902,6 +1910,24 @@ class ORCAJobSettings(MolecularJobSettings):
             route_string += "IRC"
         elif self.jobtype == "sp":
             route_string += ""
+
+        # The gradient at a fixed geometry is ORCA's EnGrad. ``forces`` was
+        # accepted, advertised and never written: every ORCA input lacked
+        # it, and the preview, reading the input back, was red on it
+        # (R10 Q31 census). A stage that runs the optimiser or walks a path
+        # computes and prints the gradient at every step of its own, so
+        # nothing is added there (``settings_not_written_for``); a response
+        # stage's gradient would be an excited state's, another request.
+        if self.forces and self.jobtype not in ORCA_GRADIENT_DRIVEN_JOBTYPES:
+            if self.jobtype != "sp":
+                raise ValueError(
+                    "forces asks ORCA for the ground-state gradient at a "
+                    "fixed geometry (EnGrad), which a single point computes "
+                    f"as its answer; an ORCA {self.jobtype} stage has no "
+                    "such request. State forces: true on an sp stage at "
+                    "the geometry whose gradient is wanted."
+                )
+            route_string += " EnGrad"
 
         # Numerical frequency mode takes precedence over analytic frequency.
         # The constructor already normalizes the common YAML spelling with

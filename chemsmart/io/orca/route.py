@@ -386,9 +386,20 @@ class ORCARoute:
             # ``! IRC`` input fail ChemSmart's own preview round trip.
             if route_input == "irc":
                 return "irc"
+            # EnGrad is a single point that also computes the gradient
+            # (``forces``); the writer writes it for an sp stage and for
+            # nothing else, and no stage is called ``engrad``.
+            if route_input == "engrad":
+                return "sp"
             if route_input in ORCA_ALL_JOB_TYPES:
                 return route_input
         return "sp"
+
+    @property
+    def forces(self):
+        """Whether the route asks for the gradient at its geometry (EnGrad)."""
+
+        return "engrad" in self.route_keywords
 
     @property
     def neb_joboption(self):
