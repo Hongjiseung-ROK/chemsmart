@@ -108,11 +108,62 @@ include `additional_route_parameters` and `input_string`. The broken-symmetry
 guess must go through one of those" -- then writes `input_string`. The
 refusal taught the un-advertised hatch.
 
+CUHK (job 2153720, the corrected instrument, sha256 423e919b...):
+- R8 (`r8`), R9 (`r9`), R10 (`r10/q1`..`q27` named one by one; q3/sealed,
+  q6/goals and q17/sealed* pruned before descent; m, m1, m2, master never
+  named): 182 transcripts, 182 sessions, 551 authoring calls. 82 authoring
+  calls in 7 sessions carry a hatch key:
+  - broken symmetry, 75 calls (BrokenSym 1,1 x25, Guess=(Mix,Always) x11,
+    guess=mix x11, FlipSpin x12, `%scf BrokenSym` block x1,
+    `input_string: "%scf FlipSpin 1,6 end"` x6 -- Q15 g1 and g2);
+  - Gaussian IRC controls, 3 (maxpoints=50 x2, IRC=(MaxPoints=80,...) x1,
+    R9 g1/g2, before the IRC lift);
+  - Gaussian TS options calcfc,noeigen, 2 (R9 g2; the host already writes
+    opt=(ts,calcfc,noeigentest));
+  - NoUseSym, 1 (ORCA scan; ORCA uses no symmetry by default).
+  Unknown-key refusals: gaussian guess 10 calls/3 sessions, orca joboption
+  9/4 (all broken symmetry), orca constraints 5/3, **gaussian maxcycles in
+  opt/ts sections 4/3 (R9 g2, R9 g3, Q15 g1: no typed optimiser cap in
+  Gaussian)**, gaussian direction/maxpoints 3 (pre-lift), and three
+  deliberate vocabulary probes (`zzz_vocabulary_probe`, `bogus_flag_probe`)
+  -- the model uses the loader's key list as an oracle. Key use: Gaussian
+  sections carried `scf_convergence` 3 times (refused as unknown; dropped by
+  the model) and `defgrid` never; ORCA sections used the typed numerics
+  heavily (opt_convergence 59, defgrid 34, ri_approximation 34,
+  geom_maxiter 31, scf_convergence 27).
+- Pre-R8 CUHK campaigns (32 named top-level directories): 109 sessions,
+  237 authoring calls, no hatch use (only PySCF's numeric `scf_tol`).
+
+Base-tree probe (scratch `q28/probes/probe_routes.py`, the live loaders and
+route builders): Gaussian `defgrid: ultrafine` is accepted (and advertised)
+and silently dropped (`# opt freq b3lyp def2svp`); Gaussian
+`scf_convergence` is an unknown key; ORCA `scf_algorithm: "SlowConv PAL8"`
+reaches the route verbatim (the R10 Q9 resource refusal bypassed); ORCA
+`scf_tol: '1e-10'` writes `1e-10SCF`; `route_to_be_written` replaces the
+method and basis in both programs without a word.
+
+Verdicts (deepseek-v4-flash-0731 throughout):
+- C1 HOLDS pooled, FAILS for ax41 alone: 92 of 104 hatch calls (88%) state
+  an intent with a typed form on the base tree; ax41 11 of 22 (50%), CUHK
+  81 of 82. Untyped: Hirshfeld print x3 (ax41 interop-fukui, 2 sessions),
+  the site-specific FlipSpin of a Ni(II) dimer x8 (ax41 ino2, 2 sessions;
+  R10 Q18 left multi-site flips unrepresented), NoUseSym x1 (a no-op).
+- C2 HOLDS (premise not falsified): legitimate intents without a typed
+  form exist -- Hirshfeld populations (named in advance), multi-site spin
+  flips (not named in advance); and, from the unknown-key refusals, the
+  Gaussian optimiser cycle cap (3 sessions) and Gaussian SCF convergence
+  (1 session) -- intents the model tried to type and could not.
+- C3 HOLDS: `input_string` in one goal (Q15 g1, 6 calls, replacing the
+  whole input with 22 bytes -- R10 Q26 replay 2153704); `route_to_be_written`
+  never.
+
 ## Jobs issued
 
 - 2026-09-25: census C, CUHK Slurm 2153719 (r10-q28-a), 1 core,
   pre-registration ab5494235bd8; COMPLETED in 1 min (the undercounting
   instrument; superseded by the re-run below, numbers not used).
+- 2026-09-25: census C re-run, CUHK Slurm 2153720 (r10-q28-a), 1 core,
+  pre-registration 8b274feebf7f; COMPLETED in 1 min (numbers above).
 
 ## Status
 
