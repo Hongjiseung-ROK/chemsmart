@@ -201,6 +201,7 @@ def test_a_projected_free_energy_says_what_it_is():
     assert "dihedral H3-O1-O2-H4 at 90.00 deg" in said
     assert "5 of 6 vibrational modes kept (3N-7)" in said
     assert "rotor treatment" in said
+    assert "every kept mode is a harmonic oscillator" in said
     assert "stationary point of the held surface" in said
     equilibrium = _derive("orca-eq")
     relative = (

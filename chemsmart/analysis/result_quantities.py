@@ -2707,10 +2707,23 @@ def _held_coordinate_projection(
         f"{request.program} printed frequencies to {deviation:.2g} cm^-1 "
         f"with {record.mass_convention}, which the kept modes use too"
     )
+    if request.entropy_method == "grimme":
+        kept_modes = (
+            "kept modes near and below "
+            f"{request.entropy_cutoff_cm1:g} cm^-1 have their entropy "
+            "interpolated toward a free rotor's (Grimme)"
+        )
+    elif request.entropy_method == "truhlar":
+        kept_modes = (
+            f"kept modes below {request.entropy_cutoff_cm1:g} cm^-1 are "
+            "raised to it for the entropy (Truhlar)"
+        )
+    else:
+        kept_modes = "every kept mode is a harmonic oscillator"
     rotor = (
         "rotor treatment: the held coordinate is removed, not treated as a "
         "rotor; the molecule rotates as a rigid rotor at this structure; "
-        "no kept mode is treated as a hindered internal rotor"
+        f"{kept_modes}; no kept mode is treated as a hindered internal rotor"
     )
     return _HeldCoordinateProjection(
         frequencies_cm1=tuple(spectrum.frequencies_cm1),
