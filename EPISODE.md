@@ -482,14 +482,17 @@ samples where the base tree offered no route.
   test_pyscf_dispersion_conformance 2, test_PyscfSettings 1,
   test_aggregation 1), 4845 passed; tests/agent none failed; ruff, black
   and isort clean on every touched file. The exports are deleted.
-- 2026-09-25 13:15 HKT: WAITING ON JOB 2154062 (matched turns 1; stub pass
-  clean, real samples running, interleaved; ~1.5 h). On resume read, in
-  order: (1) `r10/q32/matched1/samples.jsonl` (fetch it; read with
-  tools/read_samples.py): per arm, infrastructure samples first (zero real
-  turns, transport error, deadline), then the P outcome (a wave call
-  succeeding after the notice) and the T outcome (inspect_run or
-  bind_scan_point_geometry on a scan result within three real turns),
-  against the pre-registered predictions and falsifiers; (2) on the T
-  repaired arm, which point was bound and what the session said it was;
-  (3) G1's archive hashes before and after. Then merge r10-integration if it
-  moved, rerun the gates if anything merged, and write the final report.
+- 2026-09-25 13:15 HKT: waited on job 2154062 (matched turns 1).
+- 2026-09-25: EPISODE ENDS. Matched turns 1 read (above): both behavioural
+  predictions falsified; A claimed for the partial scan, C not earned.
+  Merged r10-integration cc30d2ec (Q30's rotor, Q31's settings guard and
+  multi-Hessian ORCA reader, Q33's stationarity) as 94f8c3f6, no conflict;
+  the two ORCA reader changes checked together: on Q31's ScanTS+Freq
+  fixture (hcnscan3.out, ten Hessians) the step-by-step converged points
+  equal ORCA's own table, and on its OptTS fixture no scan step is read.
+  Gates on a pristine export of 94f8c3f6: full suite 23 failed, the round
+  baseline and the same set as on db5f5a72 (test_structures 19,
+  test_pyscf_dispersion_conformance 2, test_PyscfSettings 1,
+  test_aggregation 1), 4893 passed; tests/agent none failed; ruff, black and
+  isort clean on the eight touched files. The export is deleted. No q32 job
+  is running.
