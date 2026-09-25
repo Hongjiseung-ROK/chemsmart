@@ -1193,6 +1193,258 @@ def _pyscf_stationarity_gradient(output: Any) -> float | None:
     return float(np.max(np.abs(values)))
 
 
+@dataclass(frozen=True)
+class CartesianHessianV1:
+    """The Cartesian Hessian at the structure a result's modes belong to.
+
+    What a projected harmonic analysis needs and a program's printed
+    spectrum does not keep: the second-derivative matrix itself
+    (``hessian``, 3N x 3N in Eh/Bohr^2), the structure it was taken at in
+    the same frame (``positions_bohr``), and the atomic masses the
+    program's own printed spectrum was computed with, so the host can show
+    that it read the matrix the printed frequencies came from before it
+    removes anything.  ``gradient`` (N x 3, Eh/Bohr) is present only where
+    the result records the gradient at that same structure.  ``source``
+    names where the matrix was read and ``source_sha256`` the digest of a
+    sidecar file when it was not the result artifact itself.
+    """
+
+    positions_bohr: Any
+    hessian: Any
+    masses_amu: Any
+    symbols: tuple[str, ...]
+    source: str
+    mass_convention: str
+    source_sha256: str = ""
+    gradient: Any = None
+
+
+def _file_sha256(path: Path) -> str:
+    import hashlib
+
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _orca_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:
+    """ORCA's ``<basename>.hess``, the sidecar every ORCA Freq run writes.
+
+    ORCA prints its normal modes to six decimals and never the matrix; the
+    ``.hess`` beside the output holds the matrix to eleven significant
+    figures with the structure (Bohr) and the masses its analysis used
+    (isotope-averaged: 15.999 for O, 1.008 for H).  A sidecar left by
+    another run is not this result's: it is served only when its atoms
+    are the result's in order, and the host then checks that it
+    reproduces the printed spectrum.  No gradient: the ``.engrad`` beside
+    an ``Opt Freq`` pairs the final coordinates and energy with the
+    gradient of the cycle before (R10 Q21 g2-hooh, measured 1.6e-4 A
+    apart), which belongs to no structure a Hessian was taken at.
+    """
+
+    import numpy as np
+
+    filename = getattr(output, "filename", None)
+    if not filename:
+        return None
+    path = Path(str(filename)).with_suffix(".hess")
+    if not path.is_file():
+        return None
+    lines = path.read_text(errors="replace").splitlines()
+    starts = {
+        line.strip()[1:]: index
+        for index, line in enumerate(lines)
+        if line.strip().startswith("$")
+    }
+    if "hessian" not in starts or "atoms" not in starts:
+        return None
+    row = starts["hessian"] + 1
+    size = int(lines[row].split()[0])
+    hessian = np.full((size, size), np.nan)
+    row += 1
+    while row < len(lines) and not lines[row].strip().startswith("$"):
+        header = lines[row].split()
+        if not header:
+            row += 1
+            continue
+        columns = [int(value) for value in header]
+        for offset in range(size):
+            parts = lines[row + 1 + offset].split()
+            index = int(parts[0])
+            for column, value in zip(columns, parts[1:]):
+                hessian[index, column] = float(value)
+        row += 1 + size
+    row = starts["atoms"] + 1
+    count = int(lines[row].split()[0])
+    symbols, masses, positions = [], [], []
+    for offset in range(count):
+        parts = lines[row + 1 + offset].split()
+        symbols.append(parts[0])
+        masses.append(float(parts[1]))
+        positions.append([float(value) for value in parts[2:5]])
+    if 3 * count != size or not bool(np.isfinite(hessian).all()):
+        return None
+    try:
+        expected = [str(item) for item in _orca_symbols(output)]
+    except Exception:  # noqa: BLE001 - a reader that cannot say says nothing
+        return None
+    if expected != symbols:
+        return None
+    return CartesianHessianV1(
+        positions_bohr=np.asarray(positions, dtype=float),
+        hessian=hessian,
+        masses_amu=np.asarray(masses, dtype=float),
+        symbols=tuple(symbols),
+        source=f"the ORCA sidecar {path.name}",
+        mass_convention="the masses ORCA's .hess records",
+        source_sha256=_file_sha256(path),
+    )
+
+
+def _gaussian_archive_sections(output: Any) -> list[str] | None:
+    """The last archive entry of a Gaussian log, split at its ``\\\\``."""
+
+    text = getattr(output, "content_lines_string", None)
+    if not text:
+        return None
+    start = text.rfind(" 1\\1\\")
+    if start < 0:
+        return None
+    end = text.find("\\\\@", start)
+    if end < 0:
+        return None
+    joined = "".join(
+        line[1:] if line.startswith(" ") else line
+        for line in text[start : end + 3].splitlines()
+    )
+    return joined.split("\\\\")
+
+
+def _gaussian_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:
+    """The force constants a Gaussian frequency job writes into its archive.
+
+    A ``Freq`` archive entry ends with the lower triangle of the Cartesian
+    Hessian (Eh/Bohr^2) and then the gradient (Eh/Bohr, the negative of the
+    printed forces), both in the frame of the geometry the same entry
+    carries -- the input orientation, not the standard one the log's
+    tables use.  The masses are the ones the log says its analysis used
+    ("Atom N has atomic number Z and mass M").
+    """
+
+    import numpy as np
+
+    sections = _gaussian_archive_sections(output)
+    if not sections:
+        return None
+    try:
+        marker = next(
+            index
+            for index, section in enumerate(sections)
+            if "NImag=" in section
+        )
+        geometry = sections[3].split("\\")[1:]
+        symbols = [
+            re.sub(r"\(.*\)", "", row.split(",")[0]) for row in geometry
+        ]
+        positions = np.array(
+            [
+                [float(value) for value in row.split(",")[-3:]]
+                for row in geometry
+            ]
+        )
+        lower = [float(value) for value in sections[marker + 1].split(",")]
+        gradient = np.array(
+            [float(value) for value in sections[marker + 2].split(",")]
+        )
+    except (StopIteration, IndexError, ValueError):
+        return None
+    size = 3 * len(symbols)
+    if len(lower) != size * (size + 1) // 2 or gradient.size != size:
+        return None
+    hessian = np.zeros((size, size))
+    hessian[np.tril_indices(size)] = lower
+    hessian = hessian + np.tril(hessian, -1).T
+    masses = {}
+    for line in getattr(output, "contents", ()) or ():
+        found = re.match(
+            r"\s*Atom\s+(\d+)\s+has atomic number\s+\d+\s+and mass\s+"
+            r"([0-9.]+)",
+            line,
+        )
+        if found:
+            masses[int(found.group(1))] = float(found.group(2))
+    if sorted(masses) != list(range(1, len(symbols) + 1)):
+        return None
+    return CartesianHessianV1(
+        positions_bohr=positions / 0.529177210903,
+        hessian=hessian,
+        masses_amu=np.array(
+            [masses[index + 1] for index in range(len(symbols))]
+        ),
+        symbols=tuple(symbols),
+        source="the log's own archive entry",
+        mass_convention="the masses the Gaussian log states it used",
+        gradient=gradient.reshape(-1, 3),
+    )
+
+
+def _pyscf_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:
+    """``results/hessian`` of a PySCF ``hess`` stage, with its own gradient.
+
+    The Hessian is stored per atom pair as (N, N, 3, 3) in Eh/Bohr^2 at
+    ``results/positions``, and ``results/forces`` is the negative gradient
+    at that same structure.  PySCF's analysis used isotope-averaged
+    masses (``atom_mass_list(isotope_avg=True)``, the artifact's
+    ``mass_convention``); the standard atomic weights ase tabulates are
+    those numbers for the light elements, and the host's reproduction of
+    the printed spectrum is what shows it for the atoms at hand.
+    """
+
+    import numpy as np
+    from ase.data import atomic_masses, atomic_numbers
+
+    results = getattr(output, "results", None) or {}
+    stored = results.get("hessian") if hasattr(results, "get") else None
+    if stored is None:
+        return None
+    if str(
+        (getattr(output, "result_units", None) or {}).get(
+            "results/hessian", "Eh/Bohr^2"
+        )
+    ) not in {"Eh/Bohr^2"}:
+        return None
+    blocks = np.asarray(stored, dtype=float)
+    if blocks.ndim != 4:
+        return None
+    count = blocks.shape[0]
+    symbols = [str(item) for item in (output.chemical_symbols or ())]
+    if len(symbols) != count:
+        return None
+    positions = np.asarray(output.positions, dtype=float) / 0.529177210903
+    forces = getattr(output, "forces", None)
+    gradient = None
+    if forces is not None and str(getattr(output, "forces_unit", "")) == (
+        "Eh/Bohr"
+    ):
+        gradient = -np.asarray(forces, dtype=float).reshape(count, 3)
+    return CartesianHessianV1(
+        positions_bohr=positions,
+        hessian=blocks.transpose(0, 2, 1, 3).reshape(3 * count, 3 * count),
+        masses_amu=np.array(
+            [
+                float(atomic_masses[atomic_numbers[symbol]])
+                for symbol in symbols
+            ]
+        ),
+        symbols=tuple(symbols),
+        source="the result's results/hessian",
+        mass_convention="isotope-averaged standard atomic weights",
+        gradient=gradient,
+    )
+
+
 def _pyscf_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
     """What PySCF's own analysis said about the reference this result
     stands on, or ``None`` when nothing was recorded.
@@ -1489,6 +1741,29 @@ class ResultReaderV1:
     #: rather than a number read from the wrong structure.  ``None`` is an
     #: absence, never zero, and no organ reads it as stationarity.
     resolve_stationarity_gradient: Callable[[Any], float | None] | None = None
+    #: The Cartesian Hessian at the structure this result's spectrum
+    #: belongs to (:class:`CartesianHessianV1`), for the analysis that
+    #: removes a held coordinate from it.  Like the gradient above it is
+    #: not a selector: a matrix enters no expression, it is what a free
+    #: energy along a held coordinate is computed from.  ``None`` means
+    #: this reader cannot serve one for this result.
+    resolve_cartesian_hessian: (
+        Callable[[Any], CartesianHessianV1 | None] | None
+    ) = None
+
+    def cartesian_hessian_for_output(
+        self, output: Any
+    ) -> CartesianHessianV1 | None:
+        """The Hessian at this result's structure, or None when unservable."""
+
+        if self.resolve_cartesian_hessian is None:
+            return None
+        try:
+            return self.resolve_cartesian_hessian(output)
+        except (
+            Exception
+        ):  # noqa: BLE001 - a reader that cannot say says nothing
+            return None
 
     def stationarity_gradient_for_output(self, output: Any) -> float | None:
         """max|g| (Eh/Bohr) where this result's spectrum lives, or None.
@@ -6577,6 +6852,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         parser_id="chemsmart.io.orca.output.ORCAOutput",
         open_output=_orca_output,
         accessors=_orca_accessors(),
+        resolve_cartesian_hessian=_orca_cartesian_hessian,
         # An ORCA IRC's product structure is a sidecar beside the log, as
         # xTB's reached optimisation frame is: the geometry handoff seals
         # that file's digest, and extraction carries its bytes on the
@@ -7179,6 +7455,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         parser_id="chemsmart.io.gaussian.output.Gaussian16Output",
         open_output=_gaussian_output,
         accessors=_gaussian_accessors(),
+        resolve_cartesian_hessian=_gaussian_cartesian_hessian,
         # Gaussian prints the SMD-CDS term in kcal/mol to two decimals.
         source_units={"solvation_nonelectrostatic_energy": "kcal/mol"},
         # A held coordinate keeps its unit and its atoms as ORCA's do: one
@@ -7833,6 +8110,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         resolve_surface=lambda output: getattr(output, "surface", None),
         resolve_reference_diagnostics=_pyscf_reference_diagnostics,
         resolve_stationarity_gradient=_pyscf_stationarity_gradient,
+        resolve_cartesian_hessian=_pyscf_cartesian_hessian,
         admit_for_analysis=_pyscf_admit_for_analysis,
     ),
     "xyz": ResultReaderV1(

@@ -31,3 +31,9 @@ point: the energy still slopes along the held torsion. The host refuses a
 free energy there, and this is the file the goal's unreachability check
 read the printed line from. sha256
 `3863610af1300088bc6c9f255cb35c5c923814318b42c458631b3069d4a507a7`.
+
+`h2o2_b3lypg_d3bj_def2svp_hooh90_freq.hess` is the Hessian sidecar ORCA
+wrote beside that output in the same run (goal g1-hooh node mod90), copied
+under the output's stem so the reader finds it; sha256
+`0b8636d7c8569f4dac0a78dcee0b6f6def6fdb412812a11bea99a0df0e87eaa3`. The
+host reads the held torsion's projected free energy from it (R10 Q27).

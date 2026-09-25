@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+from dataclasses import dataclass
 from functools import cached_property
 
 import numpy as np
@@ -225,6 +226,218 @@ def _perpendicular_to(relative, first, second):
     return float(np.linalg.norm(np.cross(a / norm, relative[second])))
 
 
+#: The internal coordinates a projected analysis removes, by atom count --
+#: the rows a constrained optimisation (``modred``) holds.
+INTERNAL_COORDINATE_KINDS = {2: "bond", 3: "angle", 4: "dihedral"}
+
+#: The wavenumber (cm^-1) of a unit eigenvalue of a mass-weighted Cartesian
+#: Hessian in Eh / (amu Bohr^2).
+HESSIAN_EIGENVALUE_TO_CM1 = math.sqrt(
+    units.Hartree * units._e / (units._amu * (units.Bohr * 1e-10) ** 2)
+) / (2.0 * math.pi * units._c * 100.0)
+
+
+def internal_coordinate_value(positions, atoms):
+    """One internal coordinate: a length, or an angle in radians.
+
+    ``atoms`` are zero-based: two for a bond, three for an angle with its
+    vertex in the middle, four for a dihedral about the middle pair.
+    """
+
+    x = np.asarray(positions, dtype=float)
+    atoms = [int(index) for index in atoms]
+    if len(atoms) == 2:
+        return float(np.linalg.norm(x[atoms[0]] - x[atoms[1]]))
+    if len(atoms) == 3:
+        u = x[atoms[0]] - x[atoms[1]]
+        v = x[atoms[2]] - x[atoms[1]]
+        cosine = float(u @ v / (np.linalg.norm(u) * np.linalg.norm(v)))
+        return math.acos(max(-1.0, min(1.0, cosine)))
+    if len(atoms) == 4:
+        b0 = x[atoms[0]] - x[atoms[1]]
+        b1 = x[atoms[2]] - x[atoms[1]]
+        b2 = x[atoms[3]] - x[atoms[2]]
+        axis = b1 / np.linalg.norm(b1)
+        v = b0 - (b0 @ axis) * axis
+        w = b2 - (b2 @ axis) * axis
+        return math.atan2(float(np.cross(axis, v) @ w), float(v @ w))
+    raise ValueError(
+        "an internal coordinate names two, three or four atoms, not "
+        f"{len(atoms)}"
+    )
+
+
+def internal_coordinate_gradient(positions, atoms):
+    """The Cartesian gradient of one internal coordinate, shape (N, 3).
+
+    Its direction, mass-weighted, is the normal of the surface on which the
+    coordinate keeps its value, which is what a projection removes.  Units
+    follow ``positions``: dimensionless for a bond, radians per length for
+    an angle or a dihedral.  Refused where the coordinate has no direction
+    -- a linear angle, or a dihedral one of whose angles is linear.
+    """
+
+    x = np.asarray(positions, dtype=float)
+    atoms = [int(index) for index in atoms]
+    if len(set(atoms)) != len(atoms):
+        raise ValueError(f"atoms {atoms} name one atom twice")
+    gradient = np.zeros_like(x)
+    if len(atoms) == 2:
+        a, b = atoms
+        u = x[a] - x[b]
+        u = u / np.linalg.norm(u)
+        gradient[a] = u
+        gradient[b] = -u
+        return gradient
+    if len(atoms) == 3:
+        a, b, c = atoms
+        u = x[a] - x[b]
+        v = x[c] - x[b]
+        lu = float(np.linalg.norm(u))
+        lv = float(np.linalg.norm(v))
+        eu = u / lu
+        ev = v / lv
+        cosine = float(eu @ ev)
+        sine = math.sqrt(max(0.0, 1.0 - cosine * cosine))
+        if sine < 1e-6:
+            raise ValueError(
+                f"the angle {atoms} is linear and has no direction to hold"
+            )
+        gradient[a] = (cosine * eu - ev) / (lu * sine)
+        gradient[c] = (cosine * ev - eu) / (lv * sine)
+        gradient[b] = -(gradient[a] + gradient[c])
+        return gradient
+    if len(atoms) == 4:
+        a, b, c, d = atoms
+        f = x[a] - x[b]
+        g = x[b] - x[c]
+        h = x[d] - x[c]
+        first = np.cross(f, g)
+        second = np.cross(h, g)
+        a2 = float(first @ first)
+        b2 = float(second @ second)
+        lg = float(np.linalg.norm(g))
+        if a2 < 1e-12 * lg**4 or b2 < 1e-12 * lg**4:
+            raise ValueError(
+                f"the dihedral {atoms} has a linear angle and no direction "
+                "to hold"
+            )
+        fg = float(f @ g)
+        hg = float(h @ g)
+        gradient[a] = -lg / a2 * first
+        gradient[d] = lg / b2 * second
+        gradient[b] = (lg / a2 + fg / (a2 * lg)) * first - hg / (
+            b2 * lg
+        ) * second
+        gradient[c] = (
+            -(lg / b2 - hg / (b2 * lg)) * second - fg / (a2 * lg) * first
+        )
+        return gradient
+    raise ValueError(
+        "an internal coordinate names two, three or four atoms, not "
+        f"{len(atoms)}"
+    )
+
+
+def _translation_rotation_vectors(positions, masses):
+    """The six mass-weighted rigid motions (one may vanish for a linear rotor)."""
+
+    x = np.asarray(positions, dtype=float)
+    m = np.asarray(masses, dtype=float)
+    relative = x - (x * m[:, None]).sum(axis=0) / m.sum()
+    root = np.sqrt(m)
+    vectors = []
+    for axis in range(3):
+        translation = np.zeros_like(x)
+        translation[:, axis] = root
+        vectors.append(translation.ravel())
+    for axis in range(3):
+        unit = np.zeros(3)
+        unit[axis] = 1.0
+        vectors.append((np.cross(unit, relative) * root[:, None]).ravel())
+    return vectors
+
+
+@dataclass(frozen=True)
+class ProjectedSpectrumV1:
+    """What a projected harmonic analysis kept and what it removed.
+
+    ``frequencies_cm1`` ascending, an imaginary mode negative;
+    ``external`` the translations and rotations removed (6, or 5 for a
+    linear rotor); ``internal`` the held coordinates removed.
+    """
+
+    frequencies_cm1: tuple[float, ...]
+    external: int
+    internal: int
+    atoms: int
+
+    @property
+    def kept(self) -> int:
+        return len(self.frequencies_cm1)
+
+
+def projected_harmonic_frequencies(hessian, positions, masses, directions=()):
+    """Harmonic wavenumbers with rigid motions and ``directions`` removed.
+
+    ``hessian`` is the Cartesian Hessian in Eh/Bohr^2 (3N x 3N),
+    ``positions`` are in Bohr, ``masses`` in amu, and each direction is a
+    Cartesian (N x 3) vector -- the gradient of a coordinate held fixed.
+    Each direction is mass-weighted (M^-1/2 b, the normal of the surface on
+    which that coordinate is constant), the space it spans with the
+    translations and rotations is removed, and the mass-weighted Hessian is
+    diagonalised in what remains: (I - P) H (I - P), the projection of
+    Baboul and Schlegel (J. Chem. Phys. 107, 9413 (1997), Eq. 4) with a
+    held coordinate's normal where they take the reaction-path tangent.
+    With no direction this is the ordinary analysis every program prints.
+    """
+
+    x = np.asarray(positions, dtype=float)
+    atoms = x.shape[0]
+    h = np.asarray(hessian, dtype=float).reshape(3 * atoms, 3 * atoms)
+    h = 0.5 * (h + h.T)
+    inverse_root = 1.0 / np.sqrt(np.repeat(np.asarray(masses, float), 3))
+    weighted = h * np.outer(inverse_root, inverse_root)
+
+    def _independent(vectors):
+        kept = []
+        for vector in vectors:
+            norm = float(np.linalg.norm(vector))
+            if norm > 1e-8:
+                kept.append(vector / norm)
+        if not kept:
+            return np.zeros((3 * atoms, 0)), 0
+        basis, singular, _ = np.linalg.svd(
+            np.array(kept).T, full_matrices=True
+        )
+        rank = int((singular > 1e-6).sum())
+        return basis, rank
+
+    rigid = _translation_rotation_vectors(x, masses)
+    _basis, external = _independent(rigid)
+    held = [np.asarray(b, float).ravel() * inverse_root for b in directions]
+    basis, rank = _independent(rigid + held)
+    if rank != external + len(held):
+        raise ValueError(
+            "the held coordinates are not independent of each other and of "
+            "the rigid motions: removing them removes "
+            f"{rank - external} direction(s), not {len(held)}"
+        )
+    complement = basis[:, rank:]
+    eigenvalues = np.linalg.eigvalsh(complement.T @ weighted @ complement)
+    frequencies = tuple(
+        float(np.sign(value) * math.sqrt(abs(value)))
+        * HESSIAN_EIGENVALUE_TO_CM1
+        for value in eigenvalues
+    )
+    return ProjectedSpectrumV1(
+        frequencies_cm1=frequencies,
+        external=external,
+        internal=len(held),
+        atoms=atoms,
+    )
+
+
 class Thermochemistry:
     """Class for thermochemistry analysis using SI units.
 
@@ -276,8 +489,19 @@ class Thermochemistry:
         reaction_coordinate_mode=0,
         near_zero_frequency_tolerance_cm=None,
         rotational_mode="physical",
+        projected_frequencies=None,
         **kwargs,
     ):
+        # The kept modes of a projected analysis
+        # (:func:`projected_harmonic_frequencies`), in cm^-1, used in place
+        # of the program's printed spectrum: a held coordinate removed is
+        # a mode the partition functions never see, rather than a
+        # frequency to clean.
+        self.projected_frequencies = (
+            None
+            if projected_frequencies is None
+            else tuple(float(value) for value in projected_frequencies)
+        )
         self.filename = filename
         self.program = get_program_type_from_file(self.filename)
         if self.program == "orca":
@@ -642,6 +866,8 @@ class Thermochemistry:
             return None
         if not (self.rotational_mode == "physical" and self.is_linear_rotor):
             return None
+        if getattr(self, "projected_frequencies", None) is not None:
+            return None
         return _quasi_linear_padding(
             [
                 float(frequency) * float(self.frequency_scale_factor)
@@ -663,6 +889,9 @@ class Thermochemistry:
         single point and was refused as an unconverged optimisation (R10
         Q9 G1, CUHK Slurm 2150438).
         """
+        projected = getattr(self, "projected_frequencies", None)
+        if projected is not None:
+            return list(projected)
         if self.molecule.is_monoatomic:
             return []
         if self.program == "orca":
@@ -756,9 +985,18 @@ class Thermochemistry:
             for frequency in self.vibrational_frequencies
         ]
 
+        # A projected spectrum is already the set of modes the partition
+        # functions count: its held coordinates are gone, so nothing is
+        # padded and no mode is removed as a reaction coordinate below.
+        projected = getattr(self, "projected_frequencies", None) is not None
+
         # Quasi-linear correction: Gaussian gives 3N-6 frequencies for
         # non-linear molecules; pad to 3N-5 for linear treatment.
-        if self.rotational_mode == "physical" and self.is_linear_rotor:
+        if (
+            self.rotational_mode == "physical"
+            and self.is_linear_rotor
+            and not projected
+        ):
             lowest = _quasi_linear_padding(
                 frequencies, self.molecule.num_atoms
             )
@@ -813,7 +1051,9 @@ class Thermochemistry:
         # CUHK 2153623) carried ZPE 0.026027 Eh = its five real modes
         # plus 50 cm^-1, a free energy 0.43 kcal/mol below the same saddle
         # found by OptTS (Q24 g2r: dG(trans) -0.079 against 0.345).
-        if self.jobtype == "ts" or self.reaction_coordinate_mode:
+        if (
+            self.jobtype == "ts" or self.reaction_coordinate_mode
+        ) and not projected:
             # Valid TS: exactly one genuine imaginary frequency.
             # Remove it from thermochemistry.  Any remaining negative is
             # near-zero noise by construction -- a genuine second imaginary
