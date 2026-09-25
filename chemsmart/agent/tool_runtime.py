@@ -312,6 +312,7 @@ from chemsmart.analysis.result_quantities import (
     canonical_extraction_receipt_body,
     canonical_thermochemistry_quantity,
     make_quantity_value,
+    projected_coordinates_of,
     quantity_extraction_receipt_from_record,
     thermochemistry_receipt_from_record,
 )
@@ -8953,6 +8954,10 @@ class CommandCompiledToolHostV1:
             alpha=raw_node.get("alpha", 4),
             use_weighted_mass=raw_node.get("use_weighted_mass", False),
             frequency_scale_factor=raw_node.get("frequency_scale_factor", 1.0),
+            projected_coordinates=tuple(
+                tuple(item)
+                for item in raw_node.get("projected_coordinates", ()) or ()
+            ),
             validation_rules=tuple(
                 sorted(
                     (
@@ -10494,6 +10499,11 @@ class CommandCompiledToolHostV1:
                             rel_tol=0.0,
                             abs_tol=1.0e-12,
                         )
+                        # A free energy with held coordinates removed is
+                        # the free energy of another surface: it performs
+                        # only the node that asked for those coordinates.
+                        or projected_coordinates_of(receipt.assumptions)
+                        != tuple(getattr(node, "projected_coordinates", ()))
                     ):
                         continue
                     quantities = {
@@ -14185,6 +14195,19 @@ class CommandCompiledToolHostV1:
                     f"{standard_state} | {entropy_model} | "
                     f"`{node.frequency_scale_factor:g}` |"
                 )
+            # A stage that removes held coordinates derives the free energy
+            # of another surface than a stationary point's, which the
+            # reviewer must see beside the conditions it will be read under.
+            for node in conditions:
+                projected = tuple(getattr(node, "projected_coordinates", ()))
+                if projected:
+                    lines.append(
+                        f"- `{node.node_id}` removes the held coordinate(s) "
+                        f"{[list(item) for item in projected]} (one-based "
+                        "atoms) from the Hessian: the free energy of the "
+                        "surface they are held on, 3N-6 less one mode per "
+                        "coordinate, which the receipt states"
+                    )
         constant_names: list[str] = []
         for node in toolchain.analysis_nodes:
             if node.analysis_kind != "quantity_expression":
@@ -19038,6 +19061,10 @@ class CommandCompiledToolHostV1:
                 ),
                 frequency_scale_factor=float(
                     values.get("frequency_scale_factor", 1.0)
+                ),
+                projected_coordinates=tuple(
+                    tuple(item)
+                    for item in values.get("projected_coordinates", ()) or ()
                 ),
             )
         except ValueError as exc:

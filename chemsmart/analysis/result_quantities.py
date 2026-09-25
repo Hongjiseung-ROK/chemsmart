@@ -2327,6 +2327,27 @@ def geometry_of_selector(
 #: five decimals), PySCF's ``results/hessian`` 0.0000.
 HESSIAN_REPRODUCTION_TOLERANCE_CM1 = 0.5
 
+#: The one line of a receipt's ``assumptions`` that names the coordinates a
+#: derivation projected, in the canonical form ``projected_coordinates``
+#: normalises to.  Written by ``_held_coordinate_projection`` and read back
+#: by ``projected_coordinates_of``, the only two places that know it.
+PROJECTED_COORDINATES_STATEMENT = "projected coordinates (one-based atoms): "
+
+
+def projected_coordinates_of(
+    assumptions: Sequence[str],
+) -> tuple[tuple[int, ...], ...]:
+    """The coordinates a thermochemistry receipt projected; () if none."""
+
+    for line in assumptions or ():
+        text = str(line)
+        if text.startswith(PROJECTED_COORDINATES_STATEMENT):
+            return normalized_projected_coordinates(
+                json.loads(text[len(PROJECTED_COORDINATES_STATEMENT) :])
+            )
+    return ()
+
+
 #: What a held coordinate is called in a sentence, by atom count.
 _COORDINATE_UNITS = {
     2: ("bond", "A"),
@@ -2693,7 +2714,15 @@ def _held_coordinate_projection(
     )
     return _HeldCoordinateProjection(
         frequencies_cm1=tuple(spectrum.frequencies_cm1),
-        statements=(projection, kind, source, surface, rotor),
+        statements=(
+            PROJECTED_COORDINATES_STATEMENT
+            + json.dumps([list(item) for item in named]),
+            projection,
+            kind,
+            source,
+            surface,
+            rotor,
+        ),
     )
 
 

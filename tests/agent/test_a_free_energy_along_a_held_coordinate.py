@@ -249,12 +249,216 @@ def test_gaussian_measures_the_held_surface_from_its_own_gradient():
     """A Gaussian Freq archive carries the gradient at the structure.
 
     So the host measures what is left of it once the held torsion is
-    removed, instead of taking the optimiser's word -- and the free energy
-    agrees with ORCA's to within the two programs' different numerics and
-    dispersion (Gaussian's run has none).
+    removed, instead of taking the optimiser's word for it.
     """
 
     projected = _derive("gaussian-held-90", projected_coordinates=HOOH)
     said = " ".join(projected.assumptions)
     assert "the gradient left after removing the held coordinates" in said
     assert "5 of 6 vibrational modes kept" in said
+
+
+def test_a_session_asks_for_it_through_the_tool(tmp_path):
+    """The live tool reaches the projection, and its event says so."""
+
+    import json
+
+    host = _host(tmp_path)
+    receipt = host._derive_thermochemistry(
+        "turn-1",
+        {
+            "program": "orca",
+            "artifact_id": "orca-held-90",
+            "temperature_k": 298.15,
+            "pressure_atm": 1.0,
+            "projected_coordinates": [[3, 1, 2, 4]],
+        },
+    )
+    assert any(
+        "5 of 6 vibrational modes kept" in line for line in receipt.assumptions
+    )
+    recorded = [
+        json.loads(line)
+        for line in (tmp_path / "events.jsonl").read_text().splitlines()
+    ]
+    derived = [
+        event
+        for event in recorded
+        if "thermochemistry_derived" in json.dumps(event)[:400]
+    ]
+    assert derived
+    assert "projected coordinates (one-based atoms): [[3, 1, 2, 4]]" in (
+        json.dumps(derived[-1])
+    )
+
+
+def test_an_approved_chain_carries_it_to_the_executor(tmp_path):
+    """Planned, normalised into the approved DAG, forwarded, derived.
+
+    A thermochemistry stage planned over a held (modred) result with the
+    held coordinate named keeps it through the toolchain the review is
+    built from, and the provider-free executor's own walk derives the
+    projected free energy -- a node that forgot the field would be
+    refused at a structure that is not a stationary point.
+    """
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent._contracts import file_sha256
+    from chemsmart.agent.executor import ApprovedWorkflowExecutor
+    from chemsmart.agent.runtime.event_store import RuntimeEventStore
+    from chemsmart.agent.scientific_toolchain import (
+        AnalysisInputIntentV1,
+        AnalysisNodeIntentV1,
+        AnalysisOutputIntentV1,
+        build_scientific_toolchain_plan,
+    )
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+    from chemsmart.agent.workflows import (
+        ArtifactInputIntentV1,
+        ArtifactOutputIntentV1,
+        CommandNodeIntentV1,
+    )
+
+    calculation = CommandNodeIntentV1(
+        node_id="held90",
+        program="orca",
+        jobtype="modred",
+        project_role="r",
+        dependencies=(),
+        inputs=(
+            ArtifactInputIntentV1(
+                binding_id="geometry",
+                artifact_class="geometry_xyz",
+                artifact_id="start",
+                producer_node_id="",
+                producer_output_id="",
+            ),
+        ),
+        expected_outputs=(
+            ArtifactOutputIntentV1(
+                output_id="held90-out", artifact_class="orca_output"
+            ),
+        ),
+        unresolved_fields=(),
+    )
+
+    def _node(node_id, kind, **fields):
+        base = dict(
+            node_id=node_id,
+            analysis_kind=kind,
+            dependencies=(),
+            inputs=(),
+            selectors=(),
+            outputs=(),
+            expression_nodes=(),
+            expression_output_node_ids=(),
+            temperature_k=None,
+            pressure_atm=None,
+            support_state="planned",
+            blocked_reason="",
+        )
+        base.update(fields)
+        return AnalysisNodeIntentV1(**base)
+
+    thermo = _node(
+        "g-held90",
+        "thermochemistry",
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="result",
+                source_kind="program_output",
+                producer_node_id="held90",
+                producer_output_id="held90-out",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="g90",
+                quantity_kind="gibbs_free_energy",
+                unit="hartree",
+            ),
+        ),
+        temperature_k=298.15,
+        pressure_atm=1.0,
+        projected_coordinates=[[4, 2, 1, 3]],
+    )
+    claims = _node(
+        "claims",
+        "claim_rendering",
+        dependencies=("g-held90",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="g90",
+                source_kind="analysis_output",
+                producer_node_id="g-held90",
+                producer_output_id="g90",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="g90",
+                quantity_kind="gibbs_free_energy",
+                unit="hartree",
+            ),
+        ),
+    )
+    toolchain = build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(calculation,),
+        calculation_observables={"held90": ("held90-out",)},
+        analysis_nodes=(thermo, claims),
+        required_output_ids=("g90",),
+    )
+    planned = {node.node_id: node for node in toolchain.analysis_nodes}
+    # The reverse of a dihedral is the same dihedral, written canonically.
+    assert planned["g-held90"].projected_coordinates == ((3, 1, 2, 4),)
+
+    path = RESULTS["orca-held-90"][1].resolve()
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "events.jsonl", session_id="x"
+        ),
+        task_spec_sha256s=("a" * 64,),
+        approved_workspace=tmp_path / "workspace",
+        approved_scientific_toolchain_plan=toolchain,
+    )
+    host.artifacts["result.held90.1"] = TrustedArtifactRefV1(
+        artifact_id="result.held90.1",
+        kind="orca_output",
+        sha256=file_sha256(path),
+        size_bytes=path.stat().st_size,
+        path=str(path),
+        cli_value=str(path),
+    )
+    host.execution_receipts["held90"] = SimpleNamespace(validated=True)
+    run_directory = tmp_path / "run"
+    run_directory.mkdir()
+    executor = ApprovedWorkflowExecutor(
+        host=host,
+        plan=SimpleNamespace(
+            workflow_id="w",
+            plan_sha256="b" * 64,
+            nodes=(SimpleNamespace(node_id="held90", program="orca"),),
+        ),
+        approval=SimpleNamespace(node_bindings=()),
+        frozen_approval=SimpleNamespace(approval_sha256="c" * 64),
+        initial_artifacts={},
+        project_artifacts=(),
+        task_spec_sha256="a" * 64,
+        run_directory=run_directory,
+        execution_bundle=SimpleNamespace(non_executable_node_ids=()),
+        approval_workspace=tmp_path / "workspace",
+        claim_workspace_bundle=False,
+    )
+    nodes, status, _completions, _report = executor._run_analysis_phase(
+        toolchain
+    )
+    states = {node.node_id: node.state for node in nodes}
+    assert states["g-held90"] == "executed", nodes
+    (receipt,) = host.thermochemistry_receipts.values()
+    assert any(
+        "5 of 6 vibrational modes kept" in line for line in receipt.assumptions
+    )

@@ -1617,6 +1617,27 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
             ),
         ),
     ),
+    _r(
+        "thermochemistry.a_held_coordinate_is_projected_by_name",
+        "tool:derive_thermochemistry",
+        "T1",
+        "A structure a modred held is not a stationary point, and its free "
+        "energy as one is refused. Its free energy as a point of a profile "
+        "along the held coordinate is a different request: name that "
+        "coordinate in projected_coordinates, and the host removes it from "
+        "the Hessian and keeps 3N-7 modes -- at a saddle whose imaginary "
+        "mode is that coordinate, exactly the transition-state free energy. "
+        "Differenced against a stationary point that keeps all 3N-6 modes, "
+        "the result is a free energy of activation's convention; against "
+        "the minimum with the same coordinate removed too, a profile's. Say "
+        "which you deliver: the receipt states the coordinate, the modes "
+        "kept and the rotor treatment.",
+        "R10 Q27: Q21's goals on H2O2 held at 0/90/180 deg (CUHK 2153623, "
+        "2153668) met the stationary-point refusal with no route; on their "
+        "archived ORCA results G(held 0/180) - G(saddle) = +0.0014/-0.0004 "
+        "kcal/mol and G(held 90) - G(eq) = 0.346 (activation convention) "
+        "or 0.672 kcal/mol (profile convention)",
+    ),
     # R10 Q2 one name, one physics: end
     # R10 Q3 knowledge: append rules below this line
     _r(
