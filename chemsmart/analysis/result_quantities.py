@@ -2661,7 +2661,9 @@ def _held_coordinate_projection(
     else:
         surface = (
             f"{stationarity.sentence()}; the named coordinates are removed "
-            "at that point, the reference of a profile along them"
+            "at that stationary point (a minimum's value is a profile's "
+            "reference, a saddle's is its transition-state free energy when "
+            "its imaginary mode is the removed coordinate)"
         )
     spectrum = projected_harmonic_frequencies(
         record.hessian, record.positions_bohr, record.masses_amu, directions
