@@ -165,4 +165,10 @@ of deepseek-v4-flash-0731.
   (scientific_toolchain.py normalised AnalysisNodeIntentV1 rebuild); even
   forwarded, the runtime admits it only over a characterisation minted in
   the same session, which an executor walk never has.
-- step 3: oracle O1 and live goal g1 pre-registered above; packing next.
+- step 3: oracle O1 and live goal g1 pre-registered above.
+- step 4 (issued): code 83b9bfbd packed (426 files, tree digest
+  2f50f12e77c52d0c..., 0 AppleDouble), unpacked at r10/q27/code.
+  O1 = CUHK Slurm 2153713 (slot a, 10 CLI calculations, 8 cores / 24 GB);
+  g1 = CUHK Slurm 2153714 (slot b, TASK.md 622f1f43..., h2o2.xyz
+  d59a387b..., workspace holds h2o2.xyz only). Both submitted by
+  slot_submit with pre-registration digest 1d235efdeb8b.
