@@ -322,4 +322,15 @@ b96e63ee (Q28's native-word refusals, Q29's tool-argument repairs) at
   wraps, the half-turn refusal whose gate id 76acb0fb registered) and on
   76acb0fb (the archive wraps), green after.
 - Waiting on: g1 2153889 (running), g2 2153890 (queued), O1 ORCA 2153801
-  (running; its methanol and ethane scans give P2/P3 for ORCA).
+  (running; its methanol and ethane scans give P2/P3 for ORCA). -- all three
+  ended; read above.
+- Final gates: r10-integration 3f3331c0 (Q20, Q28, Q29 repairs) merged at
+  5ccb8ee0 with no conflict. Pristine export of 5ccb8ee0: full suite 23
+  failed, 4837 passed, 25 skipped, 3 xfailed; the failing set equals the round
+  baseline, none under tests/agent; ruff, black --check, isort --check clean
+  on the 12 Python files the episode touched; rsl.py check 0 failures. Every
+  later commit changes EPISODE.md only.
+
+## Status: ended -- milestone A claimed (a host capability validated
+against experiment); its live Agent use was not observed (g1 F-agent, g2
+Partial).
