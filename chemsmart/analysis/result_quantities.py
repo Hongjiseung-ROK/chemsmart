@@ -2066,13 +2066,24 @@ class StructureStationarityV1:
     property of a point where the gradient vanishes: the partition
     function expands the energy about it and counts every remaining
     motion as a vibration about it.  The answer is read from the result
-    through its reader, in this order, because a measurement outranks a
-    label: one atom has no internal coordinate; a gradient the reader
-    binds to the structure the modes belong to is compared with the
-    optimiser's own criterion; a coordinate the result held or drove is
-    not relaxed; a geometry search is as converged as the program's own
-    marker says; and a result handed its geometry, with no gradient
-    bound to it, is ``unmeasured`` -- neither shown nor refuted.
+    through its reader, in this order: one atom has no internal
+    coordinate; a coordinate the result held, an atom it froze in space,
+    or a coordinate it drove is not relaxed; a geometry search that printed
+    its own non-convergence did not reach a stationary point; the
+    program's own convergence check at the structure the modes belong to
+    judges it by the criterion it was converged with, in the program's own
+    coordinates (``check``); a gradient the reader binds to that structure,
+    where no program judged it, is compared with the host's criterion; a
+    search's own convergence marker; and a result handed its geometry,
+    with none of these, is ``unmeasured`` -- neither shown nor refuted.
+
+    A measurement outranks a label, and a criterion belongs to the
+    coordinates it was applied in: Gaussian and ORCA converge forces on
+    redundant internal coordinates, xTB the norm of the Cartesian
+    gradient, geomeTRIC each Cartesian component, and a structure one of
+    them converged can sit above another's threshold (R10 Q33: an xTB
+    ``--opt loose`` result, gradient norm 1.2e-3 under its 4e-3, was called
+    not stationary by its largest component against geomeTRIC's 4.5e-4).
     """
 
     stationarity: str
@@ -2083,6 +2094,8 @@ class StructureStationarityV1:
     criterion_eh_per_bohr: float | None = None
     held_coordinates: int = 0
     driven_points: int = 0
+    frozen_atoms: int = 0
+    check: Any = None
 
     def __post_init__(self) -> None:
         if self.stationarity not in STATIONARITY_WORDS:
@@ -2093,9 +2106,44 @@ class StructureStationarityV1:
     def sentence(self) -> str:
         """What the structure is and what says so, in one clause."""
 
+        from chemsmart.agent.terminal_states import GEOMETRY_SEARCH_JOBTYPES
+
         job = f"{self.program} {self.jobtype}".strip()
+        noun = (
+            "search" if self.jobtype in GEOMETRY_SEARCH_JOBTYPES else "result"
+        )
         if self.basis == "atom":
             return "stationary point: one atom has no internal coordinate"
+        if self.basis == "program_check":
+            check = self.check
+            stationary = self.stationarity == "stationary"
+            others = check.words(force_rows=False)
+            measured = (
+                "; the largest Cartesian gradient component the host reads "
+                f"there is {self.max_abs_gradient_eh_per_bohr:.3g} Eh/Bohr, "
+                "a number on other coordinates than this criterion's"
+                if self.max_abs_gradient_eh_per_bohr is not None
+                else ""
+            )
+            return (
+                (
+                    "stationary point"
+                    if stationary
+                    else "not a stationary point"
+                )
+                + f": the {job} {noun}'s own convergence check at this "
+                f"structure ({check.source}; {check.criterion}) gives "
+                f"{check.words()}"
+                + (f"; {check.verdict()}" if check.verdict() else "")
+                + (f"; its other criteria: {others}" if others else "")
+                + (
+                    "; its predicted energy change "
+                    f"{check.predicted_energy_change_eh:.2g} Eh"
+                    if check.predicted_energy_change_eh is not None
+                    else ""
+                )
+                + measured
+            )
         if self.basis == "measured_gradient":
             relation = (
                 "at or below" if self.stationarity == "stationary" else "above"
@@ -2110,15 +2158,30 @@ class StructureStationarityV1:
                 "result's structure is "
                 f"{self.max_abs_gradient_eh_per_bohr:.3g} Eh/Bohr, "
                 f"{relation} the optimiser's criterion of "
-                f"{self.criterion_eh_per_bohr:g} (geomeTRIC convergence_gmax)"
+                f"{self.criterion_eh_per_bohr:g} (geomeTRIC convergence_gmax"
+                + (
+                    ", which PySCF's optimiser applies"
+                    if self.program == "pyscf"
+                    else ", the host's criterion where no optimiser judged "
+                    "this structure"
+                )
+                + ")"
             )
         if self.basis == "held_coordinate":
+            held = []
+            if self.held_coordinates:
+                held.append(
+                    f"{self.held_coordinates} internal coordinate(s) fixed"
+                )
+            if self.frozen_atoms:
+                held.append(f"{self.frozen_atoms} atom(s) fixed in space")
             return (
                 f"not a stationary point: this {job} result held "
-                f"{self.held_coordinates} internal coordinate(s) fixed while "
-                "the rest relaxed, so the energy still slopes along the "
-                "held motion and its modes count that motion as a "
+                + " and ".join(held)
+                + " while the rest relaxed, so the energy still slopes along "
+                "the held motion and its modes count that motion as a "
                 "vibration"
+                + (" or leave the held atoms out" if self.frozen_atoms else "")
             )
         if self.basis == "driven_coordinate":
             return (
@@ -2138,6 +2201,15 @@ class StructureStationarityV1:
                 f"stationary point: the {job} search printed the "
                 "program's own convergence marker, and its modes belong to "
                 "the structure it reached"
+            )
+        if self.basis == "search_unjudged":
+            return (
+                f"stationarity unmeasured: this {job} search ended before "
+                "its program judged any structure (it printed no "
+                "convergence check and no verdict), so nothing shows or "
+                "refutes that the geometry it stopped at is a stationary "
+                "point of this surface; a free energy describes a state "
+                "only if it is one"
             )
         return (
             f"stationarity unmeasured: this {job} result was handed its "
@@ -2174,10 +2246,12 @@ def structure_stationarity(
     characterisation refuses an order on.
 
     Every fact is read through the program's reader: the structure's
-    atoms, the gradient bound to one structure
-    (``stationarity_gradient_for_output``), a held or driven coordinate
-    (``constrained_coordinate_count``, ``scan_steps_planned``), and a
-    geometry search's own convergence marker (``converged``).
+    atoms, a held, frozen or driven coordinate
+    (``constrained_coordinate_count``, ``frozen_atoms_for_output``,
+    ``scan_steps_planned``), a geometry search's own convergence marker
+    (``converged``), the program's own convergence check at the structure
+    (``convergence_check_for_output``) and the gradient the reader binds
+    to that structure (``stationarity_gradient_for_output``).
     """
 
     from chemsmart.agent.terminal_states import (
@@ -2200,23 +2274,20 @@ def structure_stationarity(
             stationarity="stationary", basis="atom", **common
         )
     gradient = reader.stationarity_gradient_for_output(output)
-    if gradient is not None:
-        criterion = float(HESS_STATIONARITY_GRADIENT_EH_PER_BOHR)
-        return StructureStationarityV1(
-            stationarity=(
-                "stationary" if gradient <= criterion else "not_stationary"
-            ),
-            basis="measured_gradient",
-            max_abs_gradient_eh_per_bohr=float(f"{gradient:.6g}"),
-            criterion_eh_per_bohr=criterion,
-            **common,
-        )
+    measured = float(f"{gradient:.6g}") if gradient is not None else None
     held = _reader_answer(reader, output, "constrained_coordinate_count")
-    if held:
+    frozen = reader.frozen_atoms_for_output(output) or ()
+    if held or frozen:
+        # What a result held it was not relaxed along, whatever its
+        # program's check on the rest says: that check is taken on the
+        # surface the held coordinates define (Gaussian leaves a frozen
+        # coordinate out of its forces and prints a zero force on a frozen
+        # atom), so it cannot show the structure stationary on the full one.
         return StructureStationarityV1(
             stationarity="not_stationary",
             basis="held_coordinate",
-            held_coordinates=int(held),
+            held_coordinates=int(held or 0),
+            frozen_atoms=len(frozen),
             **common,
         )
     driven = _reader_answer(reader, output, "scan_steps_planned")
@@ -2227,6 +2298,7 @@ def structure_stationarity(
             driven_points=int(driven),
             **common,
         )
+    converged = None
     if jobtype in GEOMETRY_SEARCH_JOBTYPES:
         converged = _reader_answer(reader, output, "converged")
         if converged is None and "converged" not in reader.accessors:
@@ -2234,17 +2306,49 @@ def structure_stationarity(
             # names the parser's own marker for the host's sensors.
             converged = getattr(output, "converged", None)
         if converged is not None and not bool(converged):
+            # The search's own verdict outranks its last check: an ORCA
+            # OptTS that ran out of cycles printed gradient rows within
+            # tolerance at its last step and its modes where its Hessian
+            # was taken, 1.23 A away (po3-r19).
             return StructureStationarityV1(
                 stationarity="not_stationary",
                 basis="search_not_converged",
                 **common,
             )
-        if converged is not None:
-            return StructureStationarityV1(
-                stationarity="stationary",
-                basis="search_converged",
-                **common,
-            )
+    check = reader.convergence_check_for_output(output)
+    if check is not None and (
+        jobtype in GEOMETRY_SEARCH_JOBTYPES or check.at_modes
+    ):
+        return StructureStationarityV1(
+            stationarity=(
+                "stationary" if check.stationary else "not_stationary"
+            ),
+            basis="program_check",
+            check=check,
+            max_abs_gradient_eh_per_bohr=measured,
+            **common,
+        )
+    if measured is not None:
+        criterion = float(HESS_STATIONARITY_GRADIENT_EH_PER_BOHR)
+        return StructureStationarityV1(
+            stationarity=(
+                "stationary" if measured <= criterion else "not_stationary"
+            ),
+            basis="measured_gradient",
+            max_abs_gradient_eh_per_bohr=measured,
+            criterion_eh_per_bohr=criterion,
+            **common,
+        )
+    if converged is not None:
+        return StructureStationarityV1(
+            stationarity="stationary",
+            basis="search_converged",
+            **common,
+        )
+    if jobtype in GEOMETRY_SEARCH_JOBTYPES:
+        return StructureStationarityV1(
+            stationarity="unmeasured", basis="search_unjudged", **common
+        )
     return StructureStationarityV1(
         stationarity="unmeasured", basis="fixed_geometry", **common
     )
@@ -2619,6 +2723,130 @@ class _HeldCoordinateProjection:
     statements: tuple[str, ...]
 
 
+def _torsion_rigid_turn(
+    record: Any, atoms: Sequence[int], normal: Any
+) -> dict[str, Any] | None:
+    """The rigid turn a named dihedral stands for, where its normal is not.
+
+    ``atoms`` is the one-based dihedral a-b-c-d and ``normal`` its
+    Cartesian gradient.  None unless the dihedral turns a group about a
+    bond outside any ring (``internal_rotor_tops``) and an end of that
+    bond carries more than one atom off its axis: only then is the
+    normal, which moves a and d alone, not the turn of the group.  The
+    turn is the one ``_internal_rotor_treatment`` removes (the top's
+    displacement per radian times the masses, so that its mass-weighted
+    form is the top's mass-weighted turn).  Where the result records its
+    gradient, the turn's surface is measured too: the gradient left once
+    the turn and the rigid motions are removed, and the energy the host's
+    own Hessian predicts the structure would still lose relaxing on that
+    surface -- the strain one held dihedral leaves in the group it turns.
+    """
+
+    import numpy as np
+
+    from chemsmart.analysis.thermochemistry import (
+        ROTOR_AXIS_OFFSET_ANGSTROM,
+        _rigid_motion_basis,
+        internal_rotation_displacement,
+        internal_rotor_tops,
+    )
+
+    if len(atoms) != 4:
+        return None
+    b, c = int(atoms[1]) - 1, int(atoms[2]) - 1
+    x = np.asarray(record.positions_bohr, dtype=float)
+    masses = np.asarray(record.masses_amu, dtype=float)
+    symbols = [str(item) for item in record.symbols]
+    angstrom = x * _BOHR_ANGSTROM
+    try:
+        tops = internal_rotor_tops(symbols, angstrom, (b, c))
+    except ValueError:
+        return None
+    axis = angstrom[c] - angstrom[b]
+    axis = axis / np.linalg.norm(axis)
+
+    def off_axis(group: Sequence[int], pivot: int) -> int:
+        count = 0
+        for index in group:
+            if index == pivot:
+                continue
+            relative = angstrom[index] - angstrom[pivot]
+            radial = relative - (relative @ axis) * axis
+            if float(np.linalg.norm(radial)) > ROTOR_AXIS_OFFSET_ANGSTROM:
+                count += 1
+        return count
+
+    if max(off_axis(tops.top, c), off_axis(tops.frame, b)) < 2:
+        return None
+    turn = internal_rotation_displacement(x, (b, c), tops.top)
+    rigid = _rigid_motion_basis(x, masses)
+    root = np.sqrt(np.repeat(masses, 3))
+
+    def unit(vector: Any) -> Any:
+        vector = np.asarray(vector, dtype=float).ravel()
+        vector = vector - rigid @ (rigid.T @ vector)
+        return vector / np.linalg.norm(vector)
+
+    along = unit(np.asarray(normal, dtype=float).ravel() / root)
+    rotation = unit(turn.ravel() * root)
+    found = {
+        "direction": turn * masses[:, None],
+        "overlap": float((along @ rotation) ** 2),
+        "top": tuple(int(index) + 1 for index in tops.top),
+        "bond": (
+            f"{symbols[min(b, c)]}{min(b, c) + 1}-"
+            f"{symbols[max(b, c)]}{max(b, c) + 1}"
+        ),
+        "off_axis": max(off_axis(tops.top, c), off_axis(tops.frame, b)),
+        "residual_eh_per_bohr": None,
+        "relaxation_eh": None,
+    }
+    if record.gradient is not None:
+        size = 3 * x.shape[0]
+        basis, _ = np.linalg.qr(np.column_stack([rigid, rotation]))
+        projector = np.eye(size) - basis @ basis.T
+        g_mw = np.asarray(record.gradient, dtype=float).ravel() / root
+        left = projector @ g_mw
+        hessian = np.asarray(record.hessian, dtype=float).reshape(size, size)
+        weighted = 0.5 * (hessian + hessian.T) / np.outer(root, root)
+        values, vectors = np.linalg.eigh(projector @ weighted @ projector)
+        kept = np.abs(values) > 1e-6
+        coefficients = vectors[:, kept].T @ left
+        found["residual_eh_per_bohr"] = float(np.max(np.abs(left * root)))
+        found["relaxation_eh"] = float(
+            -0.5 * np.sum(coefficients**2 / np.abs(values[kept]))
+        )
+    return found
+
+
+def _rigid_turn_statement(
+    atoms: Sequence[int], turn: Mapping[str, Any], record: Any
+) -> str:
+    """One receipt clause for a dihedral removed as its group's rigid turn."""
+
+    label = "-".join(f"{record.symbols[index - 1]}{index}" for index in atoms)
+    strain = (
+        "; on the surface where that turn is held the structure's "
+        "gradient left is at most "
+        f"{turn['residual_eh_per_bohr']:.2g} Eh/Bohr and the host's Hessian "
+        f"predicts a relaxation of {turn['relaxation_eh'] * 627.509474:.2g} "
+        "kcal/mol there: the strain one held dihedral leaves in the group "
+        "it turns"
+        if turn["residual_eh_per_bohr"] is not None
+        else "; how far the structure is from stationary on the surface "
+        "where that turn is held is unmeasured, since this result records "
+        "no gradient at the structure"
+    )
+    return (
+        f"dihedral {label} turns a group with {turn['off_axis']} atoms off "
+        f"the {turn['bond']} bond (one-based atoms {list(turn['top'])}), so "
+        f"its normal is only {turn['overlap']:.0%} that group's rigid turn "
+        "and moves one atom against the others; the group's rigid turn "
+        f"about {turn['bond']} -- the direction internal_rotors removes for "
+        "this torsion -- is removed in its place" + strain
+    )
+
+
 def _projection_refusal(artifact_id: str, diagnosis: str) -> Exception:
     return QuantityExtractionError(
         "[thermochemistry.free_energy_needs_a_stationary_point] A free "
@@ -2764,43 +2992,65 @@ def _held_coordinate_projection(
         for item in named
     ]
     criterion = float(HESS_STATIONARITY_GRADIENT_EH_PER_BOHR)
+    measured = None
     if record.gradient is not None:
         basis = np.array([direction.ravel() for direction in directions]).T
         gradient = np.asarray(record.gradient, dtype=float).ravel()
         slopes, *_ = np.linalg.lstsq(basis, gradient, rcond=None)
         residual = float(np.max(np.abs(gradient - basis @ slopes)))
-        if residual > criterion:
-            raise _projection_refusal(
-                artifact_id,
-                "the gradient left at this structure after the named "
-                f"coordinates are removed is {residual:.3g} Eh/Bohr, above "
-                f"the optimiser's criterion {criterion:g}, so the structure "
-                "is not a stationary point of their surface. Route: hold "
-                "those coordinates in a constrained optimisation (modred) "
-                "and derive on its converged result.",
-            )
         slope_words = "; ".join(
             f"dE/d({word.split(' at ')[0]}) = {slope:.3g} Eh per "
             + ("Bohr" if len(item) == 2 else "radian")
             for word, item, slope in zip(words, named, slopes)
         )
-        surface = (
-            "a stationary point of the held surface: the gradient left "
-            f"after removing the held coordinates is at most {residual:.2g} "
-            f"Eh/Bohr, at or below the optimiser's criterion {criterion:g}; "
-            f"the energy slopes along them ({slope_words}), which the "
-            "projection removes"
+        measured = (
+            "the gradient left after removing the held coordinates is at "
+            f"most {residual:.2g} Eh/Bohr in Cartesian components; the energy "
+            f"slopes along them ({slope_words}), which the projection removes"
         )
-    elif held:
-        converged = _reader_answer(reader, output, "converged")
-        if converged is not None and not bool(converged):
+    # The program that held the coordinates judged the rest of the
+    # structure by its own criterion, on the surface it held: Gaussian
+    # leaves a frozen coordinate out of its forces, ORCA projects its
+    # constraints out of its gradient.  That check, not a Cartesian
+    # threshold from another optimiser, says whether the structure is
+    # stationary there: a Gaussian-converged methanol held at 115 deg (max
+    # internal force 4.3e-4 of 4.5e-4) was refused at a Cartesian residual
+    # of 7.5e-4 against geomeTRIC's 4.5e-4, while the host's own Hessian
+    # predicts it lies 1e-6 Eh from the held surface's stationary point
+    # (R10 Q30 oracle O1; R10 Q33).
+    check = reader.convergence_check_for_output(output) if held else None
+    converged = _reader_answer(reader, output, "converged") if held else None
+    if held and converged is not None and not bool(converged):
+        raise _projection_refusal(
+            artifact_id,
+            f"this {job} search printed the program's own marker that "
+            "it did not converge, so the structure is not a stationary "
+            "point even of the surface it held. Route: continue the "
+            "constrained search from the structure it reached.",
+        )
+    if check is not None:
+        if not check.stationary:
             raise _projection_refusal(
                 artifact_id,
-                f"this {job} search printed the program's own marker that "
-                "it did not converge, so the structure is not a stationary "
-                "point even of the surface it held. Route: continue the "
-                "constrained search from the structure it reached.",
+                f"the {job} search that held these coordinates judged the "
+                f"rest of the structure with its own check ({check.source}; "
+                f"{check.criterion}) and it gives {check.words()}"
+                + (f"; {check.verdict()}" if check.verdict() else "")
+                + ", so the structure is not a stationary point even of the "
+                "surface it held. Route: continue the constrained search "
+                "from the structure it reached.",
             )
+        surface = (
+            "a stationary point of the held surface by the check of the "
+            f"program that held it: the {job} search's own convergence "
+            f"check ({check.source}; {check.criterion}) gives "
+            f"{check.words()}"
+            + (f"; {check.verdict()}" if check.verdict() else "")
+            + (f"; {measured}" if measured else "")
+            + "; not a stationary point of the full surface, whose slope "
+            "along the held coordinates the projection removes"
+        )
+    elif held and measured is None:
         surface = (
             "a stationary point of the held surface: the "
             f"{job} search that held these coordinates "
@@ -2811,6 +3061,37 @@ def _held_coordinate_projection(
             )
             + "; not a stationary point of the full surface, whose slope "
             "along the held coordinates the projection removes"
+        )
+    elif not held and stationarity.stationarity == "stationary":
+        # Stationary on the full surface by whatever judged it -- the
+        # program's own check, or a gradient the host measured -- is
+        # stationary on any surface through the structure: removing a
+        # direction only removes gradient.  A Cartesian threshold from
+        # another optimiser is not asked again here (R10 Q33: Gaussian's
+        # converged ethane, largest Cartesian component 8.1e-4, was refused
+        # the torsion's removal at its own minimum).
+        surface = (
+            f"{stationarity.sentence()}; the named coordinates are removed "
+            "at that stationary point (a minimum's value is a profile's "
+            "reference, a saddle's is its transition-state free energy when "
+            "its imaginary mode is the removed coordinate)"
+            + (f"; {measured}" if measured else "")
+        )
+    elif measured is not None:
+        if residual > criterion:
+            raise _projection_refusal(
+                artifact_id,
+                "the gradient left at this structure after the named "
+                f"coordinates are removed is {residual:.3g} Eh/Bohr, above "
+                f"the optimiser's criterion {criterion:g}, so the structure "
+                "is not a stationary point of their surface. Route: hold "
+                "those coordinates in a constrained optimisation (modred) "
+                "and derive on its converged result.",
+            )
+        surface = (
+            f"a stationary point of the held surface: {measured}, at or "
+            f"below the optimiser's criterion {criterion:g} (geomeTRIC "
+            "convergence_gmax)"
         )
     elif stationarity.stationarity == "not_stationary":
         raise _projection_refusal(
@@ -2827,8 +3108,21 @@ def _held_coordinate_projection(
             "reference, a saddle's is its transition-state free energy when "
             "its imaginary mode is the removed coordinate)"
         )
+    # A dihedral stands for the turn of the group it rotates.  Where that
+    # group has one atom off the bond (H2O2's hydrogens) the dihedral's
+    # normal is the group's rigid turn; where it has more, the normal moves
+    # one of them against the rest, and removing it removes part of a rock
+    # and keeps part of the turn (R10 Q30: ethane's CH3 rock 999.6 -> 723.5
+    # cm^-1).  There the group's rigid turn -- the direction
+    # ``internal_rotors`` removes for the same torsion -- is removed instead.
+    removed, turns = [], []
+    for item, direction in zip(named, directions):
+        turn = _torsion_rigid_turn(record, item, direction)
+        removed.append(direction if turn is None else turn["direction"])
+        if turn is not None:
+            turns.append((item, turn))
     spectrum = projected_harmonic_frequencies(
-        record.hessian, record.positions_bohr, record.masses_amu, directions
+        record.hessian, record.positions_bohr, record.masses_amu, removed
     )
     imaginary = [
         value
@@ -2864,6 +3158,10 @@ def _held_coordinate_projection(
         "the path tangent), so the curvature of the held surface is not "
         "included"
     )
+    if turns:
+        kind += "; " + "; ".join(
+            _rigid_turn_statement(item, turn, record) for item, turn in turns
+        )
     source = (
         f"Hessian read from {record.source}"
         + (f" (sha256 {record.source_sha256})" if record.source_sha256 else "")
