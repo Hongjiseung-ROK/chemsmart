@@ -1453,6 +1453,91 @@ def _pyscf_cartesian_hessian(output: Any) -> CartesianHessianV1 | None:
     )
 
 
+_GAUSSIAN_PARAMETER_ROW = re.compile(
+    r"^!\s*(\S+)\s+([RADL])\(([-0-9,]+)\)\s+(-?[0-9.]+)\s+(.*)$"
+)
+
+
+def _gaussian_frozen_parameters(
+    output: Any,
+) -> tuple[list[dict[str, Any]], tuple[int, ...]] | None:
+    """What Gaussian froze, from its own parameter table; None if none.
+
+    Gaussian prints every coordinate its optimiser works in, and whether
+    it is frozen, in the "Initial Parameters" table of each optimising or
+    frequency step -- whatever put the freeze there: a ModRedundant
+    section, a Cartesian ``-1`` flag in the geometry, or a checkpoint read
+    with ``geom=check`` that still carries a previous job's constraints.
+    The last table is the one that holds for the structure the log ends
+    on.  Returns the frozen internal coordinates as the ModRedundant rows
+    would name them (``kind``, one-based ``atoms``, the ``value`` in
+    Angstrom or degrees, ``label``), and the zero-based atoms whose three
+    Cartesian coordinates it froze.
+    """
+
+    lines = list(getattr(output, "contents", None) or ())
+    starts = [
+        index
+        for index, line in enumerate(lines)
+        if "Initial Parameters" in line
+    ]
+    if not starts:
+        return None
+    kinds = {2: "bond", 3: "angle", 4: "dihedral"}
+    internal, cartesian = [], {}
+    for line in lines[starts[-1] + 1 :]:
+        if line.startswith("GradGradGrad") or line.startswith("Trust Radius"):
+            break
+        found = _GAUSSIAN_PARAMETER_ROW.match(line)
+        if not found or "frozen" not in found.group(5):
+            continue
+        atoms = [int(value) for value in found.group(3).split(",")]
+        if len(atoms) == 2 and atoms[1] < 0:
+            cartesian.setdefault(atoms[0] - 1, set()).add(atoms[1])
+            continue
+        kind = kinds.get(len(atoms)) if found.group(2) != "L" else None
+        if kind is None or min(atoms) < 1:
+            continue
+        internal.append(
+            {
+                "kind": kind,
+                "atoms": tuple(atoms),
+                "value": float(found.group(4)),
+                "label": f"{found.group(1)} {found.group(2)}"
+                f"({found.group(3)}) frozen",
+            }
+        )
+    frozen_atoms = tuple(
+        sorted(atom for atom, axes in cartesian.items() if len(axes) == 3)
+    )
+    return internal, frozen_atoms
+
+
+def _gaussian_frozen_atoms(output: Any) -> tuple[int, ...] | None:
+    parameters = _gaussian_frozen_parameters(output)
+    return None if parameters is None else parameters[1]
+
+
+def _orca_frozen_atoms(output: Any) -> tuple[int, ...] | None:
+    """The zero-based atoms ORCA held fixed in space (``{C n C}``).
+
+    ORCA reports a Cartesian constraint as "Will constrain atom n
+    coordinate k" for each of an atom's three coordinates.  It also holds
+    only the out-of-plane coordinate of every atom when a dihedral is
+    constrained at an exactly planar value, which holds that dihedral and
+    no atom, so only atoms held in all three coordinates are counted.
+    """
+
+    held: dict[int, set[int]] = {}
+    for line in getattr(output, "contents", None) or ():
+        found = re.match(r"Will constrain atom (\d+) coordinate (\d+)", line)
+        if found:
+            held.setdefault(int(found.group(1)), set()).add(
+                int(found.group(2))
+            )
+    return tuple(sorted(atom for atom, axes in held.items() if len(axes) == 3))
+
+
 @dataclass(frozen=True)
 class TorsionalScanV1:
     """A relaxed scan of one dihedral, as the program that drove it ran it.
@@ -1897,6 +1982,26 @@ class ResultReaderV1:
     resolve_torsional_scan: Callable[[Any], TorsionalScanV1 | None] | None = (
         None
     )
+    #: The zero-based atoms this result held fixed in space in all three
+    #: Cartesian coordinates, from the program's own record.  Not a
+    #: selector: it says what the structure was not relaxed along.  Gaussian
+    #: prints no force on such an atom (its archive gradient reads zero
+    #: there), so no gradient this host can read shows the structure
+    #: stationary.  ``None`` means this reader cannot say; ``()`` that the
+    #: program froze none.
+    resolve_frozen_atoms: Callable[[Any], tuple[int, ...] | None] | None = None
+
+    def frozen_atoms_for_output(self, output: Any) -> tuple[int, ...] | None:
+        """The atoms this result froze in space, or None when unknowable."""
+
+        if self.resolve_frozen_atoms is None:
+            return None
+        try:
+            return self.resolve_frozen_atoms(output)
+        except (
+            Exception
+        ):  # noqa: BLE001 - a reader that cannot say says nothing
+            return None
 
     def torsional_scan_for_output(self, output: Any) -> TorsionalScanV1 | None:
         """The dihedral scan this result ran, or None when unservable."""
@@ -4166,13 +4271,43 @@ def _gaussian_reached_positions(output: Any) -> list[list[float]]:
     return [[float(value) for value in row] for row in frames[-1].positions]
 
 
-def _gaussian_held_count(output: Any) -> float:
+def _gaussian_held_rows(output: Any) -> list[dict[str, Any]]:
+    """The internal coordinates a Gaussian run froze, from its own record.
+
+    The rows its echoed ModRedundant section froze, and every other
+    internal coordinate its parameter table marks frozen: a ``ts`` search
+    that read its geometry from a constrained optimisation's checkpoint
+    (``geom=check``) keeps that job's frozen bonds without echoing a
+    ModRedundant section, and was read as holding nothing (the archived
+    ``Pd_insertion_ts_r.log``: two Pd-C bonds frozen, a Cartesian gradient
+    of 0.012 Eh/Bohr, called stationary; R10 Q33).  A row the table adds
+    carries no value: it was frozen where the run's first structure has it.
+    """
+
     held = list(getattr(output, "held_internal_coordinates", None) or ())
+    parameters = _gaussian_frozen_parameters(output)
+    if parameters is None:
+        return held
+
+    def canonical(atoms: Sequence[int]) -> tuple[int, ...]:
+        atoms = tuple(int(index) for index in atoms)
+        return min(atoms, tuple(reversed(atoms)))
+
+    named = {canonical(row["atoms"]) for row in held}
+    for row in parameters[0]:
+        if canonical(row["atoms"]) not in named:
+            named.add(canonical(row["atoms"]))
+            held.append({**row, "value": None})
+    return held
+
+
+def _gaussian_held_count(output: Any) -> float:
+    held = _gaussian_held_rows(output)
     if not held:
         raise MissingQuantityError(
             "this gaussian result held no internal coordinate; this family "
-            "answers the bonds, angles and dihedrals a ModRedundant section "
-            "froze, and a Cartesian atom freeze is not one of them"
+            "answers the bonds, angles and dihedrals a run froze, and a "
+            "Cartesian atom freeze is not one of them"
         )
     return float(len(held))
 
@@ -4181,8 +4316,8 @@ def _gaussian_held_coordinates(output: Any, kind: str) -> list[dict[str, Any]]:
     """The coordinates of one kind a Gaussian run held, where it ended.
 
     What ORCA's reader answers for a constrained optimisation, from
-    Gaussian's own record: the rows its echoed ModRedundant section froze,
-    each measured in the structure the run returned.  Gaussian states no
+    Gaussian's own record (``_gaussian_held_rows``), each measured in the
+    structure the run returned.  Gaussian states no
     held value unless the row carried one -- it freezes a coordinate where
     the input geometry has it -- so the value it was held at is the first
     printed structure's, or the row's own.  The two must agree within the
@@ -4192,7 +4327,7 @@ def _gaussian_held_coordinates(output: Any, kind: str) -> list[dict[str, Any]]:
     index this plane serves.
     """
 
-    all_held = list(getattr(output, "held_internal_coordinates", None) or ())
+    all_held = _gaussian_held_rows(output)
     rows = [row for row in all_held if row["kind"] == kind]
     if not rows:
         kinds = sorted({str(row["kind"]) for row in all_held})
@@ -7013,6 +7148,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         accessors=_orca_accessors(),
         resolve_cartesian_hessian=_orca_cartesian_hessian,
         resolve_torsional_scan=_orca_torsional_scan,
+        resolve_frozen_atoms=_orca_frozen_atoms,
         # An ORCA IRC's product structure is a sidecar beside the log, as
         # xTB's reached optimisation frame is: the geometry handoff seals
         # that file's digest, and extraction carries its bytes on the
@@ -7617,6 +7753,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         accessors=_gaussian_accessors(),
         resolve_cartesian_hessian=_gaussian_cartesian_hessian,
         resolve_torsional_scan=_gaussian_torsional_scan,
+        resolve_frozen_atoms=_gaussian_frozen_atoms,
         # Gaussian prints the SMD-CDS term in kcal/mol to two decimals.
         source_units={"solvation_nonelectrostatic_energy": "kcal/mol"},
         # A held coordinate keeps its unit and its atoms as ORCA's do: one

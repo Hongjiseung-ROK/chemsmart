@@ -2083,6 +2083,7 @@ class StructureStationarityV1:
     criterion_eh_per_bohr: float | None = None
     held_coordinates: int = 0
     driven_points: int = 0
+    frozen_atoms: int = 0
 
     def __post_init__(self) -> None:
         if self.stationarity not in STATIONARITY_WORDS:
@@ -2113,12 +2114,20 @@ class StructureStationarityV1:
                 f"{self.criterion_eh_per_bohr:g} (geomeTRIC convergence_gmax)"
             )
         if self.basis == "held_coordinate":
+            held = []
+            if self.held_coordinates:
+                held.append(
+                    f"{self.held_coordinates} internal coordinate(s) fixed"
+                )
+            if self.frozen_atoms:
+                held.append(f"{self.frozen_atoms} atom(s) fixed in space")
             return (
                 f"not a stationary point: this {job} result held "
-                f"{self.held_coordinates} internal coordinate(s) fixed while "
-                "the rest relaxed, so the energy still slopes along the "
-                "held motion and its modes count that motion as a "
+                + " and ".join(held)
+                + " while the rest relaxed, so the energy still slopes along "
+                "the held motion and its modes count that motion as a "
                 "vibration"
+                + (" or leave the held atoms out" if self.frozen_atoms else "")
             )
         if self.basis == "driven_coordinate":
             return (
@@ -2212,11 +2221,17 @@ def structure_stationarity(
             **common,
         )
     held = _reader_answer(reader, output, "constrained_coordinate_count")
-    if held:
+    frozen = reader.frozen_atoms_for_output(output) or ()
+    if held or frozen:
+        # What a result held it was not relaxed along, whatever its
+        # optimiser's check on the rest says: Gaussian leaves a frozen
+        # coordinate out of its forces and prints a zero force on a frozen
+        # atom, so no check it prints shows the full surface stationary.
         return StructureStationarityV1(
             stationarity="not_stationary",
             basis="held_coordinate",
-            held_coordinates=int(held),
+            held_coordinates=int(held or 0),
+            frozen_atoms=len(frozen),
             **common,
         )
     driven = _reader_answer(reader, output, "scan_steps_planned")

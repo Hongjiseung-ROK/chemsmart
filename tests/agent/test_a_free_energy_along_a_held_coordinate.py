@@ -471,9 +471,9 @@ def test_an_approved_chain_carries_it_to_the_executor(tmp_path):
         # Gaussian's own freq=projected at H2O2 held at 90 deg (R10 Q27
         # oracle O1b, CUHK 2153717): the gradient's direction removed.
         ("GaussianTests/projected_frequencies/g_sp90_gas_phase.log", 5, 6),
-        # A Gaussian optimisation with frozen atoms prints only the modes
-        # of the atoms that moved.
-        ("GaussianTests/outputs/frozen_coordinates_opt.log", 12, 36),
+        # A Gaussian optimisation with frozen atoms was the second case
+        # here; it froze ten atoms, so it has no free energy of a
+        # stationary point (R10 Q33).
     ],
 )
 def test_a_spectrum_short_of_its_structure_says_what_it_lacks(
