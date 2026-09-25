@@ -138,11 +138,18 @@ class ORCAInputWriter(InputWriter):
         job_inputfile = os.path.join(folder, f"{self.job.label}.inp")
         logger.debug(f"Writing ORCA input file: {job_inputfile}")
         f = open(job_inputfile, "w")
-        if self.job.settings.input_string:
-            # write the file itself for direct run
-            self._write_self(f)
-        else:
-            self._write_all(f)
+        try:
+            if self.job.settings.input_string:
+                # write the file itself for direct run
+                self._write_self(f)
+            else:
+                self._write_all(f)
+        except Exception:
+            # A refused input leaves no file behind; a partial .inp is read
+            # back as an input missing everything after the refusal.
+            f.close()
+            os.remove(job_inputfile)
+            raise
         logger.info(f"Finished writing ORCA input file: {job_inputfile}")
         f.close()
 

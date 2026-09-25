@@ -9,6 +9,8 @@ status or claim an artifact hash.
 
 from __future__ import annotations
 
+import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -68,6 +70,14 @@ class SafePreviewReceiptV1:
     #: before this field keep their identity.
     critical_findings: tuple[Any, ...] = ()
     auxiliary_input_bindings: tuple[AuxiliaryArtifactBindingV1, ...] = ()
+    #: Why the invocation raised, in the program's own words: bounded, and
+    #: with every host path replaced by its role. The class alone was kept,
+    #: so a writer that refused broken_symmetry on a triplet with the two
+    #: legal routes in its sentence reached the session as "ValueError"
+    #: (R10 Q26 census: 8 of 13 refusals, all three programs). Digest-
+    #: covered only when present, so receipts recorded before this field,
+    #: and every previewed receipt, keep their identity.
+    exception_message: str = ""
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.safe-preview-receipt.v1":
@@ -111,6 +121,8 @@ class SafePreviewReceiptV1:
         }
         if self.auxiliary_input_bindings:
             body["auxiliary_input_bindings"] = self.auxiliary_input_bindings
+        if self.exception_message:
+            body["exception_message"] = self.exception_message
         expected = canonical_sha256(body)
         if self.receipt_sha256 != expected:
             raise ContractError("safe preview receipt digest mismatch")
@@ -180,6 +192,7 @@ def execute_safe_preview(
     exit_status = -1
     output_sha256 = canonical_sha256({"output": ""})
     exception_class = ""
+    exception_message = ""
     program_validation_receipt_sha256 = ""
     program_validation_status = "invalid"
     critical_finding_sha256s: tuple[str, ...] = ()
@@ -194,6 +207,23 @@ def execute_safe_preview(
         output_sha256 = canonical_sha256({"output": result.output})
         if result.exception is not None:
             exception_class = type(result.exception).__name__
+            exception_message = public_refusal_message(
+                _raised_words(result),
+                roles=_host_path_roles(
+                    workspace=workspace,
+                    invocation=invocation,
+                    artifacts={
+                        "filename": input_artifact,
+                        **(
+                            {"project": project_artifact}
+                            if project_artifact is not None
+                            else {}
+                        ),
+                        **auxiliary_input_artifacts,
+                    },
+                    retain_root=retain_root,
+                ),
+            )
         artifacts = _collect_preview_artifacts(Path(workspace))
         if retain_root is not None:
             _retain_preview_artifacts(Path(workspace), artifacts, retain_root)
@@ -267,11 +297,113 @@ def execute_safe_preview(
     }
     if auxiliary_bindings:
         body["auxiliary_input_bindings"] = auxiliary_bindings
+    if exception_message:
+        body["exception_message"] = exception_message
     return SafePreviewReceiptV1(
         **body,
         receipt_sha256=canonical_sha256(body),
         critical_findings=critical_findings,
     )
+
+
+#: A refusal's sentence is cut here and says so. The longest the hub
+#: writes -- ORCA's MDCI refusal with both of its routes -- is about 520
+#: characters, so this bounds a message without shortening a route.
+REFUSAL_MESSAGE_CHARS = 800
+
+#: An absolute path of two or more components where a path can begin: at
+#: the start, after white space, a quote, a bracket, '=' , ':' or ','.
+#: "B3LYP/G", "def2/J" and "D3(BJ)/def2-SVP" are method words, not paths.
+_ABSOLUTE_PATH = re.compile(
+    r"(?<![^\s'\"(\[=:,])(?:/[^\s/'\"`,;()<>\[\]{}]+){2,}/?"
+)
+_SECRET_LIKE = re.compile(r"(?<![\w-])sk-[A-Za-z0-9_-]{8,}")
+
+
+def public_refusal_message(text: str, *, roles: Mapping[str, str]) -> str:
+    """A refusal as a model may read it: one line, bounded, no host path.
+
+    Every path the host bound into the invocation is replaced by the role
+    it played (``<filename>``, ``<project>``, ...), any other absolute path
+    by ``<path>``, and anything shaped like a provider key by
+    ``<redacted>``. The words are the program's own; nothing is added.
+    """
+
+    message = " ".join(str(text or "").split())
+    for path, role in sorted(roles.items(), key=lambda item: -len(item[0])):
+        if path:
+            message = message.replace(path, role)
+    message = _ABSOLUTE_PATH.sub("<path>", message)
+    message = _SECRET_LIKE.sub("<redacted>", message)
+    if len(message) > REFUSAL_MESSAGE_CHARS:
+        message = message[: REFUSAL_MESSAGE_CHARS - 3] + "..."
+    return message
+
+
+def preview_refusal(receipt: SafePreviewReceiptV1 | None) -> str:
+    """What the host says when the command that writes a node's input
+    raised, or "" when it did not.
+
+    The one sentence the compile reply, the frontier and the review give
+    for such a node, so the three say it in the same words: the class and
+    the program's own message, which is where the route is when one
+    exists.
+    """
+
+    if receipt is None or not receipt.exception_class:
+        return ""
+    said = receipt.exception_message or "(no message)"
+    return (
+        "the ChemSmart command that writes this node's input raised "
+        f"{receipt.exception_class}: {said}"
+    )
+
+
+def _raised_words(result: Any) -> str:
+    """The words the invocation raised with.
+
+    A Click usage error exits instead of raising, and its words are the
+    ``Error:`` line Click printed.
+    """
+
+    exception = result.exception
+    if isinstance(exception, SystemExit):
+        return " ".join(
+            line.strip()[len("Error:") :].strip()
+            for line in str(result.output or "").splitlines()
+            if line.strip().startswith("Error:")
+        )
+    return str(exception)
+
+
+def _host_path_roles(
+    *,
+    workspace: Any,
+    invocation: CanonicalCommandInvocationV1,
+    artifacts: Mapping[str, TrustedArtifactRefV1],
+    retain_root: Path | None,
+) -> dict[str, str]:
+    """Each host path this invocation touched, mapped to the role it played."""
+
+    roles: dict[str, str] = {}
+
+    def add(path: Any, role: str) -> None:
+        text = str(path or "")
+        if not text or not os.path.isabs(text):
+            return
+        roles.setdefault(text, role)
+        roles.setdefault(os.path.realpath(text), role)
+
+    add(workspace, "<preview-workspace>")
+    for name, artifact in artifacts.items():
+        add(artifact.path, f"<{name}>")
+        add(artifact.cli_value, f"<{name}>")
+    for option in invocation.scoped_options:
+        for value in option.values:
+            add(value, f"<{option.parameter_name}>")
+    if retain_root is not None:
+        add(retain_root, "<previews>")
+    return roles
 
 
 def _validate_preview_bindings(
@@ -424,4 +556,6 @@ __all__ = [
     "PreviewArtifactV1",
     "SafePreviewReceiptV1",
     "execute_safe_preview",
+    "preview_refusal",
+    "public_refusal_message",
 ]
