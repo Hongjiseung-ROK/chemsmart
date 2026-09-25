@@ -2723,6 +2723,130 @@ class _HeldCoordinateProjection:
     statements: tuple[str, ...]
 
 
+def _torsion_rigid_turn(
+    record: Any, atoms: Sequence[int], normal: Any
+) -> dict[str, Any] | None:
+    """The rigid turn a named dihedral stands for, where its normal is not.
+
+    ``atoms`` is the one-based dihedral a-b-c-d and ``normal`` its
+    Cartesian gradient.  None unless the dihedral turns a group about a
+    bond outside any ring (``internal_rotor_tops``) and an end of that
+    bond carries more than one atom off its axis: only then is the
+    normal, which moves a and d alone, not the turn of the group.  The
+    turn is the one ``_internal_rotor_treatment`` removes (the top's
+    displacement per radian times the masses, so that its mass-weighted
+    form is the top's mass-weighted turn).  Where the result records its
+    gradient, the turn's surface is measured too: the gradient left once
+    the turn and the rigid motions are removed, and the energy the host's
+    own Hessian predicts the structure would still lose relaxing on that
+    surface -- the strain one held dihedral leaves in the group it turns.
+    """
+
+    import numpy as np
+
+    from chemsmart.analysis.thermochemistry import (
+        ROTOR_AXIS_OFFSET_ANGSTROM,
+        _rigid_motion_basis,
+        internal_rotation_displacement,
+        internal_rotor_tops,
+    )
+
+    if len(atoms) != 4:
+        return None
+    b, c = int(atoms[1]) - 1, int(atoms[2]) - 1
+    x = np.asarray(record.positions_bohr, dtype=float)
+    masses = np.asarray(record.masses_amu, dtype=float)
+    symbols = [str(item) for item in record.symbols]
+    angstrom = x * _BOHR_ANGSTROM
+    try:
+        tops = internal_rotor_tops(symbols, angstrom, (b, c))
+    except ValueError:
+        return None
+    axis = angstrom[c] - angstrom[b]
+    axis = axis / np.linalg.norm(axis)
+
+    def off_axis(group: Sequence[int], pivot: int) -> int:
+        count = 0
+        for index in group:
+            if index == pivot:
+                continue
+            relative = angstrom[index] - angstrom[pivot]
+            radial = relative - (relative @ axis) * axis
+            if float(np.linalg.norm(radial)) > ROTOR_AXIS_OFFSET_ANGSTROM:
+                count += 1
+        return count
+
+    if max(off_axis(tops.top, c), off_axis(tops.frame, b)) < 2:
+        return None
+    turn = internal_rotation_displacement(x, (b, c), tops.top)
+    rigid = _rigid_motion_basis(x, masses)
+    root = np.sqrt(np.repeat(masses, 3))
+
+    def unit(vector: Any) -> Any:
+        vector = np.asarray(vector, dtype=float).ravel()
+        vector = vector - rigid @ (rigid.T @ vector)
+        return vector / np.linalg.norm(vector)
+
+    along = unit(np.asarray(normal, dtype=float).ravel() / root)
+    rotation = unit(turn.ravel() * root)
+    found = {
+        "direction": turn * masses[:, None],
+        "overlap": float((along @ rotation) ** 2),
+        "top": tuple(int(index) + 1 for index in tops.top),
+        "bond": (
+            f"{symbols[min(b, c)]}{min(b, c) + 1}-"
+            f"{symbols[max(b, c)]}{max(b, c) + 1}"
+        ),
+        "off_axis": max(off_axis(tops.top, c), off_axis(tops.frame, b)),
+        "residual_eh_per_bohr": None,
+        "relaxation_eh": None,
+    }
+    if record.gradient is not None:
+        size = 3 * x.shape[0]
+        basis, _ = np.linalg.qr(np.column_stack([rigid, rotation]))
+        projector = np.eye(size) - basis @ basis.T
+        g_mw = np.asarray(record.gradient, dtype=float).ravel() / root
+        left = projector @ g_mw
+        hessian = np.asarray(record.hessian, dtype=float).reshape(size, size)
+        weighted = 0.5 * (hessian + hessian.T) / np.outer(root, root)
+        values, vectors = np.linalg.eigh(projector @ weighted @ projector)
+        kept = np.abs(values) > 1e-6
+        coefficients = vectors[:, kept].T @ left
+        found["residual_eh_per_bohr"] = float(np.max(np.abs(left * root)))
+        found["relaxation_eh"] = float(
+            -0.5 * np.sum(coefficients**2 / np.abs(values[kept]))
+        )
+    return found
+
+
+def _rigid_turn_statement(
+    atoms: Sequence[int], turn: Mapping[str, Any], record: Any
+) -> str:
+    """One receipt clause for a dihedral removed as its group's rigid turn."""
+
+    label = "-".join(f"{record.symbols[index - 1]}{index}" for index in atoms)
+    strain = (
+        "; on the surface where that turn is held the structure's "
+        "gradient left is at most "
+        f"{turn['residual_eh_per_bohr']:.2g} Eh/Bohr and the host's Hessian "
+        f"predicts a relaxation of {turn['relaxation_eh'] * 627.509474:.2g} "
+        "kcal/mol there: the strain one held dihedral leaves in the group "
+        "it turns"
+        if turn["residual_eh_per_bohr"] is not None
+        else "; how far the structure is from stationary on the surface "
+        "where that turn is held is unmeasured, since this result records "
+        "no gradient at the structure"
+    )
+    return (
+        f"dihedral {label} turns a group with {turn['off_axis']} atoms off "
+        f"the {turn['bond']} bond (one-based atoms {list(turn['top'])}), so "
+        f"its normal is only {turn['overlap']:.0%} that group's rigid turn "
+        "and moves one atom against the others; the group's rigid turn "
+        f"about {turn['bond']} -- the direction internal_rotors removes for "
+        "this torsion -- is removed in its place" + strain
+    )
+
+
 def _projection_refusal(artifact_id: str, diagnosis: str) -> Exception:
     return QuantityExtractionError(
         "[thermochemistry.free_energy_needs_a_stationary_point] A free "
@@ -2984,8 +3108,21 @@ def _held_coordinate_projection(
             "reference, a saddle's is its transition-state free energy when "
             "its imaginary mode is the removed coordinate)"
         )
+    # A dihedral stands for the turn of the group it rotates.  Where that
+    # group has one atom off the bond (H2O2's hydrogens) the dihedral's
+    # normal is the group's rigid turn; where it has more, the normal moves
+    # one of them against the rest, and removing it removes part of a rock
+    # and keeps part of the turn (R10 Q30: ethane's CH3 rock 999.6 -> 723.5
+    # cm^-1).  There the group's rigid turn -- the direction
+    # ``internal_rotors`` removes for the same torsion -- is removed instead.
+    removed, turns = [], []
+    for item, direction in zip(named, directions):
+        turn = _torsion_rigid_turn(record, item, direction)
+        removed.append(direction if turn is None else turn["direction"])
+        if turn is not None:
+            turns.append((item, turn))
     spectrum = projected_harmonic_frequencies(
-        record.hessian, record.positions_bohr, record.masses_amu, directions
+        record.hessian, record.positions_bohr, record.masses_amu, removed
     )
     imaginary = [
         value
@@ -3021,6 +3158,10 @@ def _held_coordinate_projection(
         "the path tangent), so the curvature of the held surface is not "
         "included"
     )
+    if turns:
+        kind += "; " + "; ".join(
+            _rigid_turn_statement(item, turn, record) for item, turn in turns
+        )
     source = (
         f"Hessian read from {record.source}"
         + (f" (sha256 {record.source_sha256})" if record.source_sha256 else "")

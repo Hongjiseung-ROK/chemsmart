@@ -355,3 +355,59 @@ def test_a_torsion_removed_at_a_minimum_its_program_converged():
     said = " ".join(projected.assumptions)
     assert "stationary point: the gaussian opt search's own" in said
     assert "17 of 18 vibrational modes kept" in said
+
+
+@pytest.mark.parametrize(
+    "artifact_id,torsion,rock",
+    [
+        # Q30: removing one H-C-C-H normal turned ethane's 828 cm^-1 CH3
+        # rock into a 723 cm^-1 mode; the rigid turn keeps it.
+        ("gaussian-ethane", ETHANE_TORSION, 827.9),
+        ("gaussian-methanol", METHANOL_TORSION, 1042.8),
+    ],
+)
+def test_a_held_methyl_torsion_is_removed_as_the_methyl_groups_turn(
+    artifact_id, torsion, rock
+):
+    """The kept modes are the ones the hindered rotor keeps beside the same
+    torsion: one host meaning of "the torsion"."""
+
+    import numpy as np
+
+    from chemsmart.analysis.thermochemistry import (
+        internal_rotation_displacement,
+        internal_rotor_tops,
+        projected_harmonic_frequencies,
+    )
+
+    projected = _derive(artifact_id, projected_coordinates=(torsion,))
+    said = " ".join(projected.assumptions)
+    assert "the group's rigid turn about" in said
+    assert "is removed in its place" in said
+    # The rotor's own direction, built as the hindered-rotor treatment
+    # builds it: the top's turn about the bond, times the masses.
+    program, path = RESULTS[artifact_id]
+    output = reader_for(program).open_output(str(path))
+    record = reader_for(program).cartesian_hessian_for_output(output)
+    x = np.asarray(record.positions_bohr, dtype=float)
+    masses = np.asarray(record.masses_amu, dtype=float)
+    bond = (torsion[1] - 1, torsion[2] - 1)
+    tops = internal_rotor_tops(record.symbols, x * 0.529177210903, bond)
+    turn = internal_rotation_displacement(x, bond, tops.top)
+    expected = projected_harmonic_frequencies(
+        record.hessian, x, masses, [turn * masses[:, None]]
+    ).frequencies_cm1
+    zero_point = 0.5 * sum(expected) / 219474.6313632
+    assert _quantity(projected, "zero_point_energy") == pytest.approx(
+        zero_point, abs=2e-8
+    )
+    assert min(expected) == pytest.approx(rock, abs=1.0)
+    assert np.all(np.asarray(expected) > 0.0)
+
+
+def test_a_dihedral_whose_ends_are_single_atoms_is_its_own_turn():
+    """H2O2: the dihedral's normal is the turn (overlap 0.997-1.000), and its
+    projection is R10 Q27's, unchanged."""
+
+    projected = _derive("orca-held-90", projected_coordinates=((3, 1, 2, 4),))
+    assert "is removed in its place" not in " ".join(projected.assumptions)
