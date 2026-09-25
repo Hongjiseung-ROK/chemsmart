@@ -381,6 +381,22 @@ Predictions (never tuned after a result):
 - Whether R10 Q9's resource refusal should also cover the human path's
   `route_to_be_written`, `scf_algorithm` and `scf_tol`.
 
+## G1, G2 -- planning sessions READ (cycle 1; engines running)
+
+From each session's public transcript and promoted projects (scratch
+`q28/goals/read_goal_q28.py`):
+- G1 (54 tool calls, 7 authoring calls): typed path controls only --
+  `irc: {direction: forward|reverse, maxpoints: 60}`; no native field, no
+  native-gate refusal, no unknown-key refusal, no Gaussian numerics field.
+  R9 g1's archived session wrote `additional_route_parameters:
+  maxpoints=50` at this point (before the IRC lift, which the base also
+  carries).
+- G2 (30 tool calls, 3 authoring calls): `irc: {direction, maxpoints:
+  48}`; nothing else, no refusal.
+- P1 so far: 0 routed native words in the 10 promoted projects.
+- Exercise of this change's specific surfaces (typed Gaussian numerics, the
+  native-word refusal) in cycle 1: NOT EXERCISED in either goal.
+
 ## Status
 
 2026-09-25: code, census, replays, oracle O1 and gates done; live goals
