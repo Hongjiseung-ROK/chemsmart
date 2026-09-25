@@ -153,7 +153,7 @@ is computed, not narrated: ``chemsmart agent capabilities`` and
 - `.agents/charter/solvation-and-populations.md` -- ORCA solvation terms, populations named by scheme, the reader defect a delivery found
 - `.agents/charter/pyscf.md` -- extraction plane, contracts v4-v10 (irc, ts, energy composition), td / excited-root / correlated stages, provenance axis, surfaces, numerical Hessians, sealed goals and repaired losses
 - `.agents/charter/crossprogram.md` -- multi-program qualification, bound identity as state authority, geometry handoff, why equal level strings are not equal methods
-- `.agents/charter/other-programs-probe-providers.md` -- Gaussian / GPU4PySCF / NEB / NCIPLOT status, the ORCA input-check probe, provider-neutral orchestration
+- `.agents/charter/other-programs-probe-providers.md` -- Gaussian / GPU4PySCF / NEB / NCIPLOT status, the ORCA input-check probe, provider-neutral orchestration, native fields on the Agent path
 - `.agents/charter/dispatch-excursion-results-review.md` -- scheduler dispatch and wake, excursion line, results registered by content id, review built while planning
 - `.agents/charter/validity-rules.md` -- stationary-point rule, spin observation, small-imaginary-mode anomaly, coverage cells
 - `.agents/charter/goal-grain-recovery-wake.md` -- goal as the unit of decision, admitted revisions, recovery and repair menus, approaches_tried, diagnostic declarations
