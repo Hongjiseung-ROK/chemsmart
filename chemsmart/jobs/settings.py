@@ -1,11 +1,112 @@
+import importlib
 import logging
 import os
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 import yaml
 
 from chemsmart.utils.utils import update_dict_with_existing_keys
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class NativeWord:
+    """A program's own word a project would write into its input.
+
+    ``field`` is the settings field that carries it and ``word`` the word
+    (empty when the whole field is the finding: a field that replaces the
+    input or the route the host writes).  ``states`` says what the word
+    asks the program for, and ``route`` names the typed setting that
+    asks for the same thing -- or, where none exists, what the host
+    writes instead.
+    """
+
+    field: str
+    word: str
+    states: str
+    route: str
+
+
+def native_input_fields(program):
+    """The settings fields of *program* whose values reach its input verbatim.
+
+    Declared by each program's settings module (``NATIVE_INPUT_FIELDS``);
+    a program that declares none has none a project can set.
+    """
+
+    module = _program_settings_module(program)
+    return tuple(getattr(module, "NATIVE_INPUT_FIELDS", ()) or ())
+
+
+def project_native_words(program, sections):
+    """Every native word project *sections* carry that has a typed route.
+
+    Returns ``((section, NativeWord), ...)`` from the program's own table
+    (``native_words`` in its settings module).  A word the table does not
+    route is not returned: it stays the reviewer's to read, verbatim.
+    Used where an Agent authors a project; a person's project keeps every
+    field the loader accepts.
+    """
+
+    describe = getattr(_program_settings_module(program), "native_words", None)
+    if describe is None or not isinstance(sections, Mapping):
+        return ()
+    found = []
+    for section, settings in sections.items():
+        if isinstance(settings, Mapping):
+            found.extend((str(section), item) for item in describe(settings))
+    return tuple(found)
+
+
+def _program_settings_module(program):
+    try:
+        return importlib.import_module(f"chemsmart.jobs.{program}.settings")
+    except ImportError:
+        return None
+
+
+def native_route_words(value):
+    """The words of a route-channel value: a string or a list of strings.
+
+    Words are split on whitespace outside parentheses, so
+    ``IRC=(MaxPoints=80, StepSize=10)`` stays one word.
+    """
+
+    if value is None:
+        return ()
+    if isinstance(value, (list, tuple)):
+        text = " ".join(str(item) for item in value)
+    else:
+        text = str(value)
+    words, depth, current = [], 0, []
+    for char in text:
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(0, depth - 1)
+        if char.isspace() and depth == 0:
+            if current:
+                words.append("".join(current))
+                current = []
+            continue
+        current.append(char)
+    if current:
+        words.append("".join(current))
+    return tuple(words)
+
+
+def native_field_is_set(value):
+    """Whether a native field holds anything a writer would write."""
+
+    if value is None or value is False:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, tuple, dict)):
+        return bool(value)
+    return True
 
 
 #: What a ChemSmart functional literal means, whichever program runs it.
@@ -333,6 +434,23 @@ def broken_symmetry_refusal(requested, multiplicity):
         "broken-symmetry singlet, or remove broken_symmetry for the "
         "high-spin state."
     )
+
+
+#: Settings whose values are each program's own words for its numerics:
+#: ORCA's TightSCF is not Gaussian's scf=tight, DefGrid2 is no Gaussian
+#: grid, and neither program's optimiser counts cycles as the other's does.
+#: A settings object converted from another program's file does not carry
+#: them across; it keeps its own program's defaults, as it always did.
+PROGRAM_OWN_NUMERICS = ("scf_convergence", "defgrid", "geom_maxiter")
+
+
+def without_program_own_numerics(settings):
+    """A settings mapping without another program's numerics words."""
+
+    values = dict(settings if isinstance(settings, dict) else vars(settings))
+    for name in PROGRAM_OWN_NUMERICS:
+        values.pop(name, None)
+    return values
 
 
 # Public top-level vocabulary owned by the loader below.  These are section

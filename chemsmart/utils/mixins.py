@@ -989,7 +989,22 @@ class GaussianFileMixin(FileMixin):
             append_additional_info=None,
             forces=False,
             broken_symmetry=self.broken_symmetry,
+            # The typed numerics read back from the words the writer writes
+            # for them, so a written input shows the request behind it.
+            **self._typed_route_numerics(),
         )
+
+    def _typed_route_numerics(self):
+        """``scf_convergence``, ``defgrid`` and ``geom_maxiter`` as written."""
+
+        route = self.route_object
+        if route is None:
+            return {}
+        return {
+            "scf_convergence": route.scf_convergence,
+            "defgrid": route.defgrid,
+            "geom_maxiter": route.geom_maxiter,
+        }
 
 
 class ORCAFileMixin(FileMixin):

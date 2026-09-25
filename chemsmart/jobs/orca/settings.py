@@ -28,6 +28,7 @@ from chemsmart.jobs.settings import (
     functional_identity,
     functional_resolution_record,
     td_manifold_reference_refusal,
+    without_program_own_numerics,
 )
 from chemsmart.utils.utils import (
     deduplicate_string_keywords,
@@ -455,6 +456,247 @@ class ORCACorrelatedPairs:
             "identity; or compute this species in PySCF or Gaussian, whose "
             "correlated codes accept a single electron"
         )
+
+
+#: Fields whose values ORCA's input receives verbatim: the words are the
+#: project's, not the host's.  ``input_string`` replaces the whole input
+#: and ``route_to_be_written`` the whole ``!`` line; the others add words
+#: or lines to what the host writes.
+NATIVE_INPUT_FIELDS = (
+    "input_string",
+    "route_to_be_written",
+    "additional_route_parameters",
+    "scf_algorithm",
+    "scf_tol",
+    "custom_solvent",
+    "additional_solvent_options",
+    "gen_genecp_file",
+)
+
+_ORCA_BROKEN_SYMMETRY_WORDS = ("flipspin", "brokensym", "guessmix", "finalms")
+_ORCA_JOB_WORDS = (
+    "opt",
+    "copt",
+    "zopt",
+    "optts",
+    "scants",
+    "irc",
+    "neb",
+    "neb-ts",
+    "neb-ci",
+    "sp",
+    "engrad",
+    "numgrad",
+)
+
+
+_ORCA_BLOCK_SYNTAX_ROUTE = (
+    "block input (a %block, an 'end' or a print[...] directive): the ! line "
+    "takes simple keywords, and ORCA refuses the whole input when block "
+    "syntax appears on it",
+    "the typed setting whose block the host writes (broken_symmetry and "
+    "reference for %scf, geom_maxiter for %geom, nstates for %tddft); a "
+    "Hirshfeld population is the simple keyword Hirshfeld",
+)
+
+
+def _orca_block_syntax(text):
+    """Whether *text* is block input rather than a ``!``-line keyword."""
+
+    key = str(text).strip().casefold()
+    return (
+        key.startswith("%")
+        or key == "end"
+        or "\n" in key
+        or any(char in key for char in "[]{}")
+    )
+
+
+def _orca_route_word_route(word):
+    """What one ``!``-line word states and the typed setting that states it.
+
+    ``None`` for a word no typed setting carries: it stays the reviewer's
+    to read.  The typed side is read from the writer's own tables, so a
+    route named here is one the writer writes.
+    """
+
+    from chemsmart.io.orca import (
+        ORCA_ALL_DISPERSION_CORRECTIONS,
+        ORCA_ALL_SOLVENT_MODELS,
+    )
+
+    literal = str(word).strip()
+    key = literal.casefold()
+    if not key:
+        return None
+    if _orca_block_syntax(key):
+        return _ORCA_BLOCK_SYNTAX_ROUTE
+    if _ORCA_RESOURCE_TOKEN.match(literal):
+        return (
+            "cores or memory",
+            "the run's grant: CHEMSMART writes %pal nprocs and %maxcore from "
+            "the resources the run is granted",
+        )
+    if key.startswith(_ORCA_BROKEN_SYMMETRY_WORDS):
+        return (
+            "a broken-symmetry guess",
+            "broken_symmetry: true (the host writes HFTyp UHF with GuessMix "
+            "and reads back from <S**2> whether the symmetry broke); a spin "
+            "flip on named sites has no typed form",
+        )
+    reference = {"uks": "uhf", "rks": "rhf", "roks": "rohf"}.get(key, key)
+    if reference in ORCA_REFERENCE_DETERMINANTS:
+        return ("the reference determinant", f"reference: {reference}")
+    if key in _ORCA_JOB_WORDS:
+        return (
+            "the job type",
+            "the stage itself (opt, ts, irc, scan, sp): the host writes its "
+            "job keyword",
+        )
+    if key in ("freq", "anfreq", "numfreq"):
+        return (
+            "a frequency calculation",
+            "numfreq: true" if key == "numfreq" else "freq: true",
+        )
+    if key == "vpt2":
+        return ("an anharmonic VPT2 analysis", "vpt2: true")
+    for value, keyword in ORCA_OPT_CONVERGENCE_KEYWORDS.items():
+        if keyword and key == keyword.casefold():
+            return ("the optimiser convergence", f"opt_convergence: {value}")
+    if key.endswith("scf") and key[:-3] in ORCA_SCF_CONVERGENCE:
+        return ("the SCF convergence", f"scf_convergence: {key[:-3]}")
+    try:
+        grid = _normalize_orca_grid(literal)
+    except ValueError:
+        grid = None
+    if grid is not None or key.startswith("finalgrid"):
+        return ("the integration grid", f"defgrid: {grid or literal}")
+    for value, keyword in ORCA_RI_KEYWORDS.items():
+        if key == keyword.casefold():
+            return (
+                "the resolution-of-identity choice",
+                f"ri_approximation: {value}",
+            )
+    for value, keyword in ORCA_MDCI_CUTOFF_KEYWORDS.items():
+        if key == keyword.casefold():
+            return ("the local-correlation cutoffs", f"mdci_cutoff: {value}")
+    for value, keyword in ORCA_RELATIVISTIC_KEYWORDS.items():
+        if key == keyword.casefold():
+            return (
+                "a scalar-relativistic Hamiltonian",
+                f"relativistic: {value}",
+            )
+    if key in ("frozencore", "nofrozencore"):
+        return (
+            "the frozen core",
+            "frozen_core: fc_electrons (or fc_none for all-electron)",
+        )
+    if key in {item.casefold() for item in ORCA_ALL_DISPERSION_CORRECTIONS} | {
+        "d3"
+    }:
+        return ("an empirical dispersion correction", f"dispersion: {key}")
+    if key.split("(")[0] in {m.casefold() for m in ORCA_ALL_SOLVENT_MODELS}:
+        return ("implicit solvation", "solvent_model and solvent_id")
+    if key in ("gen", "genecp"):
+        return (
+            "a per-element basis (Gaussian's Gen keyword, which ORCA does not "
+            "have)",
+            "heavy_elements with heavy_elements_basis (the host writes "
+            "ORCA's %basis NewGTO block)",
+        )
+    if key.startswith("maxiter"):
+        return (
+            "an iteration cap",
+            "geom_maxiter for the geometry optimiser, scf_maxiter for the SCF",
+        )
+    return None
+
+
+def native_words(settings):
+    """The native words an ORCA project section carries that a typed setting
+    states, or that replace what the host writes.
+
+    ``settings`` is one project section's mapping.  Read where an Agent
+    authors a project: a person's project keeps every field.
+    """
+
+    from chemsmart.jobs.settings import (
+        NativeWord,
+        native_field_is_set,
+        native_route_words,
+    )
+
+    found = []
+    for field, states in (
+        (
+            "input_string",
+            "an input that replaces the whole ORCA input the host writes -- "
+            "method, basis, geometry, charge, multiplicity, %pal and %maxcore "
+            "with it -- so none of them runs as the review shows",
+        ),
+        (
+            "route_to_be_written",
+            "a ! line that replaces the one the host writes -- the method, "
+            "basis, job keyword and every typed route word with it",
+        ),
+    ):
+        if native_field_is_set(settings.get(field)):
+            found.append(
+                NativeWord(
+                    field,
+                    "",
+                    states,
+                    "the typed settings that state each part (functional or "
+                    "ab_initio, basis, the stage's jobtype, and the others "
+                    "the capability lists); the host writes the input",
+                )
+            )
+    if native_field_is_set(settings.get("gen_genecp_file")):
+        found.append(
+            NativeWord(
+                "gen_genecp_file",
+                "",
+                "a basis file named by path, pasted into the input",
+                "heavy_elements with heavy_elements_basis (the host writes the "
+                "per-element basis)",
+            )
+        )
+    for field in ("additional_route_parameters", "scf_algorithm"):
+        value = settings.get(field)
+        text = (
+            " ".join(str(item) for item in value)
+            if isinstance(value, (list, tuple))
+            else str(value or "")
+        )
+        block = _orca_block_syntax(text)
+        if block:
+            # Said once for the field, whichever fragments carry it.
+            found.append(
+                NativeWord(field, text.strip(), *_ORCA_BLOCK_SYNTAX_ROUTE)
+            )
+        for word in native_route_words(value):
+            route = _orca_route_word_route(word)
+            if route is not None and not (block and _orca_block_syntax(word)):
+                found.append(NativeWord(field, word, *route))
+    scf_tol = settings.get("scf_tol")
+    if native_field_is_set(scf_tol):
+        preset = str(scf_tol).strip().casefold()
+        preset = preset[:-3] if preset.endswith("scf") else preset
+        found.append(
+            NativeWord(
+                "scf_tol",
+                str(scf_tol),
+                "the SCF convergence, as a ! line word ORCA reads only when "
+                "it names a preset",
+                (
+                    f"scf_convergence: {preset}"
+                    if preset in ORCA_SCF_CONVERGENCE
+                    else "scf_convergence, one of "
+                    + ", ".join(ORCA_SCF_CONVERGENCE)
+                ),
+            )
+        )
+    return tuple(found)
 
 
 def _setting_value(settings, name):
@@ -1400,7 +1642,8 @@ class ORCAJobSettings(MolecularJobSettings):
         ).read_settings()
         orca_default_settings = cls.default()
         return orca_default_settings.merge(
-            gaussian_settings_from_comfile, merge_all=True
+            without_program_own_numerics(gaussian_settings_from_comfile),
+            merge_all=True,
         )
 
     @classmethod
@@ -1424,7 +1667,8 @@ class ORCAJobSettings(MolecularJobSettings):
         ).read_settings()
         orca_default_settings = cls.default()
         orca_settings_from_logfile = orca_default_settings.merge(
-            gaussian_settings_from_logfile, merge_all=True
+            without_program_own_numerics(gaussian_settings_from_logfile),
+            merge_all=True,
         )
         # Convert def2 basis set naming
         if (

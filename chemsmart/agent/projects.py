@@ -528,6 +528,69 @@ def _require_declared_section_shape(
         )
 
 
+def _refuse_native_words(program: str, payload: Mapping[str, Any]) -> None:
+    """Refuse the program's own words where a typed setting states them.
+
+    An Agent-authored project states its calculation in typed settings,
+    and CHEMSMART writes each program's input from them. The settings
+    classes also carry fields whose values reach the input verbatim --
+    ``input_string`` replaces the whole input, ``route_to_be_written`` the
+    route, ``additional_route_parameters`` appends words -- and a session
+    reaches for them when it does not find the typed setting: 104
+    authoring calls in 16 of 842 archived sessions (deepseek-v4-flash-0731,
+    ax41 and CUHK R8-R10), 88% of them for an intent a typed setting
+    already carried, one of them a 22-byte ``input_string`` that ran with
+    no method, basis or geometry (R10 Q15 g1). Such a word reaches the
+    program without a receipt that reads it back, and a replacing field is
+    not even shown in the review. So each program's table
+    (``native_words`` in its settings module) names the words a typed
+    setting states and the fields that replace what the host writes, and
+    this refuses them with that setting. A word no typed setting carries
+    passes, verbatim and displayed: the refusal is the typed vocabulary's
+    reach and no wider. A person's project -- a file the loader reads --
+    keeps every field.
+    """
+
+    from chemsmart.agent._contracts import RoutedContractError
+    from chemsmart.jobs.settings import project_native_words
+
+    found = project_native_words(program, payload)
+    if not found:
+        return
+    diagnosis = "; ".join(
+        f"{section}.{item.field}"
+        + (f" word {item.word!r}" if item.word else "")
+        + f" states {item.states}"
+        for section, item in found
+    )
+    routes = []
+    for section, item in found:
+        line = f"{section}.{item.field}" + (
+            f" {item.word!r}" if item.word else ""
+        )
+        routes.append(f"{line} -> {item.route}")
+    raise RoutedContractError(
+        gate="project.native_words_have_typed_settings",
+        invariant=(
+            f"An Agent-authored {program} project states its calculation in "
+            "typed settings; CHEMSMART writes the program's input from them "
+            "and reads each one back from the written input. A program's own "
+            "word for an intent a typed setting carries, or a field that "
+            "replaces what the host writes, would reach the program with "
+            "nothing reading it back."
+        ),
+        diagnosis=diagnosis,
+        route=(
+            "; ".join(routes)
+            + ". Render the project again with those typed settings. A word "
+            "no typed setting states stays allowed in its field, verbatim; "
+            "an intent that has no typed setting at all belongs in the plan "
+            "as a stage with support_state blocked_unsupported and that "
+            "reason."
+        ),
+    )
+
+
 #: Provenance of each program's method vocabulary, stated wherever a value is
 #: refused or advised so the authority of the claim is inspectable. ORCA's is
 #: the installed binary itself; Gaussian's is its documentation, because the
@@ -629,6 +692,7 @@ def render_project_yaml(
         section.name: dict(section.settings) for section in document.sections
     }
     _require_declared_section_shape(document.program, payload)
+    _refuse_native_words(document.program, payload)
     vocabulary_advisories = _check_section_vocabulary(
         document.program, payload, registry
     )
@@ -722,6 +786,20 @@ def validate_project_yaml(
                 else ()
             )
             allowed.update({"jobtype", "engine", "freq"})
+            # A field whose words reach the program verbatim is recorded
+            # whenever it is set, advertised or not: these rows are what the
+            # review shows, and an input_string that replaced a whole input
+            # was absent from them because no capability advertises it.
+            from chemsmart.jobs.settings import (
+                native_field_is_set,
+                native_input_fields,
+            )
+
+            allowed.update(
+                name
+                for name in native_input_fields(program)
+                if native_field_is_set(getattr(settings, name, None))
+            )
             values = {
                 key: canonical_data(getattr(settings, key))
                 for key in sorted(allowed)
