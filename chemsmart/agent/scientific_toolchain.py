@@ -77,6 +77,7 @@ ANALYSIS_INTENT_KIND_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
             "alpha",
             "use_weighted_mass",
             "frequency_scale_factor",
+            "projected_coordinates",
         ),
         "quantity_expression": (
             "expression_nodes",
@@ -510,6 +511,11 @@ class AnalysisNodeIntentV1:
     #: not travel an approved DAG: it was reachable only from a direct
     #: analysis call, and the executor had nothing to forward.
     reaction_coordinate_mode: int = 0
+    #: The held coordinates a thermochemistry stage removes from the
+    #: Hessian, as the one-based atoms modred takes: the request for the
+    #: free energy of the surface they are held on (R10 Q27).  It travels
+    #: the approved DAG to the executor, which forwards it.
+    projected_coordinates: tuple[tuple[int, ...], ...] = ()
 
     def __post_init__(self) -> None:
         _identifier(self.node_id, "analysis node_id")
@@ -517,6 +523,21 @@ class AnalysisNodeIntentV1:
             raise ContractError(
                 "reaction_coordinate_mode is a 1-based mode index"
             )
+        from chemsmart.analysis.result_quantities import (
+            QuantityContractError,
+            normalized_projected_coordinates,
+        )
+
+        try:
+            object.__setattr__(
+                self,
+                "projected_coordinates",
+                normalized_projected_coordinates(self.projected_coordinates),
+            )
+        except QuantityContractError as exc:
+            raise ScientificToolchainContractError(
+                f"analysis node {self.node_id!r}: {exc}"
+            ) from exc
         if self.analysis_kind not in ANALYSIS_INTENT_KINDS:
             raise ScientificToolchainContractError(
                 "unsupported analysis intent kind"
@@ -875,6 +896,7 @@ class AnalysisNodeIntentV1:
             or self.alpha != 4
             or self.use_weighted_mass is not False
             or self.frequency_scale_factor != 1.0
+            or self.projected_coordinates
         ):
             raise ScientificToolchainContractError(
                 "thermochemistry controls apply only to thermochemistry"
@@ -1442,6 +1464,7 @@ def build_scientific_toolchain_plan(
             alpha=node.alpha,
             use_weighted_mass=node.use_weighted_mass,
             frequency_scale_factor=node.frequency_scale_factor,
+            projected_coordinates=node.projected_coordinates,
         )
         normalized_analyses.append(normalized)
         dependencies[node.node_id].update(effective_dependencies)

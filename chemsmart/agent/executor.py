@@ -1085,6 +1085,10 @@ class ApprovedWorkflowExecutor:
                     arguments["reaction_coordinate_mode"] = int(
                         node.reaction_coordinate_mode
                     )
+                if getattr(node, "projected_coordinates", ()):
+                    arguments["projected_coordinates"] = [
+                        list(item) for item in node.projected_coordinates
+                    ]
                 if node.concentration_mol_l is not None:
                     arguments["concentration_mol_l"] = node.concentration_mol_l
                 if node.entropy_cutoff_cm1 is not None:

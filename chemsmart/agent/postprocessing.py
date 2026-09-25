@@ -84,6 +84,7 @@ def derive_trusted_thermochemistry(
     use_weighted_mass: bool = False,
     frequency_scale_factor: float = 1.0,
     reaction_coordinate_mode: int = 0,
+    projected_coordinates: tuple = (),
 ) -> ThermochemistryReceiptV1:
     """Evaluate shared RRHO or quasi-harmonic thermochemistry."""
 
@@ -109,6 +110,7 @@ def derive_trusted_thermochemistry(
         alpha=alpha,
         use_weighted_mass=use_weighted_mass,
         frequency_scale_factor=frequency_scale_factor,
+        projected_coordinates=projected_coordinates,
     )
     return derive_result_thermochemistry(
         request=request,
