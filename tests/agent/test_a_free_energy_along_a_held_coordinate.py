@@ -522,3 +522,77 @@ def test_a_spectrum_short_of_its_structure_says_what_it_lacks(
         and f"structure has {has}" in line
         for line in receipt.assumptions
     )
+
+
+def test_a_projected_free_energy_is_not_called_the_free_energy_of_no_state(
+    tmp_path,
+):
+    """The expression reading agrees with the receipt it combines.
+
+    Live, R10 Q27 g1 (CUHK 2153714): the delivered G(90 deg) - G(eq) was
+    annotated "a free energy ... built on it describes no state" because
+    the expression reading asked the held result whether it is stationary
+    on the full surface, while its receipt is the free energy of the
+    surface the torsion is held on. A thermal part the host did not
+    project keeps the annotation (Q21's own test).
+    """
+
+    import json
+
+    host = _host(tmp_path)
+    projected = host._derive_thermochemistry(
+        "turn-1",
+        {
+            "program": "orca",
+            "artifact_id": "orca-held-90",
+            "temperature_k": 298.15,
+            "pressure_atm": 1.0,
+            "projected_coordinates": [[3, 1, 2, 4]],
+        },
+    )
+    equilibrium = host._derive_thermochemistry(
+        "turn-2",
+        {
+            "program": "orca",
+            "artifact_id": "orca-eq",
+            "temperature_k": 298.15,
+            "pressure_atm": 1.0,
+        },
+    )
+    host._evaluate_quantity_expression(
+        "turn-3",
+        {
+            "expression_id": "dg90",
+            "inputs": [
+                {
+                    "input_id": "g90",
+                    "receipt_sha256": projected.receipt_sha256,
+                    "quantity_id": "gibbs_free_energy",
+                },
+                {
+                    "input_id": "geq",
+                    "receipt_sha256": equilibrium.receipt_sha256,
+                    "quantity_id": "gibbs_free_energy",
+                },
+            ],
+            "nodes": [
+                {
+                    "node_id": "dg",
+                    "operation": "subtract",
+                    "input_ids": ["g90", "geq"],
+                }
+            ],
+            "output_node_ids": ["dg"],
+        },
+    )
+    kinds = [
+        item.get("kind")
+        for line in (tmp_path / "events.jsonl").read_text().splitlines()
+        if line.strip()
+        for item in (json.loads(line).get("payload") or {}).get(
+            "kind_observations"
+        )
+        or ()
+    ]
+    assert kinds, "the reading of a two-structure difference said nothing"
+    assert "vibrational_energy_of_a_structure_not_stationary" not in kinds

@@ -19446,6 +19446,15 @@ class CommandCompiledToolHostV1:
                     pass
             cache[key] = (species, not_stationary, geometries)
         species, not_stationary, geometries = cache[key]
+        if extraction is None and projected_coordinates_of(
+            getattr(receipt, "assumptions", ())
+        ):
+            # A free energy the host derived with the held coordinates
+            # removed stands on the surface they are held on, where the
+            # structure is stationary; the full surface's "not stationary"
+            # describes another number (R10 Q27 g1, CUHK 2153714: the
+            # delivered G(90 deg) was annotated "describes no state").
+            not_stationary = ""
         # The geometry a number belongs to is the structural state its own
         # selector declares; a derived thermochemistry quantity belongs to
         # the structure its modes were computed at.
