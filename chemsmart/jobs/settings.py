@@ -40,6 +40,19 @@ def native_input_fields(program):
     return tuple(getattr(module, "NATIVE_INPUT_FIELDS", ()) or ())
 
 
+def agent_refused_fields(program):
+    """The native fields *program* refuses whenever an Agent sets them.
+
+    Declared by each program's settings module (``AGENT_REFUSED_FIELDS``),
+    beside the ``native_words`` table that refuses them, so the capability
+    an Agent reads can leave them out instead of offering a field its
+    project tool refuses.
+    """
+
+    module = _program_settings_module(program)
+    return tuple(getattr(module, "AGENT_REFUSED_FIELDS", ()) or ())
+
+
 def project_native_words(program, sections):
     """Every native word project *sections* carry that has a typed route.
 

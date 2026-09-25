@@ -473,6 +473,17 @@ NATIVE_INPUT_FIELDS = (
     "gen_genecp_file",
 )
 
+#: The native fields ``native_words`` refuses whenever they are set: a
+#: whole input or route, a basis file named by path, and ``scf_tol``,
+#: which restates ``scf_convergence`` as a ``!`` word. The capability an
+#: Agent reads does not offer them.
+AGENT_REFUSED_FIELDS = (
+    "input_string",
+    "route_to_be_written",
+    "gen_genecp_file",
+    "scf_tol",
+)
+
 _ORCA_BROKEN_SYMMETRY_WORDS = ("flipspin", "brokensym", "guessmix", "finalms")
 _ORCA_JOB_WORDS = (
     "opt",

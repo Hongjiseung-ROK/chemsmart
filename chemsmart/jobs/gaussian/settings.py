@@ -375,6 +375,16 @@ NATIVE_INPUT_FIELDS = (
     "gen_genecp_file",
 )
 
+#: The native fields ``native_words`` refuses whenever they are set: a
+#: whole input or route, free lines after the geometry, and a basis file
+#: named by path. The capability an Agent reads does not offer them.
+AGENT_REFUSED_FIELDS = (
+    "input_string",
+    "route_to_be_written",
+    "append_additional_info",
+    "gen_genecp_file",
+)
+
 #: Options a job type's own ``opt`` word already carries.
 _GAUSSIAN_HOST_OPT_OPTIONS = (
     "ts",
