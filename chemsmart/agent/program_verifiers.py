@@ -251,6 +251,12 @@ def _validate_native_input(expectation, paths):
             "multiplicity": expectation.multiplicity,
         }
     )
+    # A setting the writer writes for no stage of this job type is not
+    # demanded of its input: the writer's own table says which. An
+    # optimiser control stated in the phase section every stage reads was
+    # demanded of a single point's route and reported red (R10 Q31).
+    for field in _settings_not_written_for(expectation, expected_settings):
+        expected_settings.pop(field, None)
     parsed_candidates = [
         (path, settings_cls.from_filepath(str(path))) for path in candidates
     ]
@@ -941,6 +947,28 @@ def _pyscf_settings_round_trip(expectation, result):
         for item in verify_provenance(settings, result)
         if item.rule_id != RULE_PROVENANCE_INCOMPLETE
     ]
+
+
+def _settings_not_written_for(expectation, expected_settings):
+    """The fields the program's writer writes for no stage of this job.
+
+    Asked of the program's settings module, which owns the writer's table.
+    A Gaussian ``link`` node writes its linked target's route, so the
+    target's job type is the one asked.
+    """
+
+    import importlib
+
+    module = importlib.import_module(
+        f"chemsmart.jobs.{expectation.program}.settings"
+    )
+    ask = getattr(module, "settings_not_written_for", None)
+    if ask is None:
+        return ()
+    jobtype = expectation.jobtype
+    if expectation.program == "gaussian" and jobtype == "link":
+        jobtype = str(expected_settings.get("jobtype") or jobtype)
+    return tuple(ask(jobtype))
 
 
 def _settings_class(program):

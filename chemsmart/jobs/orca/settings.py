@@ -109,6 +109,29 @@ ORCA_OPT_CONVERGENCE_KEYWORDS = {
 }
 
 
+#: The stages ORCA's geometry optimiser runs in, whose route carries the
+#: optimiser's convergence preset.
+ORCA_OPTIMISING_JOBTYPES = ("opt", "modred", "scan", "ts")
+
+#: The optimiser's controls written only on an optimising stage's route.
+ORCA_OPTIMISER_ROUTE_FIELDS = ("opt_convergence",)
+
+
+def settings_not_written_for(jobtype):
+    """The settings the writer writes for no stage of *jobtype*.
+
+    A project's phase section feeds every stage, so an optimiser preset
+    stated beside the level of theory reaches a single point, a response
+    calculation or a reaction path too, none of which runs the optimiser
+    and whose route correctly carries none. The preview asks this, the
+    writer's own table, instead of demanding the preset there.
+    """
+
+    if jobtype in ORCA_OPTIMISING_JOBTYPES:
+        return ()
+    return ORCA_OPTIMISER_ROUTE_FIELDS
+
+
 def _normalize_orca_opt_convergence(value):
     """Map a project's optimisation convergence word to ORCA's own."""
 
@@ -1958,11 +1981,9 @@ class ORCAJobSettings(MolecularJobSettings):
         # a job that optimises a geometry has one. "normal" is ORCA's
         # default and writes nothing, so a project may state it without
         # changing the input.
-        if self.opt_convergence is not None and self.jobtype in (
-            "opt",
-            "modred",
-            "scan",
-            "ts",
+        if (
+            self.opt_convergence is not None
+            and self.jobtype in ORCA_OPTIMISING_JOBTYPES
         ):
             preset = ORCA_OPT_CONVERGENCE_KEYWORDS[self.opt_convergence]
             if preset:

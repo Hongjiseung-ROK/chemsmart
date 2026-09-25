@@ -318,6 +318,25 @@ GAUSSIAN_INTEGRATION_GRIDS = (
 #: else, because no other Gaussian job runs that optimiser.
 GAUSSIAN_OPTIMISING_JOBTYPES = ("opt", "ts", "modred", "scan")
 
+#: The optimiser's controls: written inside the ``opt`` word
+#: (``_opt_route_word``), so a stage that runs no optimiser writes none.
+GAUSSIAN_OPTIMISER_FIELDS = ("geom_maxiter", "additional_opt_options_in_route")
+
+
+def settings_not_written_for(jobtype):
+    """The settings the writer writes for no stage of *jobtype*.
+
+    A project's phase section feeds every stage, so an optimiser control
+    stated beside the level of theory reaches a single point too, which
+    runs no optimiser and whose route correctly carries none. The preview
+    asks this, the writer's own table, instead of demanding the control
+    in an input that cannot hold it.
+    """
+
+    if jobtype in GAUSSIAN_OPTIMISING_JOBTYPES:
+        return ()
+    return GAUSSIAN_OPTIMISER_FIELDS
+
 
 def _normalize_gaussian_word(value, allowed, field_name):
     """The lower-case Gaussian word for a typed setting, or a refusal."""
