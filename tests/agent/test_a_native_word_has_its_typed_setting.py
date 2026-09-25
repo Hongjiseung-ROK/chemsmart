@@ -246,6 +246,71 @@ def test_another_programs_grid_word_is_redirected_in_a_gaussian_project():
     assert "gaussian's defgrid vocabulary" in str(caught.value)
 
 
+@pytest.mark.capability("program_jobtype:gaussian:cpu:irc")
+@pytest.mark.parametrize(
+    "irc, written",
+    [
+        # R10 Q28 G2's shape (it asked for 20, then wrote 512 to match).
+        (
+            {
+                "direction": "forward",
+                "maxpoints": 20,
+                "maxcycles": 64,
+                "recalc_step": 5,
+                "stepsize": 10,
+            },
+            ("maxpoints=20", "maxcycle=64", "recalc=5", "stepsize=10"),
+        ),
+        # R10 Q28 G1's shape: one node for both branches; it never launched.
+        ({"maxpoints": 60}, ("maxpoints=60",)),
+    ],
+)
+def test_a_projects_reaction_path_controls_reach_the_route(
+    tmp_path, irc, written
+):
+    """The IRC controls a refusal routes maxpoints=/IRC=() to are walkable.
+
+    The irc command's option defaults were the numbers themselves, so a
+    project's irc: section was replaced by 512/128/6 on every run and the
+    preview, which reads the route back, was red on every non-default
+    value; stepsize was written only beside a predictor.
+    """
+
+    sections = {"gas": dict(_LEVEL["gaussian"]), "irc": irc}
+    receipt, route = fake_preview(
+        tmp_path, "gaussian", sections, _WATER, (0, 1), "irc"
+    )
+    assert receipt.status == "valid", receipt
+    route = " ".join(route.lower().split())
+    for word in written:
+        assert word in route
+
+
+@pytest.mark.capability("program_jobtype:gaussian:cpu:irc")
+def test_the_census_maxpoints_word_is_routed_to_a_setting_that_writes_it(
+    tmp_path,
+):
+    """R9 g1 wrote additional_route_parameters: maxpoints=50."""
+
+    report = _refusal(
+        "gaussian",
+        {
+            "gas": dict(_LEVEL["gaussian"]),
+            "irc": {"additional_route_parameters": "maxpoints=50"},
+        },
+    )
+    assert "maxpoints" in report["route"]
+    sections = {
+        "gas": dict(_LEVEL["gaussian"]),
+        "irc": {"direction": "reverse", "maxpoints": 50},
+    }
+    receipt, route = fake_preview(
+        tmp_path, "gaussian", sections, _WATER, (0, 1), "irc"
+    )
+    assert receipt.status == "valid", receipt
+    assert "maxpoints=50" in route.lower()
+
+
 def test_an_unknown_setting_is_answered_with_the_offered_settings(tmp_path):
     """The loader's key list taught input_string (R10 Q15 g1)."""
 

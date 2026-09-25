@@ -353,6 +353,35 @@ def _normalize_geom_maxiter(value):
     return cycles
 
 
+def _irc_whole_number(value, name, positive=True):
+    """An IRC ``irc(...)`` option as the integer Gaussian reads, or None."""
+
+    if value is None:
+        return None
+    try:
+        number = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Gaussian IRC {name} takes a whole number, got {value!r}"
+        ) from exc
+    if isinstance(value, bool) or number != float(value):
+        raise ValueError(
+            f"Gaussian IRC {name} takes a whole number, got {value!r}"
+            + (
+                " (the step is in units of 0.01 Bohr)"
+                if name == "stepsize"
+                else ""
+            )
+        )
+    if (positive and number < 1) or (not positive and number == 0):
+        raise ValueError(
+            f"Gaussian IRC {name} takes a "
+            + ("positive" if positive else "non-zero")
+            + f" whole number, got {value!r}"
+        )
+    return number
+
+
 def _gaussian_route_keyword(token):
     """The keyword a route word names (``scf`` for ``SCF=(Tight)``)."""
 
@@ -2859,7 +2888,9 @@ class GaussianIRCJobSettings(GaussianJobSettings):
         recalc_step (int): Interval between energy recalculations.
         maxpoints (int): Maximum number of IRC points to follow.
         maxcycles (int): Max optimization cycles per IRC point.
-        stepsize (int): IRC integration step size.
+        stepsize (int): IRC integration step size, in 0.01 Bohr; unset
+            leaves Gaussian's own default step (a predictor route writes
+            20, as it always has).
     """
 
     def __init__(
@@ -2870,7 +2901,7 @@ class GaussianIRCJobSettings(GaussianJobSettings):
         direction=None,
         maxpoints=512,
         maxcycles=128,
-        stepsize=20,
+        stepsize=None,
         flat_irc=False,
         **kwargs,
     ):
@@ -2895,11 +2926,16 @@ class GaussianIRCJobSettings(GaussianJobSettings):
         super().__init__(**kwargs)
         self.predictor = predictor
         self.recorrect = recorrect
-        self.recalc_step = recalc_step
+        # The path's whole-number controls: Gaussian's irc(...) options take
+        # integers, and a fraction (a session wrote stepsize: 0.1) would be
+        # written as a word Gaussian refuses.
+        self.recalc_step = _irc_whole_number(
+            recalc_step, "recalc_step", positive=False
+        )
         self.direction = direction
-        self.maxpoints = maxpoints
-        self.maxcycles = maxcycles
-        self.stepsize = stepsize
+        self.maxpoints = _irc_whole_number(maxpoints, "maxpoints")
+        self.maxcycles = _irc_whole_number(maxcycles, "maxcycles")
+        self.stepsize = _irc_whole_number(stepsize, "stepsize")
         self.flat_irc = flat_irc
         self.freq = False  # turn off freq calc for IRC jobs
         self.forces = False  # turn off forces calculations
@@ -2949,10 +2985,13 @@ class GaussianIRCJobSettings(GaussianJobSettings):
             logger.debug("Set IRC direction to reverse")
 
         if self.predictor is not None and self.recorrect is not None:
+            # A predictor route has always carried a step size (20 unless
+            # the project states one).
+            stepsize = 20 if self.stepsize is None else self.stepsize
             route_string += (
                 f" irc({self.predictor},calcfc,recorrect={self.recorrect},"
                 f"recalc={self.recalc_step},"
-                f"stepsize={self.stepsize},{self.direction},"
+                f"stepsize={stepsize},{self.direction},"
                 f"maxpoints={self.maxpoints},maxcycle={self.maxcycles})"
             )
             logger.debug(
@@ -2960,8 +2999,16 @@ class GaussianIRCJobSettings(GaussianJobSettings):
                 f"recorrect {self.recorrect}"
             )
         elif self.predictor is None and self.recorrect is None:
+            # A stated step size is written here too: it was accepted and
+            # dropped on this route, so a project asking for StepSize=10
+            # walked Gaussian's default step (R9 g2's IRC=(...,StepSize=10)
+            # intent; R10 Q28).
+            stepsize = (
+                "" if self.stepsize is None else f"stepsize={self.stepsize},"
+            )
             route_string += (
-                f" irc(calcfc,recalc={self.recalc_step},{self.direction},"
+                f" irc(calcfc,recalc={self.recalc_step},{stepsize}"
+                f"{self.direction},"
                 f"maxpoints={self.maxpoints},maxcycle={self.maxcycles})"
             )
             logger.debug("Added basic IRC route without predictor/recorrect")
@@ -3027,7 +3074,7 @@ class GaussianLinkJobSettings(GaussianJobSettings):
         direction=None,
         maxpoints=512,
         maxcycles=128,
-        stepsize=20,
+        stepsize=None,
         flat_irc=False,
         **kwargs,
     ):
