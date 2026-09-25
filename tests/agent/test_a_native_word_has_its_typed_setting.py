@@ -91,13 +91,14 @@ _TYPED_ROUTES = [
     # ax41 c034 and ino1: optimiser convergence and cycle cap.
     ("orca", "opt", "TightOpt", {"opt_convergence": "tight"}, "tightopt"),
     ("orca", "opt", "maxiter 500", {"geom_maxiter": 500}, "maxiter 500"),
-    # The Gaussian numerics that had no typed field before this change.
+    # The Gaussian numerics that had no typed field before this change
+    # (R10 Q15 g1 asked a Gaussian stage for scf_convergence: tight).
     (
         "gaussian",
         "gas",
-        "scf=verytight",
-        {"scf_convergence": "verytight"},
-        "scf=verytight",
+        "scf=tight",
+        {"scf_convergence": "tight"},
+        "scf=tight",
     ),
     (
         "gaussian",
@@ -178,6 +179,9 @@ def test_a_gaussian_cycle_cap_in_the_opt_options_names_geom_maxiter(
         ("orca", "Hirshfeld"),
         ("orca", "NoUseSym"),
         ("gaussian", "scf=(tight,xqc) nosymm pop=hirshfeld 6d"),
+        # A word Gaussian accepts without the threshold its name promises
+        # is no typed word, so it stays the reviewer's (oracle O1).
+        ("gaussian", "scf=verytight"),
     ],
 )
 def test_a_word_no_typed_setting_carries_still_renders(program, value):

@@ -288,13 +288,23 @@ def gaussian_spherical_d_token(basis, *route_parts):
 #: route reader reads the same table back, so a written input shows the
 #: request that produced it.  Gaussian prints the threshold it applied
 #: ("Requested convergence on RMS density matrix=...") in every SCF.
-GAUSSIAN_SCF_CONVERGENCE = ("tight", "verytight")
+#: Measured (R10 Q28 oracle O1, CUHK Slurm 2153749, G16 C.02, water
+#: B3LYP/def2-SVP): ``scf=tight`` applies 1.00D-08, as does the default.
+#: ``scf=verytight`` is accepted and applied the same 1.00D-08 target and
+#: the same energy to every printed digit (only IOp 5/17=3 differs), so it
+#: is not offered: a typed word promises the threshold its name says.
+GAUSSIAN_SCF_CONVERGENCE = ("tight",)
 
 #: Gaussian's named integration grids, written as ``int=<word>``.  The
 #: project field is the shared ``defgrid``; these are Gaussian's words for
 #: it, as ORCA's DEFGRID words are ORCA's (ChemSmart does not translate one
 #: program's grid into another's: their quadratures differ).  Before this
 #: table a Gaussian ``defgrid`` was accepted, advertised, and never written.
+#: Measured (oracle O1, CUHK Slurm 2153749, water B3LYP/def2-SVP): each word
+#: is accepted and applied -- IRadAn 1 (coarsegrid, sg1grid), 4 (finegrid),
+#: 5 (ultrafine), 7 (superfinegrid) -- and moves the SCF energy from
+#: ultrafine's by 6.5e-5, 4.9e-6, 7.0e-7 and 1.2e-7 Eh; ultrafine equals
+#: Gaussian's default to every printed digit.
 GAUSSIAN_INTEGRATION_GRIDS = (
     "coarsegrid",
     "finegrid",
@@ -729,7 +739,8 @@ class GaussianJobSettings(MolecularJobSettings):
                 open-shell singlet (``chemsmart.jobs.settings``): the route
                 runs the method unrestricted with ``guess=mix``.
             scf_convergence (str, optional): How tightly the SCF converges,
-                one of ``GAUSSIAN_SCF_CONVERGENCE``; written ``scf=<word>``.
+                one of ``GAUSSIAN_SCF_CONVERGENCE`` (``tight``, measured to
+                be Gaussian's default threshold); written ``scf=<word>``.
             geom_maxiter (int, optional): The geometry optimiser's cycle
                 cap for an optimising job type; written
                 ``opt=(maxcycles=N)``.
