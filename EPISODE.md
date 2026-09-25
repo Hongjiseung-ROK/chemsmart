@@ -227,6 +227,67 @@ of deepseek-v4-flash-0731.
 - Not counted: zero provider turns or turn_deadline_exceeded
   (infrastructure). A weak run is reported, never re-rolled.
 
+## g1 -- READ (CUHK 2153714, COMPLETED 31 min 46 s, code 83b9bfbd, prereg 1d235efdeb8b)
+
+Read from host records (ledger, the two session streams, the cycle-1 run
+stream, both public transcripts, the delivered completed-analysis report),
+fetched read-only to scratch q27/g1. deepseek-v4-flash-0731; one run, one
+observation of that model. 2 cycles, 1 revision (analysis-only), 5 engine
+calls of 12. Settled `achieved`.
+- Route (the Agent's): cycle 1 planned opt (eq), OptTS from 0 and 180
+  deg, modred at 90 deg, a relaxed scan (auxiliary), and thermochemistry
+  nodes with `projected_coordinates [[3,1,2,4]]` at 0, 90 and 180 deg and
+  none at eq -- in its planning session, before any refusal. Its decision
+  names the affordance ("RRHO Gibbs with projected coordinates at true
+  saddles"). The approved review (reviews/cycle-1.json) carries the field
+  on the three nodes. The scan failed_native (ORCA GSTEP constraint set-up,
+  2 of 7 steps; as Q24's g2r); nothing depended on it.
+- Cycle 1 run (provider-free executor): all four thermochemistry nodes
+  executed; each projected receipt states "dihedral H3-O1-O2-H4 at
+  0.00/-180.00/90.00 deg", "5 of 6 vibrational modes kept (3N-7)", the
+  Hessian's sidecar and its reproduction (0.0041-0.0051 cm^-1), the
+  surface stationarity and the rotor treatment.
+- Cycle 2 (wake): tried `reaction_coordinate_mode` on the saddle stages;
+  the plan schema refused it (the gap left, above); re-planned with the
+  projection; analysis-only revision admitted; re-derived byte-identical G.
+  Decision in its own words: "the torsional coordinate was projected out
+  (3N-7 modes) at the two true saddles and at the modred point ... while
+  the equilibrium kept all 3N-6 modes"; uncertainty: "Harmonic RRHO
+  approximation applied to the low-lying torsion (323 cm-1 at
+  equilibrium), which is anharmonic". Imprecision: it calls the 90-deg
+  difference "a profile-point relative Gibbs"; by the mode counts it states
+  it is the activation convention.
+- Delivered (completed-analysis report, claims receipt d5975a18...):
+  gibbs-rel-90-kcal 0.3459, gibbs-rel-0-kcal = barrier-cis 7.9532,
+  gibbs-rel-180-kcal = barrier-trans 0.3454 kcal/mol; the report states
+  for each projecting node that it "removes the held coordinate(s)
+  [[3, 1, 2, 4]] ... 3N-6 less one mode per coordinate".
+- Against the pre-registration: S-host (b) met; (a) and (c) not exercised
+  (no naive request at a held result; no held 0/180 result) -- neutral.
+  S-agent met. Bands: dG(90) 0.346 in [0.20, 0.50]; dG(0) 7.953 in [7.7,
+  8.2]; dG(180) 0.345 in [0.20, 0.50]; dE(90) 0.760 in [0.1, 2.0]. F-host,
+  F-agent not triggered as written.
+- ERROR found beyond the pre-registration: the expression reading of the
+  delivered dG(90) (cycle-1 run stream and cycle-2 session stream)
+  annotated it `vibrational_energy_of_a_structure_not_stationary` --
+  "describes no state" -- from the held structure's full-surface
+  stationarity. Not in the public transcript, not in the report; a false
+  host word in the record. Repaired 5411601f (the operand of a projected
+  receipt carries no not-stationary sentence); witness red on ae3b0c09,
+  green after. (5411601f's body names Q21's control test wrongly; it is
+  test_a_zero_point_energy_rebuilt_by_hand_says_what_its_modes_are.)
+- Probe (left for the owner): `refusal_read_against_results` over g1's own
+  held-90 result still returns verified=True ("so it has no
+  gibbs_free_energy whatever its output prints") -- a session that refused
+  the 90-deg free energy would be signed unreachable_from_evidence over
+  evidence the host now derives it from (scratch q27/proto/probe_refusal.py).
+
+## Gates
+
+- ae3b0c09, pristine export: full suite 23 failed, 4770 passed; the
+  failing set equals the round baseline (q24 gate-full-failed.txt); none
+  under tests/agent.
+
 ## Status
 
 - step 0: brief read, base verified, governance and prior records (Q21
