@@ -165,6 +165,15 @@ output (CUHK 2153749):
 - `defgrid`, which was accepted before and never written;
 - `geom_maxiter`.
 
+A setting a project states reaches the input its program reads, or the
+host says why (R10 Q31). A `run gaussian|orca` option named for a
+project setting leaves the project's value alone unless it is typed:
+fourteen had value defaults that silently replaced project settings.
+A contract test reads the live Click tree and loader and fails the next
+such option. Gaussian's generated frequency step carries the typed grid
+and dispersion in its IOps, though its route echo omits the words
+(CUHK 2154009).
+
 One boundary of the Gaussian route channel is worth stating because the
 program does not state it. A route parameter is appended verbatim, so a
 token the project section already carries is written twice, and Gaussian
