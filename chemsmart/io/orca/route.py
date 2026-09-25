@@ -328,12 +328,20 @@ class ORCARoute:
 
     @property
     def scf_tol(self):
-        """Extract SCF convergence tolerance from route keywords."""
+        """Extract the SCF convergence preset (``<word>SCF``) from the route.
+
+        A whole ``<word>SCF`` keyword whose word is a preset; the words
+        were matched as substrings of any route word, so ``TightOpt`` --
+        the optimiser's preset -- read back as an SCF tolerance
+        ``tightopt`` (R10 Q31).
+        """
         for route_input in self.route_inputs:
-            if any(conv in route_input for conv in ORCA_SCF_CONVERGENCE):
-                if route_input.endswith("scf"):
-                    return route_input[:-3]
-                return route_input
+            word = str(route_input).casefold()
+            if word.endswith("scf") and word[:-3] in (
+                *ORCA_SCF_CONVERGENCE,
+                "normal",
+            ):
+                return word[:-3]
         return None
 
     @property
