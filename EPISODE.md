@@ -284,9 +284,78 @@ archive in place, writing only under `r10/q32/replay/`:
 - G1's archived ledger and workspace record hash identically before and
   after the job.
 
+## Replay 1 -- READ (CUHK Slurm 2154046, chpc-cn072, 3 min; code fccd4d89
+verified on the node, digest b9392764...; G1's archive hashed identically
+before and after)
+
+- r2-c4 (G1's tree): all 42 archived turns served, every tool reply aligned;
+  the replayed notice is byte-identical to the archived one, its event
+  `content_sha256` 9d6af724... equal, budgets and decision record equal
+  (ready ts-opt-freq, undecided); the session ended `waiting_for_approval`
+  with the archived reason; `input_checks_probed` equal. The notice is
+  reproduced. The park was not reached: the harness had left the archived
+  cycle-4 approval store in place and the host refused to append a second
+  session to it ("event store contains another session") -- a harness
+  defect, not the host's. Cycle 3's recovery row also differed from the
+  archive (no terminal states), because the stub executor said "" where the
+  real one had said "completed".
+- q32-c4 (fccd4d89): all 42 turns served, all replies aligned; the notice
+  names select_execution_wave and continue_execution_reasoning (digest
+  11b751da...), same session ending; the woken session's repair menu is the
+  new one. Park: the same harness defect.
+- r2-c3 (G1's tree, scripted at message 21): bind_reached_geometry refused
+  with the archived message; inspect_run shows no partial surface;
+  bind_scan_point_geometry refused "records no scan surface"; the wake's
+  timeout_terminated route names bind_reached_geometry.
+- q32-c3 (fccd4d89, scripted): the refusal names inspect_run and
+  bind_scan_point_geometry; inspect_run lists steps 1-10, 4.5 -> 2.325 A,
+  step 10 at -233.464021633484 Eh; point 10 binds with
+  `source_normal_termination` false and `source_recorded_terminal_state`
+  "timeout_terminated" read from the workspace's own run evidence, steps
+  started 11, planned 13; the wake's timeout_terminated route names
+  inspect_run and bind_scan_point_geometry.
+
+## Replay 2 -- PRE-REGISTRATION (written before submission)
+
+The same four replays with two harness corrections only: the approval
+stores of the replayed cycle and later are cut with the ledger, and the stub
+executor returns the analysis status the archived recovery row recorded.
+Expectations are replay 1's, plus: r2-c4 writes the archived park row
+(`execution_wave_decision_pending`, reason "the Agent made no
+execution-boundary decision on workflow hexatriene-rclosure-r4") and the
+archived `revision_admitted` checks; q32-c4 writes the same row with the
+reason extended as pre-registered for replay 1; cycle 3's recovery row
+equals the archived one on r2.
+
+## Matched turns -- PRE-REGISTRATION (amends R-matched before any real turn)
+
+Instrument: `tools/matched_turns.py` on CUHK (the replay above, a hybrid
+transport serving the archived prefix, then real deepseek-v4-flash-0731
+turns through alibaba-token-plan with the session's own lease; HOME fenced;
+the driver stopped after the session). N amended from 12 to 6 per arm for
+provider cost (each turn carries 180k-310k input tokens); probe turns at
+most 3 per sample. A sample with zero real turns, a transport failure or a
+`turn_deadline_exceeded` is infrastructure: reported, never counted, never
+re-rolled.
+- P (the notice): cycle 4, prefix through transcript message 116 (the
+  session's first text close), base arm on G1's tree (the notice G1 saw),
+  repaired arm on q32's tree. Outcome: select_execution_wave or
+  continue_execution_reasoning succeeds after the notice. Prediction: base
+  at most 2 of 6, repaired at least 5 of 6. FALSIFIED if repaired minus
+  base is below 3.
+- T (the route a stopped scan has): cycle 3, prefix through transcript
+  message 21 (the two bind_reached_geometry calls on the timed-out scans,
+  replayed verbatim), each arm's host answering them. Outcome: within the
+  probe turns the session calls inspect_run or bind_scan_point_geometry on
+  either scan result. Prediction: base at most 1 of 6, repaired at least 4
+  of 6. FALSIFIED if repaired minus base is below 3. Also read, not scored:
+  on the repaired arm, which point is bound (the ridge-side 2.325 A point
+  of the cycle-2 scan, or another) and what the session says it is.
+
 ## Jobs issued
 
-(none yet)
+- 2026-09-25: replay 1, CUHK Slurm 2154046 (r10-q32-a), 4 cores, 2 h
+  limit, pre-registration b5cd1a1bebf6, code fccd4d89 (digest b9392764...).
 
 ## Status
 
