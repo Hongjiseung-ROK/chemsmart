@@ -168,6 +168,50 @@ harmonic receipts and the H2O2 scan so far.
   methanol -1.5 %, H2O2 +0.3 %. A ratio treatment q_RRHO * q_HR/q_HO(1D)
   would give ethane 229.01 and methanol 239.69 (sensitivity, not T1).
 
+## g1-h2o2 and g2-meoh -- READ (host records fetched read-only to scratch q30/goals-read)
+
+deepseek-v4-flash-0731; one observation each; code 016fae50 (digest b4cfaedb...,
+recomputed on the nodes). Both settled `achieved`.
+- Affordance visibility, verified rather than assumed: every session's
+  capability_loaded/exposure_planned events name plan_thermochemistry (and
+  derive_thermochemistry) loaded, with catalogue_sha256 acbe76932a0bbebd...;
+  the catalogue built from 016fae50 reproduces that digest exactly, and its
+  plan_thermochemistry definition carries the rule sentence ("A low torsion is
+  not a harmonic oscillator ... internal_rotors") and the field. Searches
+  framed the tasks as RRHO from the first query; none named torsion, rotor or
+  internal rotation.
+- g1-h2o2 (2153889, 8 min, 1 cycle, 1 engine call of 8): ORCA opt+freq, RRHO
+  at 0.98692327 atm (1 bar, correct), no scan. The provider-free chain
+  delivered S = 227.573 J/(K mol) and the goal settled with no session
+  decision, so the task's "how far you would trust it" is unanswered and no
+  session read the receipt (whose torsion line names O1-O2 as the 369.4
+  cm^-1 mode). The expectation basis names "harmonic RRHO ... lowest, the O-O
+  torsion near 300 cm-1". Outcome as registered: F-agent (a harmonic S
+  delivered as the S; the torsion named only as one of the harmonic modes).
+  Physics: outside the band [231.99, 235.52] by -4.42 (-5.42 from JANAF).
+- g2-meoh (2153890, 12 min, 2 cycles, 2 engine calls of 8): ORCA and Gaussian
+  opt+freq, RRHO at 1 bar, cross-program half-spread as the measured
+  uncertainty. Cycle 1's claim node failed ("a planned uncertainty names an
+  output the walk has not produced: ('expr-half-spread', 'half-spread')" --
+  the plan builder does not add a claim's uncertainty producer to its
+  dependencies; defect left, below); an analysis-only revision delivered.
+  In cycle 2 the session called derive_thermochemistry itself and both
+  receipts carried the host's line "torsions counted as harmonic
+  oscillators: the rigid turn about C1-O2 is 100% the 299.2 / 304.3 cm^-1
+  mode ... internal_rotors". The decision quotes it among its assumptions,
+  lists "Free/internal-rotor hindered-rotation model for the methyl torsion:
+  rejected as beyond the declared RRHO observable and it would cost an engine
+  call; noted as the main route to an even closer match with the 239.8
+  J/mol/K experiment", and delivers S = 238.52 +- 1.5 J/(K mol) with an
+  asserted 1.0 for "harmonic treatment of the methyl torsion". Its answer
+  also says "the ~300 cm-1 torsion is high enough that harmonic handling of
+  it is fair" (physically wrong: V3 ~ 1.8 kT; O1 moves S by +1.38).
+  Outcome as registered: Partial (read, stated as a limitation, not acted
+  on). Physics: outside the band [238.87, 240.87] by -0.35; the stated
+  +-1.5 covers Gurvich's 239.87 (-1.35).
+- Neither goal reached the rotor. The capability's live Agent use is not
+  demonstrated; its host function is (O1).
+
 ## Provenance added after pre-registration (not a band change)
 
 - NIST WebBook, H2O2 gas phase (read): S(gas, 1 bar) 232.95 J/K/mol, "Review
