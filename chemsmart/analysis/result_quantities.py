@@ -3307,24 +3307,26 @@ def _internal_rotor_treatment(
         agreement = surfaces_agree(
             surface, scan_reader.surface_for_output(scan_output)
         )
-        if agreement and energy_eh is not None:
+        surface_words = {
+            True: "on the frequency result's surface",
+            False: "on a different surface from the frequency result's "
+            "(the readers' surface identities differ)",
+            None: "surface identity not comparable",
+        }[agreement]
+        if energy_eh is not None:
+            # The one cross-check both readers can always make: the
+            # potential's energy at this result's own dihedral against the
+            # result's energy -- about zero on one surface, a basis or a
+            # functional apart otherwise.
             offset = (
                 zero
                 + float(potential.value(phi_eq)) / _EH_TO_CM1
                 - float(energy_eh)
             )
-            surface_words = (
-                "on the frequency result's surface (its energy at this "
-                f"result's dihedral is {offset * 627.509474:+.4f} kcal/mol "
-                "from the result's own)"
+            surface_words += (
+                "; the scan's energy at this result's dihedral is "
+                f"{offset * 627.509474:+.4f} kcal/mol from the result's own"
             )
-        elif agreement is False:
-            surface_words = (
-                "on a different surface from the frequency result's (the "
-                "readers' surface identities differ)"
-            )
-        else:
-            surface_words = "surface identity not comparable"
         s_rotor = rotor_levels.thermodynamics(temperature_k)
         s_harm = rotor_levels.harmonic_thermodynamics(temperature_k)
         statements.extend(
