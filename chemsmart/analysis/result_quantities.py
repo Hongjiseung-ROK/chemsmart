@@ -2932,7 +2932,8 @@ class _InternalRotorTreatment:
 
 def _rotor_refusal(artifact_id: str, diagnosis: str) -> Exception:
     return QuantityExtractionError(
-        "[thermochemistry.internal_rotor] A hindered rotor is built from the "
+        "[thermochemistry.hindered_rotor_stands_on_its_scan] A hindered rotor "
+        "is built from the "
         "frequency result's own Hessian and structure and from a relaxed "
         "scan of a dihedral about the same bond over one full period of the "
         f"rotor. Diagnosis: result {artifact_id!r}: {diagnosis}"

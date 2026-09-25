@@ -315,6 +315,7 @@ from chemsmart.analysis.result_quantities import (
     ThermochemistryReceiptV1,
     canonical_extraction_receipt_body,
     canonical_thermochemistry_quantity,
+    internal_rotors_of,
     make_quantity_value,
     projected_coordinates_of,
     quantity_extraction_receipt_from_record,
@@ -469,6 +470,21 @@ _AFTER_MEMBERS_CLAUSE = {
         "input from validates, and not at all if that member does not --"
     ),
 }
+
+
+def _rotor_torsions(rotors: Iterable[Any]) -> tuple[tuple[int, ...], ...]:
+    """The torsions of internal rotors, from a receipt's records or a node's
+    planned rotors, as one sorted comparable tuple."""
+
+    torsions = []
+    for rotor in rotors or ():
+        torsion = (
+            rotor.get("torsion")
+            if isinstance(rotor, Mapping)
+            else getattr(rotor, "torsion", ())
+        )
+        torsions.append(tuple(int(index) for index in torsion or ()))
+    return tuple(sorted(torsions))
 
 
 def _node_coordinates(node, input_artifact=None) -> dict[str, str]:
@@ -9027,7 +9043,21 @@ class CommandCompiledToolHostV1:
         analysis_kind = str(raw_node["analysis_kind"])
         artifact_id = str(raw_node.get("artifact_id", "")).strip()
         raw_inputs = tuple(raw_node["inputs"])
-        if artifact_id and raw_inputs:
+        raw_rotors = tuple(raw_node.get("internal_rotors", ()) or ())
+        # A rotor's scan is bound beside the result it is a torsion of, so a
+        # registered frequency result may sit beside a scan stage's output.
+        rotor_scan_inputs = {
+            str(item.get("scan_input_id", "") or "")
+            for item in raw_rotors
+            if isinstance(item, Mapping)
+        } - {""}
+        for item in raw_rotors:
+            if isinstance(item, Mapping) and item.get("scan_artifact_id"):
+                self._artifact(str(item["scan_artifact_id"]))
+        if artifact_id and any(
+            str(item.get("input_id", "")) not in rotor_scan_inputs
+            for item in raw_inputs
+        ):
             raise ContractError(
                 "an analysis node must choose a registered result or a "
                 "future producer output, not both"
@@ -9042,11 +9072,25 @@ class CommandCompiledToolHostV1:
                     "thermochemistry requires a complete typed program "
                     "result, not a geometry-only registered artifact"
                 )
-            analysis_inputs = (
-                RegisteredResultInputIntentV1(
-                    input_id="registered-result",
-                    artifact_id=artifact.artifact_id,
-                ),
+            analysis_inputs = tuple(
+                sorted(
+                    (
+                        RegisteredResultInputIntentV1(
+                            input_id="registered-result",
+                            artifact_id=artifact.artifact_id,
+                        ),
+                        *(
+                            AnalysisInputIntentV1(
+                                input_id=item["input_id"],
+                                source_kind=item["source_kind"],
+                                producer_node_id=item["producer_node_id"],
+                                producer_output_id=item["producer_output_id"],
+                            )
+                            for item in raw_inputs
+                        ),
+                    ),
+                    key=lambda item: item.input_id,
+                )
             )
         else:
             analysis_inputs = tuple(
@@ -9118,6 +9162,7 @@ class CommandCompiledToolHostV1:
                 tuple(item)
                 for item in raw_node.get("projected_coordinates", ()) or ()
             ),
+            internal_rotors=raw_rotors,
             validation_rules=tuple(
                 sorted(
                     (
@@ -10664,6 +10709,15 @@ class CommandCompiledToolHostV1:
                         # only the node that asked for those coordinates.
                         or projected_coordinates_of(receipt.assumptions)
                         != tuple(getattr(node, "projected_coordinates", ()))
+                        # A torsion counted as a hindered rotor is another
+                        # treatment: the receipt performs only the node that
+                        # asked for those rotors (R10 Q30).
+                        or _rotor_torsions(
+                            internal_rotors_of(receipt.assumptions)
+                        )
+                        != _rotor_torsions(
+                            getattr(node, "internal_rotors", ())
+                        )
                     ):
                         continue
                     quantities = {
@@ -14405,6 +14459,20 @@ class CommandCompiledToolHostV1:
                         "atoms) from the Hessian: the free energy of the "
                         "surface they are held on, 3N-6 less one mode per "
                         "coordinate, which the receipt states"
+                    )
+            # A torsion counted as a hindered rotor replaces a harmonic
+            # mode; the reviewer sees which torsion and which scan's
+            # potential, beside the conditions (R10 Q30).
+            for node in conditions:
+                for rotor in tuple(getattr(node, "internal_rotors", ()) or ()):
+                    lines.append(
+                        f"- `{node.node_id}` counts the torsion "
+                        f"{list(rotor.torsion)} (one-based atoms) as a "
+                        "one-dimensional hindered rotor on the potential of "
+                        "the relaxed scan "
+                        f"`{rotor.scan_input_id or rotor.scan_artifact_id}`, "
+                        "its harmonic mode projected out; the receipt states "
+                        "the moment, the symmetry numbers and the fit"
                     )
         constant_names: list[str] = []
         for node in toolchain.analysis_nodes:
@@ -19285,6 +19353,16 @@ class CommandCompiledToolHostV1:
                 projected_coordinates=tuple(
                     tuple(item)
                     for item in values.get("projected_coordinates", ()) or ()
+                ),
+                # Each rotor's scan is a result this host registered, bound
+                # by its id exactly as the frequency result is.
+                internal_rotors=tuple(
+                    (
+                        tuple(item.get("torsion") or ()),
+                        self._artifact(str(item["scan_artifact_id"])),
+                        str(item.get("scan_program") or values["program"]),
+                    )
+                    for item in values.get("internal_rotors", ()) or ()
                 ),
             )
         except ValueError as exc:

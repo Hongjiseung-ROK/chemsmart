@@ -160,6 +160,9 @@ def test_a_rotor_levels_meet_their_two_limits():
     assert s_rotor == pytest.approx(s_oscillator, abs=0.01)
 
 
+@pytest.mark.capability(
+    "gate:thermochemistry.hindered_rotor_stands_on_its_scan"
+)
 def test_a_scan_over_half_the_rotors_period_is_refused():
     # H2O2's gauche wells are mirror images: its rotor period is the whole
     # turn, and this Agent-planned scan (R10 Q7 g2) covered 0..180 deg.
@@ -167,11 +170,14 @@ def test_a_scan_over_half_the_rotors_period_is_refused():
     with pytest.raises(QuantityExtractionError) as refused:
         _derive(H2O2_EQ, (rotor,), {"scan": H2O2_HALF_TURN})
     message = str(refused.value)
-    assert "[thermochemistry.internal_rotor]" in message
+    assert "[thermochemistry.hindered_rotor_stands_on_its_scan]" in message
     assert "360-deg period" in message
     assert "Route: a relaxed scan over one full period" in message
 
 
+@pytest.mark.capability(
+    "gate:thermochemistry.hindered_rotor_stands_on_its_scan"
+)
 def test_a_scan_of_another_molecule_is_refused():
     rotor = _rotor((3, 2, 1, 4), H2O2_HALF_TURN)
     with pytest.raises(QuantityExtractionError, match="not this molecule"):
@@ -189,3 +195,232 @@ def test_a_harmonic_receipt_names_the_torsions_it_counts_as_oscillators():
     assert "about O1-O2" in h2o2
     none = "\n".join(_derive(NO_TORSION).assumptions)
     assert "torsions counted as harmonic oscillators" not in none
+
+
+def _registered(artifact_id, path, kind="gaussian_output"):
+    from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
+
+    resolved = Path(path).resolve()
+    return TrustedArtifactRefV1(
+        artifact_id=artifact_id,
+        kind=kind,
+        sha256=file_sha256(resolved),
+        size_bytes=resolved.stat().st_size,
+        path=str(resolved),
+        cli_value=str(resolved),
+    )
+
+
+def test_a_session_counts_a_torsion_as_a_rotor_through_the_tool(tmp_path):
+    """The live tool binds the scan by its registered id, and says so."""
+
+    from chemsmart.agent.runtime.event_store import RuntimeEventStore
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "events.jsonl", session_id="s"
+        ),
+        artifacts={
+            "meoh-eq": _registered("meoh-eq", MEOH_EQ),
+            "meoh-scan": _registered("meoh-scan", MEOH_SCAN),
+        },
+        task_spec_sha256s=("a" * 64,),
+        approved_workspace=tmp_path / "workspace",
+    )
+    receipt = host._derive_thermochemistry(
+        "turn-1",
+        {
+            "program": "gaussian",
+            "artifact_id": "meoh-eq",
+            "temperature_k": 298.15,
+            "pressure_atm": ONE_BAR_ATM,
+            "internal_rotors": [
+                {"torsion": [3, 2, 1, 4], "scan_artifact_id": "meoh-scan"}
+            ],
+        },
+    )
+    (rotor,) = internal_rotors_of(receipt.assumptions)
+    assert rotor["scan_artifact_id"] == "meoh-scan"
+    assert _quantity(receipt, "entropy") == pytest.approx(239.792, abs=0.005)
+    recorded = (tmp_path / "events.jsonl").read_text()
+    assert "internal rotors (one-based torsion atoms, scan artifact)" in (
+        recorded
+    )
+
+
+def test_an_approved_chain_carries_a_rotor_to_the_executor(tmp_path):
+    """Planned beside its scan stage, approved, forwarded, derived.
+
+    A thermochemistry stage binds the frequency result and the scan
+    stage's output, and names the torsion with the scan's input; the
+    normalised toolchain keeps it and the provider-free executor derives
+    the rotor receipt from the two artifacts.
+    """
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent.executor import ApprovedWorkflowExecutor
+    from chemsmart.agent.runtime.event_store import RuntimeEventStore
+    from chemsmart.agent.scientific_toolchain import (
+        AnalysisInputIntentV1,
+        AnalysisNodeIntentV1,
+        AnalysisOutputIntentV1,
+        build_scientific_toolchain_plan,
+    )
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+    from chemsmart.agent.workflows import (
+        ArtifactInputIntentV1,
+        ArtifactOutputIntentV1,
+        CommandNodeIntentV1,
+    )
+
+    def _calculation(node_id, jobtype):
+        return CommandNodeIntentV1(
+            node_id=node_id,
+            program="gaussian",
+            jobtype=jobtype,
+            project_role="r",
+            dependencies=(),
+            inputs=(
+                ArtifactInputIntentV1(
+                    binding_id="geometry",
+                    artifact_class="geometry_xyz",
+                    artifact_id="start",
+                    producer_node_id="",
+                    producer_output_id="",
+                ),
+            ),
+            expected_outputs=(
+                ArtifactOutputIntentV1(
+                    output_id=f"{node_id}-out",
+                    artifact_class="gaussian_output",
+                ),
+            ),
+            unresolved_fields=(),
+        )
+
+    def _node(node_id, kind, **fields):
+        base = dict(
+            node_id=node_id,
+            analysis_kind=kind,
+            dependencies=(),
+            inputs=(),
+            selectors=(),
+            outputs=(),
+            expression_nodes=(),
+            expression_output_node_ids=(),
+            temperature_k=None,
+            pressure_atm=None,
+            support_state="planned",
+            blocked_reason="",
+        )
+        base.update(fields)
+        return AnalysisNodeIntentV1(**base)
+
+    thermo = _node(
+        "s-meoh",
+        "thermochemistry",
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="result",
+                source_kind="program_output",
+                producer_node_id="eq",
+                producer_output_id="eq-out",
+            ),
+            AnalysisInputIntentV1(
+                input_id="torsion-scan",
+                source_kind="program_output",
+                producer_node_id="scan",
+                producer_output_id="scan-out",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="s", quantity_kind="entropy", unit="J/mol/K"
+            ),
+        ),
+        temperature_k=298.15,
+        pressure_atm=ONE_BAR_ATM,
+        internal_rotors=(
+            {"torsion": [3, 2, 1, 4], "scan_input_id": "torsion-scan"},
+        ),
+    )
+    claims = _node(
+        "claims",
+        "claim_rendering",
+        dependencies=("s-meoh",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="s",
+                source_kind="analysis_output",
+                producer_node_id="s-meoh",
+                producer_output_id="s",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="s", quantity_kind="entropy", unit="J/mol/K"
+            ),
+        ),
+    )
+    toolchain = build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(
+            _calculation("eq", "opt"),
+            _calculation("scan", "scan"),
+        ),
+        calculation_observables={"eq": ("eq-out",), "scan": ("scan-out",)},
+        analysis_nodes=(thermo, claims),
+        required_output_ids=("s",),
+    )
+    planned = {node.node_id: node for node in toolchain.analysis_nodes}
+    (rotor,) = planned["s-meoh"].internal_rotors
+    assert rotor.torsion == (3, 2, 1, 4)
+    assert rotor.scan_input_id == "torsion-scan"
+
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "events.jsonl", session_id="x"
+        ),
+        task_spec_sha256s=("a" * 64,),
+        approved_workspace=tmp_path / "workspace",
+        approved_scientific_toolchain_plan=toolchain,
+    )
+    host.artifacts["result.eq.1"] = _registered("result.eq.1", MEOH_EQ)
+    host.artifacts["result.scan.1"] = _registered("result.scan.1", MEOH_SCAN)
+    host.execution_receipts["eq"] = SimpleNamespace(validated=True)
+    host.execution_receipts["scan"] = SimpleNamespace(validated=True)
+    run_directory = tmp_path / "run"
+    run_directory.mkdir()
+    executor = ApprovedWorkflowExecutor(
+        host=host,
+        plan=SimpleNamespace(
+            workflow_id="w",
+            plan_sha256="b" * 64,
+            nodes=(
+                SimpleNamespace(node_id="eq", program="gaussian"),
+                SimpleNamespace(node_id="scan", program="gaussian"),
+            ),
+        ),
+        approval=SimpleNamespace(node_bindings=()),
+        frozen_approval=SimpleNamespace(approval_sha256="c" * 64),
+        initial_artifacts={},
+        project_artifacts=(),
+        task_spec_sha256="a" * 64,
+        run_directory=run_directory,
+        execution_bundle=SimpleNamespace(non_executable_node_ids=()),
+        approval_workspace=tmp_path / "workspace",
+        claim_workspace_bundle=False,
+    )
+    nodes, _status, _completions, _report = executor._run_analysis_phase(
+        toolchain
+    )
+    states = {node.node_id: node.state for node in nodes}
+    assert states["s-meoh"] == "executed", nodes
+    (receipt,) = host.thermochemistry_receipts.values()
+    (bound,) = internal_rotors_of(receipt.assumptions)
+    assert bound["scan_artifact_id"] == "result.scan.1"
+    assert _quantity(receipt, "entropy") == pytest.approx(239.792, abs=0.005)
