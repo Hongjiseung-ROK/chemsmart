@@ -231,3 +231,10 @@ b96e63ee (Q28's native-word refusals, Q29's tool-argument repairs) at
   their Hessian), 130e99cc (the rule on plan_thermochemistry). Gaussian
   held points 15 and 25 deg of ethane stopped at NStep 38 (typed failures).
 - step 3: live goals g1-h2o2 and g2-meoh pre-registered above.
+- step 4 (issued): code 016fae50 (tree digest b4cfaedb3f92ee00..., 426
+  files) at r10/q30/code-016fae50; g1-h2o2 = CUHK Slurm 2153889 (slot b,
+  started 11:26 on chpc-cn072, code digest verified on the node), g2-meoh =
+  CUHK Slurm 2153890 (slot a, queued behind the ORCA oracle 2153801); both
+  submitted by slot_submit with pre-registration digest 0fae4605baec. O1
+  Gaussian (2153802) COMPLETED in 1 h 00 min: 34 of 42 commands exit 0, the
+  eight failures all ethane held points (15-45 and 75-105 deg, NStep 38).
