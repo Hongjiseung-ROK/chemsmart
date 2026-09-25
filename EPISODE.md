@@ -422,3 +422,23 @@ otherwise no real matched turn is taken.
   (goal-grain-recovery-wake, producer-edges, settlement-and-terminal-records),
   Q16/Q22/Q26 merges and G1's cycle-4 records read; gate open; census
   pre-registered above.
+- 2026-09-25: census read; four repairs committed (af4721ca, 451f5435,
+  1b388d75, fccd4d89) each with a witness red on the tree before it;
+  R-control read; replays 1-3 read (R-replay holds on G1's own tree).
+  Gates on a pristine export of db5f5a72 (chemsmart/ = fccd4d89, merged with
+  r10-integration df78d69d, which has not moved since): full suite 23
+  failed = the round baseline (test_structures 19,
+  test_pyscf_dispersion_conformance 2, test_PyscfSettings 1,
+  test_aggregation 1), 4845 passed; tests/agent none failed; ruff, black
+  and isort clean on every touched file. The exports are deleted.
+- 2026-09-25 13:15 HKT: WAITING ON JOB 2154062 (matched turns 1; stub pass
+  clean, real samples running, interleaved; ~1.5 h). On resume read, in
+  order: (1) `r10/q32/matched1/samples.jsonl` (fetch it; read with
+  tools/read_samples.py): per arm, infrastructure samples first (zero real
+  turns, transport error, deadline), then the P outcome (a wave call
+  succeeding after the notice) and the T outcome (inspect_run or
+  bind_scan_point_geometry on a scan result within three real turns),
+  against the pre-registered predictions and falsifiers; (2) on the T
+  repaired arm, which point was bound and what the session said it was;
+  (3) G1's archive hashes before and after. Then merge r10-integration if it
+  moved, rerun the gates if anything merged, and write the final report.
