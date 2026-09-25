@@ -172,6 +172,29 @@ q27/oracle-o1b/g_m{0,90,180}_reached.xyz).
 - Observed and reported, not banded: whether Gaussian's own thermochemistry
   section uses the projected modes.
 
+## O1b -- READ (CUHK 2153717, COMPLETED 44 s, 3/3 exit 0; prereg 949e5cb087e4)
+
+Route written by the hub: `# b3lyp def2svp empiricaldispersion=gd3bj
+freq=projected` (single point). Gaussian's own projected analysis:
+- P3' met: held 90 printed [956.87, 1376.28, 1396.71, 3724.21, 3727.69]
+  against the host's gradient-tangent prediction [956.89, 1376.46,
+  1396.89, 3724.35, 3727.85] (within 0.2 cm^-1); Gaussian's own G equals
+  the host's held-coordinate projected G to 0.001 kcal/mol (dG(90) +0.344
+  both).
+- P4' met: held 0 printed [-612.87, 957.80, 1322.23, 1464.25, 3733.46]
+  (host tangent to 0.04 cm^-1: the torsion kept, the 3778 stretch
+  removed); held 180 printed [-236.46, 1241.61, 1519.76, 3549.91,
+  3798.40] (to 0.05 cm^-1). The falsifier did not fire: Gaussian's option
+  is not a translation of a held coordinate at those points.
+- Observed: Gaussian's own "Sum of electronic and thermal Free Energies"
+  counts the kept real modes: 5.381 kcal/mol below the host's projected G
+  at held 0 (native dG(0) +2.578 vs +7.959) and 1.742 below at held 180
+  (native dG(180) -1.402 vs +0.340).
+- Consequence found and repaired (ab59c347): the host's ordinary
+  derivation on the 90-deg log returned a 3N-7 free energy saying nothing;
+  a spectrum short of its structure's modes now says what it lacks (also
+  an archived frozen-atom Gaussian opt: 12 of 36 modes).
+
 ## PRE-REGISTRATION -- live goal g1 (written before submission)
 
 Task, geometry and envelope byte-identical to R10 Q21's g1-hooh (TASK.md
