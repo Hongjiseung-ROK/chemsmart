@@ -1258,6 +1258,10 @@ class ThermochemistryRequestV1:
     #: their values -- a point of a free-energy profile along them -- rather
     #: than of a stationary point; see ``derive_result_thermochemistry``.
     projected_coordinates: tuple[tuple[int, ...], ...] = ()
+    #: Torsions to count as one-dimensional hindered rotors instead of
+    #: harmonic modes (:class:`InternalRotorRequestV1`), each with the
+    #: relaxed scan whose energies are its potential.
+    internal_rotors: tuple[InternalRotorRequestV1, ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.thermochemistry-request.v1":
@@ -1275,11 +1279,27 @@ class ThermochemistryRequestV1:
             "projected_coordinates",
             normalized_projected_coordinates(self.projected_coordinates),
         )
+        object.__setattr__(
+            self,
+            "internal_rotors",
+            normalized_internal_rotors(self.internal_rotors),
+        )
         if self.projected_coordinates and int(self.reaction_coordinate_mode):
             raise QuantityContractError(
                 "name a reaction coordinate or project held coordinates, "
                 "not both: projecting the coordinate a saddle moves along "
                 "removes the mode reaction_coordinate_mode would name"
+            )
+        if self.internal_rotors and (
+            self.projected_coordinates or int(self.reaction_coordinate_mode)
+        ):
+            raise QuantityContractError(
+                "internal_rotors treats torsions of a minimum as hindered "
+                "rotors; it is not served together with projected_coordinates "
+                "(a held surface) or reaction_coordinate_mode (a saddle). "
+                "Route: derive the rotor treatment on the minimum's own "
+                "frequency result, and the held or saddle free energy in a "
+                "separate request"
             )
         normalized_program = str(self.program).strip().lower()
         object.__setattr__(self, "program", normalized_program)
@@ -1903,7 +1923,14 @@ def _thermochemistry_assumptions(
     # Gaussian and xTB for the same molecule. The engine now counts it and
     # says which number it used, and what the program had said, itself.
     assumptions = [
-        "rigid-rotor harmonic-oscillator thermochemistry for harmonic quantities",
+        (
+            "rigid-rotor harmonic-oscillator thermochemistry for harmonic "
+            "quantities, except the torsion(s) counted as hindered rotors "
+            "below"
+            if getattr(request, "internal_rotors", ())
+            else "rigid-rotor harmonic-oscillator thermochemistry for "
+            "harmonic quantities"
+        ),
         "ground-state electronic degeneracy equals spin multiplicity",
         (
             "natural-abundance weighted isotopic masses"
@@ -2416,6 +2443,139 @@ def _canonical_coordinate(atoms: Sequence[int]) -> tuple[int, ...]:
     return min(atoms, tuple(reversed(atoms)))
 
 
+@dataclass(frozen=True)
+class InternalRotorRequestV1:
+    """One torsion counted as a hindered rotor, and where its potential is.
+
+    ``torsion`` is the dihedral a-b-c-d as the one-based atoms ``modred``
+    and ``scan`` take; the rotor turns about the b-c bond.  The potential
+    is the relaxed scan ``scan_artifact_id`` (bytes ``scan_artifact_sha256``,
+    read by the ``scan_program`` reader), which must drive a dihedral about
+    the same bond over one full period of the rotor.
+    """
+
+    torsion: tuple[int, ...]
+    scan_artifact_id: str
+    scan_artifact_sha256: str
+    scan_program: str
+
+    def __post_init__(self) -> None:
+        atoms = []
+        for index in tuple(self.torsion or ()):
+            if isinstance(index, bool) or float(index) != int(float(index)):
+                raise QuantityContractError(
+                    f"atom index {index!r} is not an integer"
+                )
+            atoms.append(int(float(index)))
+        if len(atoms) != 4 or min(atoms) < 1 or len(set(atoms)) != 4:
+            raise QuantityContractError(
+                "an internal rotor names its torsion as four distinct "
+                f"one-based atoms a-b-c-d (it turns about b-c), not {atoms}"
+            )
+        object.__setattr__(self, "torsion", tuple(atoms))
+        _require_identifier(self.scan_artifact_id, "scan_artifact_id")
+        _require_sha256(self.scan_artifact_sha256)
+        program = str(self.scan_program).strip().lower()
+        object.__setattr__(self, "scan_program", program)
+        from chemsmart.analysis.result_readers import reader_for
+
+        reader = reader_for(program)
+        if reader is None or reader.resolve_torsional_scan is None:
+            from chemsmart.analysis.result_readers import RESULT_READERS
+
+            serving = sorted(
+                name
+                for name, item in RESULT_READERS.items()
+                if item.resolve_torsional_scan is not None
+            )
+            raise QuantityContractError(
+                f"no {program!r} reader serves a relaxed dihedral scan; "
+                f"the programs whose scans are read are {serving}"
+            )
+
+    @property
+    def axis(self) -> tuple[int, int]:
+        """The bond turned about, one-based and sorted."""
+
+        return tuple(sorted(self.torsion[1:3]))
+
+    def record(self) -> dict[str, Any]:
+        return {
+            "torsion": list(self.torsion),
+            "scan_artifact_id": self.scan_artifact_id,
+            "scan_artifact_sha256": self.scan_artifact_sha256,
+            "scan_program": self.scan_program,
+        }
+
+
+def normalized_internal_rotors(
+    value: Any,
+) -> tuple[InternalRotorRequestV1, ...]:
+    """Internal rotors as typed requests, one per bond, in bond order."""
+
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, (list, tuple)):
+        raise QuantityContractError(
+            "internal_rotors is a list of rotors, each {torsion: [a, b, c, "
+            "d], scan_artifact_id, ...}"
+        )
+    rotors = []
+    for item in value:
+        if isinstance(item, InternalRotorRequestV1):
+            rotors.append(item)
+            continue
+        if not isinstance(item, Mapping):
+            raise QuantityContractError(
+                f"each internal rotor is a mapping, not {item!r}"
+            )
+        unknown = sorted(
+            set(item)
+            - {
+                "torsion",
+                "scan_artifact_id",
+                "scan_artifact_sha256",
+                "scan_program",
+            }
+        )
+        if unknown:
+            raise QuantityContractError(
+                f"internal rotor fields {unknown} are not part of the request"
+            )
+        rotors.append(
+            InternalRotorRequestV1(
+                torsion=tuple(item.get("torsion") or ()),
+                scan_artifact_id=str(item.get("scan_artifact_id", "")),
+                scan_artifact_sha256=str(item.get("scan_artifact_sha256", "")),
+                scan_program=str(item.get("scan_program", "")),
+            )
+        )
+    axes = [rotor.axis for rotor in rotors]
+    if len(set(axes)) != len(axes):
+        raise QuantityContractError(
+            "internal_rotors names one bond twice; a bond has one torsion"
+        )
+    return tuple(sorted(rotors, key=lambda rotor: rotor.axis))
+
+
+#: The one line of a receipt's ``assumptions`` that names the rotors a
+#: derivation treated, canonical JSON of their requests.  Written by
+#: ``_internal_rotor_treatment`` and read back by ``internal_rotors_of``.
+INTERNAL_ROTORS_STATEMENT = (
+    "internal rotors (one-based torsion atoms, scan artifact): "
+)
+
+
+def internal_rotors_of(assumptions: Sequence[str]) -> tuple[dict, ...]:
+    """The rotors a thermochemistry receipt treated; () if none."""
+
+    for line in assumptions or ():
+        text = str(line)
+        if text.startswith(INTERNAL_ROTORS_STATEMENT):
+            return tuple(json.loads(text[len(INTERNAL_ROTORS_STATEMENT) :]))
+    return ()
+
+
 def _coordinate_words(
     atoms: Sequence[int], symbols: Sequence[str], positions_bohr: Any
 ) -> str:
@@ -2743,6 +2903,538 @@ def _held_coordinate_projection(
     )
 
 
+#: The largest distance (kcal/mol) a scan point may sit from the Fourier
+#: potential fitted through it: beyond it the samples are not one smooth
+#: periodic function (a relaxed scan that jumped between conformers, or a
+#: point whose constrained optimisation did not finish).
+TORSIONAL_FIT_MAX_RESIDUAL_KCAL = 0.5
+
+#: How far (kcal/mol) above the potential's lowest point the frequency
+#: result's own torsion may sit and still be the well the rotor's levels
+#: are counted from.
+ROTOR_WELL_TOLERANCE_KCAL = 0.1
+
+#: The widest gap between scan points, as a fraction of the rotor's period.
+ROTOR_SCAN_MAX_GAP_FRACTION = 1.0 / 6.0
+
+_EH_TO_CM1 = 219474.6313632
+_KCAL_TO_CM1 = 349.7550882
+_BOHR_ANGSTROM = 0.529177210903
+
+
+@dataclass(frozen=True)
+class _InternalRotorTreatment:
+    frequencies_cm1: tuple[float, ...]
+    rotors: tuple[Any, ...]
+    statements: tuple[str, ...]
+    rotor_bonds: tuple[str, ...] = ()
+
+
+def _rotor_refusal(artifact_id: str, diagnosis: str) -> Exception:
+    return QuantityExtractionError(
+        "[thermochemistry.internal_rotor] A hindered rotor is built from the "
+        "frequency result's own Hessian and structure and from a relaxed "
+        "scan of a dihedral about the same bond over one full period of the "
+        f"rotor. Diagnosis: result {artifact_id!r}: {diagnosis}"
+    )
+
+
+def _normal_mode_overlap(record: Any, direction: Any) -> tuple[float, float]:
+    """(overlap^2, wavenumber) of the normal mode nearest ``direction``.
+
+    ``direction`` is mass-weighted; the translations and rotations are
+    removed from it and from the Hessian first.
+    """
+
+    import numpy as np
+
+    from chemsmart.analysis.thermochemistry import (
+        HESSIAN_EIGENVALUE_TO_CM1,
+        _rigid_motion_basis,
+    )
+
+    x = np.asarray(record.positions_bohr, dtype=float)
+    masses = np.asarray(record.masses_amu, dtype=float)
+    size = 3 * x.shape[0]
+    h = np.asarray(record.hessian, dtype=float).reshape(size, size)
+    inverse_root = 1.0 / np.sqrt(np.repeat(masses, 3))
+    weighted = 0.5 * (h + h.T) * np.outer(inverse_root, inverse_root)
+    rigid = _rigid_motion_basis(x, masses)
+    projector = np.eye(size) - rigid @ rigid.T
+    values, vectors = np.linalg.eigh(projector @ weighted @ projector)
+    v = projector @ np.asarray(direction, dtype=float).ravel()
+    v = v / np.linalg.norm(v)
+    overlaps = (vectors.T @ v) ** 2
+    best = int(np.argmax(overlaps))
+    value = float(values[best])
+    return float(overlaps[best]), float(
+        np.sign(value) * math.sqrt(abs(value)) * HESSIAN_EIGENVALUE_TO_CM1
+    )
+
+
+#: How many torsions a harmonic receipt names, lowest mode first.
+HARMONIC_TORSIONS_NAMED = 6
+
+
+def harmonic_torsions(reader: Any, output: Any) -> tuple[dict[str, Any], ...]:
+    """The torsions a harmonic derivation counts as oscillators.
+
+    Every bond that is not in a ring and has atoms off its axis at both
+    ends turns one part of the molecule against the rest; its rigid turn
+    (mass-weighted, translations and rotations removed) is compared with
+    the normal modes of the result's own Hessian, and the nearest mode is
+    the harmonic oscillator that turn is counted as.  Empty when the reader
+    serves no Hessian or the structure has no such bond.
+    """
+
+    import networkx as nx
+    import numpy as np
+
+    from chemsmart.analysis.thermochemistry import (
+        internal_rotation_displacement,
+        internal_rotor_tops,
+    )
+    from chemsmart.io.molecules.perception import adjacency_graph
+
+    record = reader.cartesian_hessian_for_output(output)
+    if record is None:
+        return ()
+    symbols = [str(item) for item in record.symbols]
+    positions = np.asarray(record.positions_bohr, dtype=float) * _BOHR_ANGSTROM
+    found = []
+    for b, c in sorted(
+        tuple(sorted(edge))
+        for edge in nx.bridges(adjacency_graph(symbols, positions))
+    ):
+        try:
+            tops = internal_rotor_tops(symbols, positions, (b, c))
+        except ValueError:
+            continue
+        if len(tops.top) < 2 or len(tops.frame) < 2:
+            continue
+        displacement = internal_rotation_displacement(
+            record.positions_bohr, (b, c), tops.top
+        )
+        try:
+            overlap, mode = _normal_mode_overlap(
+                record,
+                displacement
+                * np.sqrt(np.asarray(record.masses_amu, dtype=float))[:, None],
+            )
+        except (ValueError, np.linalg.LinAlgError):
+            continue
+        found.append(
+            {
+                "bond": f"{symbols[b]}{b + 1}-{symbols[c]}{c + 1}",
+                "mode_cm1": mode,
+                "overlap": overlap,
+                "sigma_int": tops.symmetry_number,
+            }
+        )
+    return tuple(sorted(found, key=lambda item: item["mode_cm1"]))
+
+
+def _harmonic_torsion_statement(
+    reader: Any, output: Any, rotor_bonds: Sequence[str] = ()
+) -> str:
+    """One receipt line naming the torsions counted as oscillators, or ''.
+
+    ``rotor_bonds`` are bonds already treated as hindered rotors, which the
+    line leaves out.
+    """
+
+    try:
+        torsions = tuple(
+            item
+            for item in harmonic_torsions(reader, output)
+            if item["bond"] not in set(rotor_bonds)
+        )
+    except Exception:  # noqa: BLE001 - a statement never fails a derivation
+        return ""
+    if not torsions:
+        return ""
+    named = [
+        f"about {item['bond']} is {item['overlap']:.0%} the "
+        f"{item['mode_cm1']:.1f} cm^-1 mode"
+        for item in torsions[:HARMONIC_TORSIONS_NAMED]
+    ]
+    more = len(torsions) - len(named)
+    return (
+        "torsions counted as harmonic oscillators: the rigid turn "
+        + "; ".join(named)
+        + (f"; and {more} more" if more > 0 else "")
+        + ". A torsion counted as a one-dimensional hindered rotor instead "
+        "is internal_rotors, with a relaxed scan of a dihedral about its "
+        "bond over one full period of the rotor"
+    )
+
+
+def _internal_rotor_treatment(
+    *,
+    program: str,
+    artifact_id: str,
+    rotors: tuple[InternalRotorRequestV1, ...],
+    rotor_artifact_paths: Mapping[str, Any] | None,
+    reader: Any,
+    output: Any,
+    temperature_k: float,
+    use_weighted_mass: bool,
+) -> _InternalRotorTreatment:
+    """Kept modes, hindered rotors and receipt statements for ``rotors``.
+
+    Every fact is read through a reader: the frequency result's Cartesian
+    Hessian and structure (which must reproduce its printed spectrum), and
+    each rotor's relaxed scan (which must be the same molecule in the same
+    atom order, drive a dihedral about the rotor's bond, and cover one full
+    period of the rotor).  Each rotor's rigid turn is projected from the
+    Hessian, so the harmonic mode it replaces is not counted beside it.
+    """
+
+    import numpy as np
+
+    from chemsmart.analysis.result_readers import reader_for, surfaces_agree
+    from chemsmart.analysis.thermochemistry import (
+        NEAR_ZERO_FREQUENCY_TOLERANCE_CM,
+        fit_torsional_potential,
+        hindered_rotor,
+        internal_coordinate_value,
+        internal_rotation_displacement,
+        internal_rotation_moment,
+        internal_rotor_tops,
+        projected_harmonic_frequencies,
+    )
+    from chemsmart.utils.periodictable import PeriodicTable
+
+    record = reader.cartesian_hessian_for_output(output)
+    if record is None:
+        raise _rotor_refusal(
+            artifact_id,
+            f"the {program} reader serves no Cartesian Hessian for this "
+            "result (an ORCA Freq run keeps it as the .hess sidecar, a "
+            "Gaussian Freq job in its archive entry, a PySCF hess stage in "
+            "results/hessian), and a rotor's harmonic mode can only be "
+            "removed from a Hessian the host holds. Route: a frequency "
+            "calculation on this minimum with a program whose Hessian the "
+            "host reads.",
+        )
+    printed = sorted(
+        float(value)
+        for value in (
+            _reader_answer(reader, output, "vibrational_frequencies") or ()
+        )
+        if float(value) != 0.0
+    )
+    rigid = projected_harmonic_frequencies(
+        record.hessian, record.positions_bohr, record.masses_amu
+    )
+    if rigid.external != 6:
+        raise _rotor_refusal(
+            artifact_id,
+            "the structure is a linear rotor, which has no torsion",
+        )
+    reproduced = sorted(rigid.frequencies_cm1)
+    deviation = (
+        max(abs(first - second) for first, second in zip(reproduced, printed))
+        if len(printed) == len(reproduced) and printed
+        else None
+    )
+    if deviation is None or deviation > HESSIAN_REPRODUCTION_TOLERANCE_CM1:
+        raise _rotor_refusal(
+            artifact_id,
+            f"the Hessian read from {record.source} does not reproduce the "
+            f"{program} printed spectrum, so it is not the matrix those "
+            "modes came from",
+        )
+    symbols = [str(item) for item in record.symbols]
+    positions = np.asarray(record.positions_bohr, dtype=float) * _BOHR_ANGSTROM
+    table = PeriodicTable()
+    masses = np.array(
+        [
+            (
+                table.to_weighted_atomic_mass_by_abundance(symbol)
+                if use_weighted_mass
+                else table.to_most_abundant_atomic_mass(symbol)
+            )
+            for symbol in symbols
+        ],
+        dtype=float,
+    )
+    state = (
+        _reader_answer(reader, output, "charge"),
+        _reader_answer(reader, output, "multiplicity"),
+    )
+    energy_eh = _reader_answer(reader, output, "energy")
+    surface = reader.surface_for_output(output)
+    built, directions, statements, records, bonds = [], [], [], [], []
+    for number, rotor in enumerate(rotors, start=1):
+        if max(rotor.torsion) > len(symbols):
+            raise _rotor_refusal(
+                artifact_id,
+                f"torsion {list(rotor.torsion)} names an atom beyond this "
+                f"structure's {len(symbols)}",
+            )
+        a, b, c, d = (index - 1 for index in rotor.torsion)
+        try:
+            tops = internal_rotor_tops(symbols, positions, (b, c))
+        except ValueError as exc:
+            raise _rotor_refusal(artifact_id, str(exc)) from exc
+        sigma = tops.symmetry_number
+        moment = internal_rotation_moment(positions, masses, (b, c), tops.top)
+        moment_frame = internal_rotation_moment(
+            positions, masses, (b, c), tops.frame
+        )
+        path = (rotor_artifact_paths or {}).get(rotor.scan_artifact_id)
+        if path is None:
+            raise _rotor_refusal(
+                artifact_id,
+                f"the scan {rotor.scan_artifact_id!r} named for rotor "
+                f"{number} is not a result bound to this request",
+            )
+        scan_path = _verify_artifact(path, rotor.scan_artifact_sha256)
+        scan_reader = reader_for(rotor.scan_program)
+        scan_output = scan_reader.open_output(scan_path)
+        scan = scan_reader.torsional_scan_for_output(scan_output)
+        if scan is None:
+            raise _rotor_refusal(
+                artifact_id,
+                f"the {rotor.scan_program} reader reads no relaxed scan of "
+                f"one dihedral from {rotor.scan_artifact_id!r}. Route: a "
+                "relaxed scan (scan jobtype) of a dihedral about the rotor's "
+                "bond over one full period of the rotor.",
+            )
+        if list(scan.symbols) != symbols:
+            raise _rotor_refusal(
+                artifact_id,
+                f"the scan {rotor.scan_artifact_id!r} is not this molecule in "
+                "this atom order, so its energies are not this torsion's",
+            )
+        if set(scan.atoms[1:3]) != {b + 1, c + 1}:
+            raise _rotor_refusal(
+                artifact_id,
+                f"the scan drove dihedral {list(scan.atoms)} about the "
+                f"{scan.atoms[1]}-{scan.atoms[2]} bond, not about the rotor's "
+                f"{b + 1}-{c + 1} bond",
+            )
+        scan_state = (
+            _reader_answer(scan_reader, scan_output, "charge"),
+            _reader_answer(scan_reader, scan_output, "multiplicity"),
+        )
+        if None not in state and None not in scan_state:
+            if tuple(round(float(v)) for v in state) != tuple(
+                round(float(v)) for v in scan_state
+            ):
+                raise _rotor_refusal(
+                    artifact_id,
+                    f"the scan's charge and multiplicity {scan_state} are "
+                    f"not the frequency result's {state}",
+                )
+        period = 2.0 * math.pi / sigma
+        phi = np.radians(np.asarray(scan.values_deg, dtype=float))
+        reduced = np.sort(np.mod(phi, period))
+        gaps = np.diff(np.concatenate([reduced, [reduced[0] + period]]))
+        if float(gaps.max()) > ROTOR_SCAN_MAX_GAP_FRACTION * period + 1e-9:
+            raise _rotor_refusal(
+                artifact_id,
+                f"the scan's {len(phi)} point(s) leave a gap of "
+                f"{math.degrees(float(gaps.max())):.1f} deg in the "
+                f"{math.degrees(period):g}-deg period of this rotor "
+                f"(sigma_int {sigma}); the potential is fitted only where "
+                "every gap is at most "
+                f"{math.degrees(ROTOR_SCAN_MAX_GAP_FRACTION * period):.1f} "
+                "deg. Route: a relaxed scan over one full period of the "
+                "rotor, starting at the structure's own value and offset "
+                "from a planar 0 or 180 deg point.",
+            )
+        energies = np.asarray(scan.energies_eh, dtype=float)
+        zero = float(energies.min())
+        samples = (energies - zero) * _EH_TO_CM1
+        potential = fit_torsional_potential(phi, samples, period)
+        residual = samples - potential.value(phi)
+        largest = float(np.abs(residual).max()) / _KCAL_TO_CM1
+        if largest > TORSIONAL_FIT_MAX_RESIDUAL_KCAL:
+            raise _rotor_refusal(
+                artifact_id,
+                f"a scan point sits {largest:.2f} kcal/mol from the Fourier "
+                f"potential fitted through the scan (at most "
+                f"{TORSIONAL_FIT_MAX_RESIDUAL_KCAL:g}), so its points are not "
+                "one smooth periodic surface: a relaxed scan that jumped "
+                "between conformers, or a point that did not finish its "
+                "constrained optimisation",
+            )
+        phi_min, v_min = potential.minimum
+        phi_eq = internal_coordinate_value(
+            positions, [index - 1 for index in scan.atoms]
+        )
+        above = (float(potential.value(phi_eq)) - v_min) / _KCAL_TO_CM1
+        if above > ROTOR_WELL_TOLERANCE_KCAL:
+            raise _rotor_refusal(
+                artifact_id,
+                "the frequency result's own dihedral "
+                f"{math.degrees(phi_eq):.1f} deg sits {above:.2f} kcal/mol "
+                "above the scan's lowest point (at "
+                f"{math.degrees(phi_min):.1f} deg), so the rotor's levels "
+                "would not be counted from the well this result's modes "
+                "belong to. Route: derive on the frequency result at the "
+                "lowest well of this torsion.",
+            )
+        rotor_levels = hindered_rotor(potential, moment, sigma)
+        displacement = internal_rotation_displacement(
+            record.positions_bohr, (b, c), tops.top
+        )
+        directions.append(
+            displacement * np.asarray(record.masses_amu, dtype=float)[:, None]
+        )
+        overlap, mode = _normal_mode_overlap(
+            record,
+            displacement
+            * np.sqrt(np.asarray(record.masses_amu, dtype=float))[:, None],
+        )
+        built.append(rotor_levels)
+        records.append(rotor.record())
+        low, high = sorted((b, c))
+        bonds.append(f"{symbols[low]}{low + 1}-{symbols[high]}{high + 1}")
+        minima, maxima = potential.stationary_points()
+        barriers = ", ".join(
+            f"{(value - v_min) / _KCAL_TO_CM1:.3f} at "
+            f"{math.degrees(where):.1f}"
+            for where, value in maxima
+        )
+        label = "-".join(f"{symbols[i]}{i + 1}" for i in (a, b, c, d))
+        scan_label = "-".join(
+            f"{symbols[i - 1]}{i}" for i in (int(v) for v in scan.atoms)
+        )
+        agreement = surfaces_agree(
+            surface, scan_reader.surface_for_output(scan_output)
+        )
+        if agreement and energy_eh is not None:
+            offset = (
+                zero
+                + float(potential.value(phi_eq)) / _EH_TO_CM1
+                - float(energy_eh)
+            )
+            surface_words = (
+                "on the frequency result's surface (its energy at this "
+                f"result's dihedral is {offset * 627.509474:+.4f} kcal/mol "
+                "from the result's own)"
+            )
+        elif agreement is False:
+            surface_words = (
+                "on a different surface from the frequency result's (the "
+                "readers' surface identities differ)"
+            )
+        else:
+            surface_words = "surface identity not comparable"
+        s_rotor = rotor_levels.thermodynamics(temperature_k)
+        s_harm = rotor_levels.harmonic_thermodynamics(temperature_k)
+        statements.extend(
+            [
+                (
+                    f"hindered rotor {number}: dihedral {label} (one-based "
+                    f"atoms) turned about {symbols[b]}{b + 1}-{symbols[c]}"
+                    f"{c + 1}, at {math.degrees(internal_coordinate_value(positions, [a, b, c, d])):.2f} "
+                    f"deg in this result's structure; top "
+                    f"{[i + 1 for i in tops.top]} against "
+                    f"{[i + 1 for i in tops.frame]}"
+                ),
+                (
+                    f"rotor {number} potential: {len(phi)} points of the "
+                    f"relaxed scan {rotor.scan_artifact_id!r} "
+                    f"({rotor.scan_program}; {scan.source}; dihedral "
+                    f"{scan_label} "
+                    + (
+                        "measured in each point's structure"
+                        if scan.measured
+                        else "as the targets the program held"
+                    )
+                    + f"), {surface_words}; Fourier series of order "
+                    f"{potential.order} over the "
+                    f"{math.degrees(period):g}-deg period (rms residual "
+                    f"{potential.rms_residual_cm1 / _KCAL_TO_CM1:.3f}, "
+                    f"largest {largest:.3f} kcal/mol); {len(minima)} well(s) "
+                    f"per period, the lowest at {math.degrees(phi_min):.1f} "
+                    f"deg; barrier(s) in kcal/mol at deg: {barriers}"
+                ),
+                (
+                    f"rotor {number} moment: I(3,4) = {moment:.4f} amu A^2 "
+                    f"(B = {rotor_levels.rotational_constant_cm1:.3f} "
+                    "cm^-1), the rigid top turned about the bond at zero "
+                    "overall angular momentum (East & Radom, J. Chem. Phys. "
+                    "106, 6655 (1997)); turning the other end gives "
+                    f"{moment_frame:.4f}; "
+                    + (
+                        "natural-abundance"
+                        if use_weighted_mass
+                        else "most-abundant"
+                    )
+                    + " isotopic masses, at this result's structure"
+                ),
+                (
+                    f"rotor {number} symmetry: sigma_int {sigma}, the lcm of "
+                    "the two ends' rotational orders about the bond "
+                    f"({tops.top_order} and {tops.frame_order}; largest "
+                    "image miss "
+                    f"{max(tops.top_deviation, tops.frame_deviation):.3f} A); "
+                    "every level over one full turn is summed and divided by "
+                    "sigma_int, beside the external symmetry number"
+                ),
+                (
+                    f"rotor {number} replaces a harmonic mode: its rigid turn "
+                    "is projected from the mass-weighted Hessian with the "
+                    "translations and rotations, so the harmonic mode is not "
+                    f"counted beside the rotor; the removed direction is "
+                    f"{overlap:.0%} the {mode:.1f} cm^-1 normal mode"
+                ),
+                (
+                    f"rotor {number} levels: -B d2/dphi2 + V(phi) in a "
+                    f"free-rotor basis |m| <= {rotor_levels.basis}; lowest "
+                    f"level {rotor_levels.zero_point_cm1:.1f} cm^-1 above the "
+                    f"potential minimum; at {float(temperature_k):g} K "
+                    f"S = {s_rotor[1]:.3f} and Cv = {s_rotor[3]:.3f} "
+                    "J/(K mol), where the harmonic oscillator of the same "
+                    "moment and curvature "
+                    f"({rotor_levels.harmonic_frequency_cm1:.1f} cm^-1) "
+                    f"gives S = {s_harm[0]:.3f} and Cv = {s_harm[2]:.3f}"
+                ),
+            ]
+        )
+    spectrum = projected_harmonic_frequencies(
+        record.hessian, record.positions_bohr, record.masses_amu, directions
+    )
+    imaginary = [
+        value
+        for value in spectrum.frequencies_cm1
+        if value < -abs(NEAR_ZERO_FREQUENCY_TOLERANCE_CM)
+    ]
+    if imaginary:
+        raise _rotor_refusal(
+            artifact_id,
+            f"with the rotors' turns removed the Hessian still has "
+            f"{len(imaginary)} imaginary mode(s) "
+            f"({', '.join(f'{value:.1f}' for value in imaginary)} cm^-1): "
+            "the structure is not a minimum",
+        )
+    total = 3 * len(symbols) - spectrum.external
+    statements.append(
+        f"{spectrum.kept} of {total} vibrational modes kept beside "
+        f"{len(built)} hindered rotor(s) (3N-{spectrum.external}-"
+        f"{len(built)}); Hessian read from {record.source}"
+        + (f" (sha256 {record.source_sha256})" if record.source_sha256 else "")
+        + f", reproducing the {program} printed frequencies to "
+        f"{deviation:.2g} cm^-1 with {record.mass_convention}; rotors are "
+        "independent one-dimensional rotors, with no rotor-rotor coupling"
+    )
+    return _InternalRotorTreatment(
+        frequencies_cm1=tuple(spectrum.frequencies_cm1),
+        rotors=tuple(built),
+        rotor_bonds=tuple(bonds),
+        statements=(
+            INTERNAL_ROTORS_STATEMENT
+            + json.dumps(records, sort_keys=True, separators=(",", ":")),
+            *statements,
+        ),
+    )
+
+
 #: What a result can have a free energy of.
 FREE_ENERGY_SURFACES = ("stationary_point", "held_surface", "none")
 
@@ -2919,12 +3611,15 @@ def derive_result_thermochemistry(
     *,
     request: ThermochemistryRequestV1,
     artifact_path: str | os.PathLike[str],
+    rotor_artifact_paths: Mapping[str, str | os.PathLike[str]] | None = None,
 ) -> ThermochemistryReceiptV1:
     """Derive RRHO or quasi-harmonic thermochemistry from a trusted result.
 
     The formulas and molecular conventions remain owned by ChemSmart's common
     :class:`Thermochemistry` engine.  This function only binds conditions and
     serializes the resulting values with explicit units and provenance.
+    ``rotor_artifact_paths`` maps each ``internal_rotors`` scan artifact id
+    to its host-resolved path.
     """
 
     artifact = _verify_artifact(artifact_path, request.artifact_sha256)
@@ -3005,9 +3700,37 @@ def derive_result_thermochemistry(
             ),
             request.artifact_id,
         )
+    # Torsions counted as hindered rotors instead of harmonic modes: each
+    # rotor's rigid turn leaves the Hessian and its levels on the scan's
+    # potential take its place.  The stationary-point rule above has
+    # already been asked; a rotor is a treatment of a minimum's torsion.
+    rotor_treatment = (
+        _internal_rotor_treatment(
+            program=request.program,
+            artifact_id=request.artifact_id,
+            rotors=request.internal_rotors,
+            rotor_artifact_paths=rotor_artifact_paths,
+            reader=reader,
+            output=reached,
+            temperature_k=request.temperature_k,
+            use_weighted_mass=request.use_weighted_mass,
+        )
+        if request.internal_rotors
+        else None
+    )
+    kept_frequencies = (
+        projection.frequencies_cm1
+        if projection is not None
+        else (
+            rotor_treatment.frequencies_cm1
+            if rotor_treatment is not None
+            else None
+        )
+    )
     engine = Thermochemistry(
-        projected_frequencies=(
-            None if projection is None else projection.frequencies_cm1
+        projected_frequencies=kept_frequencies,
+        internal_rotors=(
+            rotor_treatment.rotors if rotor_treatment is not None else ()
         ),
         filename=str(artifact),
         temperature=request.temperature_k,
@@ -3056,7 +3779,9 @@ def derive_result_thermochemistry(
             f"program: expected {request.program!r}, observed {engine.program!r}"
         )
     missing_modes = (
-        _modes_the_program_removed(engine) if projection is None else ""
+        _modes_the_program_removed(engine)
+        if projection is None and rotor_treatment is None
+        else ""
     )
     # `check_frequencies` keys on the program job label: one imaginary
     # mode is a correct transition state for a `ts` job and a refusal
@@ -3262,6 +3987,34 @@ def derive_result_thermochemistry(
         raise QuantityExtractionError(
             "result artifact changed during thermochemistry derivation"
         )
+    # Which torsions this number counts as harmonic oscillators, and the
+    # request that would count one as a hindered rotor instead: a low
+    # torsion is not a harmonic oscillator, and a receipt that says only
+    # "rigid-rotor harmonic-oscillator" does not say which modes that
+    # assumption is worst for (R10 Q30).  Not said of a held surface,
+    # whose statements already name what was removed.
+    torsion_words = (
+        _harmonic_torsion_statement(
+            reader,
+            reached,
+            rotor_bonds=tuple(
+                rotor_treatment.rotor_bonds
+                if rotor_treatment is not None
+                else ()
+            ),
+        )
+        if projection is None
+        else ""
+    )
+    for rotor in request.internal_rotors:
+        if (
+            result_file_sha256(rotor_artifact_paths[rotor.scan_artifact_id])
+            != rotor.scan_artifact_sha256
+        ):
+            raise QuantityExtractionError(
+                "a rotor's scan artifact changed during thermochemistry "
+                "derivation"
+            )
     assumptions = (
         _thermochemistry_assumptions(request, engine.convention_statements)
         + (
@@ -3276,7 +4029,12 @@ def derive_result_thermochemistry(
             if projection is None
             else projection.statements
         )
+        # Which torsions are hindered rotors, where each potential came
+        # from, which moment and symmetry numbers, and what replaced the
+        # harmonic mode: said in the same place, for the same reason.
+        + (rotor_treatment.statements if rotor_treatment is not None else ())
         + ((missing_modes,) if missing_modes else ())
+        + ((torsion_words,) if torsion_words else ())
     )
     body = {
         "schema_version": "chemsmart.thermochemistry-receipt.v1",
