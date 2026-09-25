@@ -127,3 +127,42 @@ downstream was skipped, while the spectrum stayed readable -- its
 strongest carbonyl band sat *nearer* the experimental value than the
 true minimum's, which is the number the refusal exists to keep from
 being reported as a property of a minimum.
+
+A free energy is defined at a stationary point, and one function now
+says whether a structure is one (R10 Q21, `structure_stationarity`).
+It serves the free-energy derivation, the stationary-point
+characterisation and the verification of a refusal. Before, three host
+organs answered that question three ways. Its evidence, in order:
+- a single atom;
+- a measured gradient at or below 4.5e-4 Eh/Bohr;
+- a held coordinate, then a driven coordinate (either one means not
+  stationary);
+- the program's own convergence marker;
+- otherwise "unmeasured".
+A free energy at a structure shown not to be stationary is refused
+(gate `thermochemistry.free_energy_needs_a_stationary_point`) with a
+route, and every free-energy receipt states what it stands on. The gate
+would have refused an archived delivery: ax41 po3-r19 claimed dG++ =
+23.194 kcal/mol from an ORCA saddle search that never converged.
+
+A free energy along a held coordinate is served (R10 Q27):
+`projected_coordinates` removes each held coordinate's mass-weighted
+normal from the Hessian the result's own reader serves (ORCA `.hess`,
+Gaussian archive, PySCF `results/hessian`). Before that, the host checks:
+- that the Hessian reproduces the printed spectrum;
+- that the structure is stationary on the held surface;
+- that no imaginary mode is left.
+
+The receipt names the coordinate, the modes kept and the rotor treatment.
+The normal is removed, not the gradient. At a symmetric held point,
+Gaussian's own `freq=projected` removed a real mode and kept the
+imaginary torsion, and printed a free energy 5.4 kcal/mol low (0 deg)
+and 1.7 kcal/mol low (180 deg). So a held-coordinate request is never
+translated into it.
+
+One function, `free_energy_surface`, says whether a result has a free
+energy and of which surface; the derivation and the verification of a
+refusal both ask it. A refusal over a held result whose Hessian the host
+can read is not verified, and it names the route. A structure shown not
+to be stationary, holding nothing, stays refused and verified. A hindered
+rotor is not served.

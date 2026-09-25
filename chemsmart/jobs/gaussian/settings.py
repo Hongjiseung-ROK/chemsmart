@@ -30,6 +30,7 @@ from chemsmart.jobs.settings import (
     broken_symmetry_request,
     canonical_functional_literal,
     functional_resolution_record,
+    without_program_own_numerics,
 )
 from chemsmart.utils.periodictable import PeriodicTable
 from chemsmart.utils.repattern import (
@@ -483,6 +484,349 @@ def gaussian_spherical_d_token(basis, *route_parts):
     return "5d 7f"
 
 
+#: Gaussian's own words for how tightly the SCF converges, written as
+#: ``scf=<word>``.  A project's ``scf_convergence`` names one of them; the
+#: route reader reads the same table back, so a written input shows the
+#: request that produced it.  Gaussian prints the threshold it applied
+#: ("Requested convergence on RMS density matrix=...") in every SCF.
+#: Measured (R10 Q28 oracle O1, CUHK Slurm 2153749, G16 C.02, water
+#: B3LYP/def2-SVP): ``scf=tight`` applies 1.00D-08, as does the default.
+#: ``scf=verytight`` is accepted and applied the same 1.00D-08 target and
+#: the same energy to every printed digit (only IOp 5/17=3 differs), so it
+#: is not offered: a typed word promises the threshold its name says.
+GAUSSIAN_SCF_CONVERGENCE = ("tight",)
+
+#: Gaussian's named integration grids, written as ``int=<word>``.  The
+#: project field is the shared ``defgrid``; these are Gaussian's words for
+#: it, as ORCA's DEFGRID words are ORCA's (ChemSmart does not translate one
+#: program's grid into another's: their quadratures differ).  Before this
+#: table a Gaussian ``defgrid`` was accepted, advertised, and never written.
+#: Measured (oracle O1, CUHK Slurm 2153749, water B3LYP/def2-SVP): each word
+#: is accepted and applied -- IRadAn 1 (coarsegrid, sg1grid), 4 (finegrid),
+#: 5 (ultrafine), 7 (superfinegrid) -- and moves the SCF energy from
+#: ultrafine's by 6.5e-5, 4.9e-6, 7.0e-7 and 1.2e-7 Eh; ultrafine equals
+#: Gaussian's default to every printed digit.
+GAUSSIAN_INTEGRATION_GRIDS = (
+    "coarsegrid",
+    "finegrid",
+    "sg1grid",
+    "superfinegrid",
+    "ultrafine",
+)
+
+#: The optimising job types, whose route carries ``opt``: the geometry
+#: optimiser's cycle cap (``geom_maxiter``) applies to these and to nothing
+#: else, because no other Gaussian job runs that optimiser.
+GAUSSIAN_OPTIMISING_JOBTYPES = ("opt", "ts", "modred", "scan")
+
+
+def _normalize_gaussian_word(value, allowed, field_name):
+    """The lower-case Gaussian word for a typed setting, or a refusal."""
+
+    if value is None:
+        return None
+    word = str(value).strip().lower()
+    if word not in allowed:
+        raise ValueError(
+            f"Unsupported Gaussian {field_name} {value!r}; Gaussian's words "
+            f"for it are {sorted(allowed)}."
+        )
+    return word
+
+
+def _normalize_geom_maxiter(value):
+    """The optimiser cycle cap as a positive integer, or a refusal."""
+
+    if value is None:
+        return None
+    try:
+        cycles = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"geom_maxiter takes a whole number of optimiser cycles, got "
+            f"{value!r}"
+        ) from exc
+    if isinstance(value, bool) or cycles < 1 or cycles != float(value):
+        raise ValueError(
+            f"geom_maxiter takes a whole number of optimiser cycles of at "
+            f"least 1, got {value!r}"
+        )
+    return cycles
+
+
+def _irc_whole_number(value, name, positive=True):
+    """An IRC ``irc(...)`` option as the integer Gaussian reads, or None."""
+
+    if value is None:
+        return None
+    try:
+        number = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Gaussian IRC {name} takes a whole number, got {value!r}"
+        ) from exc
+    if isinstance(value, bool) or number != float(value):
+        raise ValueError(
+            f"Gaussian IRC {name} takes a whole number, got {value!r}"
+            + (
+                " (the step is in units of 0.01 Bohr)"
+                if name == "stepsize"
+                else ""
+            )
+        )
+    if (positive and number < 1) or (not positive and number == 0):
+        raise ValueError(
+            f"Gaussian IRC {name} takes a "
+            + ("positive" if positive else "non-zero")
+            + f" whole number, got {value!r}"
+        )
+    return number
+
+
+def _gaussian_route_keyword(token):
+    """The keyword a route word names (``scf`` for ``SCF=(Tight)``)."""
+
+    return re.split(r"[=(]", str(token).strip().lower(), maxsplit=1)[0]
+
+
+def _gaussian_route_options(token):
+    """The options of a route word, lower-case (``SCF=(Tight,XQC)``)."""
+
+    text = str(token).strip().lower()
+    rest = text[len(_gaussian_route_keyword(text)) :].lstrip("= ").strip()
+    if rest.startswith("(") and rest.endswith(")"):
+        rest = rest[1:-1]
+    return [part.strip() for part in rest.split(",") if part.strip()]
+
+
+#: Fields whose values Gaussian's input receives verbatim: the words are
+#: the project's, not the host's.  ``input_string`` replaces the whole
+#: input and ``route_to_be_written`` the route; the others add words or
+#: lines to what the host writes.
+NATIVE_INPUT_FIELDS = (
+    "input_string",
+    "route_to_be_written",
+    "additional_route_parameters",
+    "additional_opt_options_in_route",
+    "append_additional_info",
+    "dieze_tag",
+    "custom_solvent",
+    "additional_solvent_options",
+    "gen_genecp_file",
+)
+
+#: The native fields ``native_words`` refuses whenever they are set: a
+#: whole input or route, free lines after the geometry, and a basis file
+#: named by path. The capability an Agent reads does not offer them.
+AGENT_REFUSED_FIELDS = (
+    "input_string",
+    "route_to_be_written",
+    "append_additional_info",
+    "gen_genecp_file",
+)
+
+#: Options a job type's own ``opt`` word already carries.
+_GAUSSIAN_HOST_OPT_OPTIONS = (
+    "ts",
+    "calcfc",
+    "noeigentest",
+    "noeigen",
+    "modredundant",
+)
+
+
+def _gaussian_route_word_route(word):
+    """What one route word states and the typed setting that states it.
+
+    ``None`` for a word no typed setting carries (``nosymm``, ``pop=nbo``,
+    ``iop(...)``, ``scf=xqc``): it stays the reviewer's to read.  The
+    typed side is read from the writer's own tables.
+    """
+
+    from chemsmart.io.gaussian import GAUSSIAN_ALL_FUNCTIONALS
+
+    literal = str(word).strip()
+    keyword = _gaussian_route_keyword(literal)
+    options = _gaussian_route_options(literal)
+    if not keyword:
+        return None
+    if keyword.startswith("%") or keyword in ("nprocshared", "mem", "chk"):
+        return (
+            "a Link 0 command (cores, memory or checkpoint)",
+            "the run's grant and file layout, which the host writes",
+        )
+    if keyword == "guess" and any(o.startswith("mix") for o in options):
+        return (
+            "a broken-symmetry guess (on a restricted route guess=mix stays "
+            "restricted)",
+            "broken_symmetry: true (the host writes the unrestricted method "
+            "with guess=mix and reads back from <S**2> whether it broke)",
+        )
+    if keyword == "irc" or keyword in (
+        "maxpoints",
+        "stepsize",
+        "recalc",
+        "maxcycle",
+        "maxcycles",
+    ):
+        return (
+            "reaction-path controls",
+            "the irc stage's typed settings: direction, maxpoints, stepsize, "
+            "maxcycles, recalc_step (the host writes irc(...))",
+        )
+    if keyword == "opt":
+        return (
+            "the job type and its optimiser options",
+            "the stage itself (opt, ts, modred, scan) and geom_maxiter for "
+            "the cycle cap; any other option goes in "
+            "additional_opt_options_in_route",
+        )
+    if keyword == "freq" and (not options or options == ["numer"]):
+        return (
+            "a frequency calculation",
+            "numfreq: true" if options else "freq: true",
+        )
+    if keyword == "scrf":
+        return ("implicit solvation", "solvent_model and solvent_id")
+    if keyword == "geom":
+        return (
+            "where the geometry comes from",
+            "the node's bound geometry, which the host writes",
+        )
+    if keyword in ("td", "tda", "cis"):
+        return (
+            "an excited-state calculation",
+            "a td stage: response_method, nstates, state_manifold",
+        )
+    if (
+        keyword == "scf"
+        and options
+        and all(option in GAUSSIAN_SCF_CONVERGENCE for option in options)
+    ):
+        return ("the SCF convergence", f"scf_convergence: {options[0]}")
+    if keyword in ("int", "integral") and len(options) == 1:
+        grid = options[0].removeprefix("grid=")
+        if grid in GAUSSIAN_INTEGRATION_GRIDS:
+            return ("the integration grid", f"defgrid: {grid}")
+    if keyword == "empiricaldispersion":
+        return ("an empirical dispersion correction", "dispersion")
+    method = keyword.split("/")[0]
+    for prefix in ("ro", "u", "r"):
+        if method.startswith(prefix) and method[len(prefix) :] in set(
+            GAUSSIAN_ALL_FUNCTIONALS
+        ):
+            method = method[len(prefix) :]
+            break
+    if "/" in keyword or method in set(GAUSSIAN_ALL_FUNCTIONALS):
+        return ("the method or basis", "functional or ab_initio, and basis")
+    return None
+
+
+def _gaussian_opt_option_route(option):
+    """What one ``opt=(...)`` option states, or None for an untyped one."""
+
+    key = str(option).strip().lower()
+    match = re.fullmatch(r"maxcycles?\s*=\s*(\d+)", key)
+    if match:
+        return (
+            "the optimiser cycle cap",
+            f"geom_maxiter: {int(match.group(1))}",
+        )
+    if key in _GAUSSIAN_HOST_OPT_OPTIONS:
+        return (
+            "an option the stage's own opt word already carries",
+            "nothing: the host writes opt=(ts,calcfc,noeigentest) for every "
+            "ts stage and opt=modredundant for modred and scan",
+        )
+    return None
+
+
+def native_words(settings):
+    """The native words a Gaussian project section carries that a typed
+    setting states, or that replace what the host writes.
+
+    ``settings`` is one project section's mapping.  Read where an Agent
+    authors a project: a person's project keeps every field.
+    """
+
+    from chemsmart.jobs.settings import (
+        NativeWord,
+        native_field_is_set,
+        native_route_words,
+    )
+
+    found = []
+    for field, states, route in (
+        (
+            "input_string",
+            "an input that replaces the whole Gaussian input the host "
+            "writes -- route, method, basis, geometry, charge and "
+            "multiplicity with it -- so none of them runs as the review "
+            "shows",
+            "the typed settings that state each part (functional or "
+            "ab_initio, basis, the stage's jobtype, and the others the "
+            "capability lists); the host writes the input",
+        ),
+        (
+            "route_to_be_written",
+            "a route that replaces the one the host writes -- the method, "
+            "basis, job keyword and every typed route word with it",
+            "the typed settings that state each part (functional or "
+            "ab_initio, basis, the stage's jobtype, and the others the "
+            "capability lists); the host writes the route",
+        ),
+        (
+            "append_additional_info",
+            "input lines after the geometry (another job step, basis data "
+            "or keyword lists) that no receipt reads back",
+            "heavy_elements with heavy_elements_basis for a per-element "
+            "basis, the node's internal_coordinates for constraints, the "
+            "wbi stage for Wiberg bond indices",
+        ),
+        (
+            "gen_genecp_file",
+            "a basis file named by path, pasted into the input",
+            "heavy_elements with heavy_elements_basis (the host writes the "
+            "per-element basis)",
+        ),
+    ):
+        if native_field_is_set(settings.get(field)):
+            found.append(NativeWord(field, "", states, route))
+    dieze_tag = settings.get("dieze_tag")
+    if native_field_is_set(dieze_tag) and str(
+        dieze_tag
+    ).strip().lower().lstrip("#") not in ("n", "p", "t"):
+        found.append(
+            NativeWord(
+                "dieze_tag",
+                str(dieze_tag),
+                "words after the route's '#' beyond its print level",
+                "dieze_tag: n, p or t (the print level) and the typed "
+                "settings for everything else",
+            )
+        )
+    for word in native_route_words(
+        settings.get("additional_route_parameters")
+    ):
+        route = _gaussian_route_word_route(word)
+        if route is not None:
+            found.append(
+                NativeWord("additional_route_parameters", word, *route)
+            )
+    extra_opt = settings.get("additional_opt_options_in_route")
+    if isinstance(extra_opt, (list, tuple)):
+        extra_opt = ",".join(str(item) for item in extra_opt)
+    for option in str(extra_opt or "").split(","):
+        route = _gaussian_opt_option_route(option)
+        if route is not None:
+            found.append(
+                NativeWord(
+                    "additional_opt_options_in_route", option.strip(), *route
+                )
+            )
+    return tuple(found)
+
+
 def _gaussian_route_contains_token(route, token):
     """Return whether *route* contains one complete Gaussian token."""
 
@@ -582,6 +926,8 @@ class GaussianJobSettings(MolecularJobSettings):
         input_string=None,
         dispersion=None,
         broken_symmetry=None,
+        scf_convergence=None,
+        geom_maxiter=None,
         **kwargs,
     ):
         """
@@ -622,7 +968,14 @@ class GaussianJobSettings(MolecularJobSettings):
             broken_symmetry (bool, optional): Ask for the broken-symmetry
                 open-shell singlet (``chemsmart.jobs.settings``): the route
                 runs the method unrestricted with ``guess=mix``.
-            **kwargs: Additional keyword arguments.
+            scf_convergence (str, optional): How tightly the SCF converges,
+                one of ``GAUSSIAN_SCF_CONVERGENCE`` (``tight``, measured to
+                be Gaussian's default threshold); written ``scf=<word>``.
+            geom_maxiter (int, optional): The geometry optimiser's cycle
+                cap for an optimising job type; written
+                ``opt=(maxcycles=N)``.
+            **kwargs: Additional keyword arguments.  ``defgrid`` takes one
+                of ``GAUSSIAN_INTEGRATION_GRIDS``, written ``int=<word>``.
 
         Raises:
             ValueError: If incompatible options are specified (freq + forces).
@@ -659,6 +1012,19 @@ class GaussianJobSettings(MolecularJobSettings):
         self.additional_opt_options_in_route = additional_opt_options_in_route
         self.append_additional_info = append_additional_info
         self.broken_symmetry = broken_symmetry_request(broken_symmetry)
+        # Numerics the project states in typed words and the route writes
+        # in Gaussian's. A session asked a Gaussian stage for a tight SCF
+        # and an optimiser cycle cap in the names it used for ORCA
+        # (``scf_convergence``, ``maxcycles``) and was refused as unknown
+        # keys, in three goals (R9 g2, R9 g3, R10 Q15 g1); the base class
+        # kept ``defgrid`` and the route never wrote it.
+        self.scf_convergence = _normalize_gaussian_word(
+            scf_convergence, GAUSSIAN_SCF_CONVERGENCE, "scf_convergence"
+        )
+        self.geom_maxiter = _normalize_geom_maxiter(geom_maxiter)
+        self.defgrid = _normalize_gaussian_word(
+            self.defgrid, GAUSSIAN_INTEGRATION_GRIDS, "defgrid"
+        )
         self._route_string = None
 
         if gen_genecp_file is not None and "~" in gen_genecp_file:
@@ -893,7 +1259,8 @@ class GaussianJobSettings(MolecularJobSettings):
         ).read_settings()
         gaussian_default_settings = cls.default()
         gaussian_settings_from_inpfile = gaussian_default_settings.merge(
-            orca_settings_from_inpfile, merge_all=True
+            without_program_own_numerics(orca_settings_from_inpfile),
+            merge_all=True,
         )
         logger.info(
             f"with settings: {gaussian_settings_from_inpfile.__dict__}"
@@ -955,7 +1322,8 @@ class GaussianJobSettings(MolecularJobSettings):
         ).read_settings()
         gaussian_default_settings = cls.default()
         gaussian_settings_from_outfile = gaussian_default_settings.merge(
-            orca_settings_from_outfile, merge_all=True
+            without_program_own_numerics(orca_settings_from_outfile),
+            merge_all=True,
         )
         logger.info(
             f"with settings: {gaussian_settings_from_outfile.__dict__}"
@@ -1153,29 +1521,7 @@ class GaussianJobSettings(MolecularJobSettings):
 
         # Write optimization keywords with additional options
         # e.g., maxstep, calcall etc
-        if self.additional_opt_options_in_route is not None:
-            logger.debug(
-                f"Adding additional opt options: "
-                f"{self.additional_opt_options_in_route}"
-            )
-            if self.jobtype == "opt":
-                route_string += (
-                    f" opt=({self.additional_opt_options_in_route})"
-                )
-            elif self.jobtype == "ts":
-                if "calcall" not in self.additional_opt_options_in_route:
-                    route_string += f" opt=(ts,calcfc,noeigentest,{self.additional_opt_options_in_route})"
-                else:
-                    route_string += f" opt=(ts,noeigentest,{self.additional_opt_options_in_route})"
-            elif self.jobtype in ("modred", "scan"):
-                route_string += f" opt=(modredundant,{self.additional_opt_options_in_route})"
-        elif self.additional_opt_options_in_route is None:
-            if self.jobtype == "opt":
-                route_string += " opt"
-            elif self.jobtype == "ts":
-                route_string += " opt=(ts,calcfc,noeigentest)"
-            elif self.jobtype in ("modred", "scan"):
-                route_string += " opt=modredundant"
+        route_string += self._opt_route_word()
 
         # A constrained optimisation computes the Hessian its project asks
         # for, as ORCA's does: this getter used to set ``self.freq = True``
@@ -1224,6 +1570,87 @@ class GaussianJobSettings(MolecularJobSettings):
                 "Both freq and numfreq cannot be True at the same time!"
             )
         return route_string
+
+    def _opt_route_word(self):
+        """The ``opt`` word an optimising job type writes, or ''.
+
+        The job type's own options come first (a saddle search's
+        ``ts,calcfc,noeigentest``, a constrained one's ``modredundant``),
+        then the project's extra options verbatim, then the typed optimiser
+        cycle cap -- the order a route read back from a written input
+        keeps.  With neither of the last two the words are the ones this
+        route has always written.
+        """
+
+        if self.jobtype not in GAUSSIAN_OPTIMISING_JOBTYPES:
+            return ""
+        extra = self.additional_opt_options_in_route
+        if extra is not None:
+            logger.debug(f"Adding additional opt options: {extra}")
+        options = []
+        if self.jobtype == "ts":
+            options.extend(
+                ("ts", "noeigentest")
+                if extra is not None and "calcall" in extra
+                else ("ts", "calcfc", "noeigentest")
+            )
+        elif self.jobtype in ("modred", "scan"):
+            options.append("modredundant")
+        geom_maxiter = getattr(self, "geom_maxiter", None)
+        if (
+            geom_maxiter is not None
+            and extra is not None
+            and re.search(r"(?<![a-z])maxcycles?\s*=", str(extra), re.I)
+        ):
+            raise ValueError(
+                "geom_maxiter writes Gaussian's opt=(maxcycles=N), and "
+                "additional_opt_options_in_route already names a cycle cap "
+                f"({extra!r}); state the cap once, as geom_maxiter."
+            )
+        if extra is not None:
+            options.append(str(extra))
+        if geom_maxiter is not None:
+            options.append(f"maxcycles={int(geom_maxiter)}")
+        if not options:
+            return " opt"
+        if options == ["modredundant"]:
+            return " opt=modredundant"
+        return f" opt=({','.join(options)})"
+
+    def _numerics_route_words(self, additional_route_parameters):
+        """``scf=`` and ``int=`` for the typed SCF and grid requests.
+
+        A route parameter that already names the same keyword is refused
+        rather than written beside it: Gaussian reads one ``scf`` and one
+        ``int`` keyword, and which of two it keeps is not the project's to
+        guess.  Options no typed setting carries (an SCF converger such as
+        ``xqc``, an integral accuracy) travel together with the rest of
+        their keyword in that one route parameter.
+        """
+
+        stated = {
+            _gaussian_route_keyword(token): token
+            for token in str(additional_route_parameters or "").split()
+        }
+        words = []
+        for field, keyword, aliases in (
+            ("scf_convergence", "scf", ("scf",)),
+            ("defgrid", "int", ("int", "integral")),
+        ):
+            value = getattr(self, field, None)
+            if value is None:
+                continue
+            clash = next((stated[a] for a in aliases if a in stated), None)
+            if clash is not None:
+                raise ValueError(
+                    f"{field} writes Gaussian's {keyword}={value}, and "
+                    f"additional_route_parameters already carries {clash}; "
+                    f"Gaussian reads one {keyword} keyword. State it once: "
+                    f"{field} alone, or every {keyword} option together in "
+                    "that one route parameter."
+                )
+            words.append(f"{keyword}={value}")
+        return words
 
     #: Why a job type of this class writes no broken-symmetry request, or
     #: None where the route below writes it.
@@ -1412,6 +1839,9 @@ class GaussianJobSettings(MolecularJobSettings):
             raise ValueError("Error: No computational method provided.")
 
         for word in broken_symmetry_words:
+            route_string += f" {word}"
+
+        for word in self._numerics_route_words(additional_route_parameters):
             route_string += f" {word}"
 
         _, emitted_dispersion = split_gaussian_dispersion_tokens(route_string)
@@ -2672,7 +3102,9 @@ class GaussianIRCJobSettings(GaussianJobSettings):
         recalc_step (int): Interval between energy recalculations.
         maxpoints (int): Maximum number of IRC points to follow.
         maxcycles (int): Max optimization cycles per IRC point.
-        stepsize (int): IRC integration step size.
+        stepsize (int): IRC integration step size, in 0.01 Bohr; unset
+            leaves Gaussian's own default step (a predictor route writes
+            20, as it always has).
     """
 
     def __init__(
@@ -2683,7 +3115,7 @@ class GaussianIRCJobSettings(GaussianJobSettings):
         direction=None,
         maxpoints=512,
         maxcycles=128,
-        stepsize=20,
+        stepsize=None,
         flat_irc=False,
         **kwargs,
     ):
@@ -2708,11 +3140,16 @@ class GaussianIRCJobSettings(GaussianJobSettings):
         super().__init__(**kwargs)
         self.predictor = predictor
         self.recorrect = recorrect
-        self.recalc_step = recalc_step
+        # The path's whole-number controls: Gaussian's irc(...) options take
+        # integers, and a fraction (a session wrote stepsize: 0.1) would be
+        # written as a word Gaussian refuses.
+        self.recalc_step = _irc_whole_number(
+            recalc_step, "recalc_step", positive=False
+        )
         self.direction = direction
-        self.maxpoints = maxpoints
-        self.maxcycles = maxcycles
-        self.stepsize = stepsize
+        self.maxpoints = _irc_whole_number(maxpoints, "maxpoints")
+        self.maxcycles = _irc_whole_number(maxcycles, "maxcycles")
+        self.stepsize = _irc_whole_number(stepsize, "stepsize")
         self.flat_irc = flat_irc
         self.freq = False  # turn off freq calc for IRC jobs
         self.forces = False  # turn off forces calculations
@@ -2762,10 +3199,13 @@ class GaussianIRCJobSettings(GaussianJobSettings):
             logger.debug("Set IRC direction to reverse")
 
         if self.predictor is not None and self.recorrect is not None:
+            # A predictor route has always carried a step size (20 unless
+            # the project states one).
+            stepsize = 20 if self.stepsize is None else self.stepsize
             route_string += (
                 f" irc({self.predictor},calcfc,recorrect={self.recorrect},"
                 f"recalc={self.recalc_step},"
-                f"stepsize={self.stepsize},{self.direction},"
+                f"stepsize={stepsize},{self.direction},"
                 f"maxpoints={self.maxpoints},maxcycle={self.maxcycles})"
             )
             logger.debug(
@@ -2773,8 +3213,16 @@ class GaussianIRCJobSettings(GaussianJobSettings):
                 f"recorrect {self.recorrect}"
             )
         elif self.predictor is None and self.recorrect is None:
+            # A stated step size is written here too: it was accepted and
+            # dropped on this route, so a project asking for StepSize=10
+            # walked Gaussian's default step (R9 g2's IRC=(...,StepSize=10)
+            # intent; R10 Q28).
+            stepsize = (
+                "" if self.stepsize is None else f"stepsize={self.stepsize},"
+            )
             route_string += (
-                f" irc(calcfc,recalc={self.recalc_step},{self.direction},"
+                f" irc(calcfc,recalc={self.recalc_step},{stepsize}"
+                f"{self.direction},"
                 f"maxpoints={self.maxpoints},maxcycle={self.maxcycles})"
             )
             logger.debug("Added basic IRC route without predictor/recorrect")
@@ -2840,7 +3288,7 @@ class GaussianLinkJobSettings(GaussianJobSettings):
         direction=None,
         maxpoints=512,
         maxcycles=128,
-        stepsize=20,
+        stepsize=None,
         flat_irc=False,
         **kwargs,
     ):
@@ -3564,6 +4012,19 @@ class GaussianQMMMJobSettings(GaussianJobSettings):
                 "writes no broken-symmetry request into one; run the "
                 "broken-symmetry singlet as an ordinary sp, opt, ts or irc "
                 "stage."
+            )
+        # The same holds for the typed numerics: this route is built here,
+        # so a request it does not write would be accepted and dropped.
+        unwritten = [
+            name
+            for name in ("scf_convergence", "defgrid", "geom_maxiter")
+            if getattr(self, name, None) is not None
+        ]
+        if unwritten:
+            raise ValueError(
+                f"ChemSmart writes no {', '.join(unwritten)} into an ONIOM "
+                "route; state it on an ordinary sp, opt, ts or irc stage, "
+                "or leave Gaussian's default."
             )
         route_string = "#"
         if self.dieze_tag:

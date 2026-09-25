@@ -38,8 +38,9 @@ claims:
   - id: C4_refusal_as_teaching
     claim: A routed refusal that names its invariant and a legal route changes what the model does next.
     evidence: ["loop/replay.py over three corpora: routed share 0% -> 16% -> 83% across three eras; immediate same-tool retry 77% -> 65% -> 39%; recovery 92% -> 92% -> 78%"]
-    strongest_counterexample: Eras differ in model and task, and the last n is 18; recovery did not rise. The series is descriptive.
-    missing_experiment: Matched tasks, one model, routed vs unrouted refusal text for the same gate.
+    evidence_added_2026_09_25: ["R10 Q26 (merged f31f5a79): the first matched test. Matched counterfactual turns, deepseek-v4-flash-0731, the same refusal (broken_symmetry on a triplet), the program's sentence against the bare class name: the named route was taken 12 of 12 with the sentence and 12 of 12 without it (6/6 ORCA and 6/6 Gaussian per arm; CUHK 2153710, 2153715)"]
+    strongest_counterexample: R10 Q26's matched test found no effect for a refusal whose cause sits in the model's own settings (12/12 vs 12/12). The earlier era series is descriptive (eras differ in model and task; the last n is 18; recovery did not rise).
+    missing_experiment: The same matched test for a refusal whose cause the model cannot see (an allowed-value list, a program-internal limit such as ORCA MDCI's pair count), where a routed sentence should matter most.
     status: open
     figure: retry / recovery by gate, per era
 

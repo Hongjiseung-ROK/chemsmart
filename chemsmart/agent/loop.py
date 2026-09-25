@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import time
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Mapping
@@ -183,13 +184,19 @@ def _unapprovable_reason(summary: Mapping[str, Any]) -> str:
     return "workflow recorded but not approvable"
 
 
-def _completion_is_green(host: Any, receipt_sha256s: Iterable[str]) -> bool:
+def _completion_is_green(
+    host: Any, receipt_sha256s: Iterable[str], event_store: Any = None
+) -> bool:
     """Whether every required completion receipt the host minted passed.
 
     The same question ``terminate`` asks before it admits the word
     ``complete``, asked here so the caller chooses a word the gate will
     accept rather than asserting one and meeting a ContractError from
-    the last statement of the loop.
+    the last statement of the loop. With the event store it is that
+    question whole: terminate also reads every receipt a completion
+    stands on, and a completion that passed over a partial extraction
+    was asserted ``complete`` here and refused there, after the session's
+    last turn (R10 Q22, G-h2c, CUHK 2153673).
     """
 
     required = tuple(receipt_sha256s or ())
@@ -206,6 +213,9 @@ def _completion_is_green(host: Any, receipt_sha256s: Iterable[str]) -> bool:
             return False
         if tuple(getattr(receipt, "findings", ()) or ()):
             return False
+    red = getattr(event_store, "red_receipts", None)
+    if callable(red) and red(required):
+        return False
     return True
 
 
@@ -766,11 +776,25 @@ class ToolLoopRunner:
                             # a delivery with stated limitations, which
                             # the settlement reads from the receipts.
                             if _completion_is_green(
-                                self.host, completion_required
+                                self.host,
+                                completion_required,
+                                self.event_store,
                             ):
                                 terminal_state = "complete"
                                 terminal_reason = "host readiness gates passed"
                             else:
+                                # A completion that passed over a receipt
+                                # the gate calls red is not "partial":
+                                # the word names what is red instead.
+                                red = (
+                                    self.event_store.red_receipts(
+                                        completion_required
+                                    )
+                                    if _completion_is_green(
+                                        self.host, completion_required
+                                    )
+                                    else ()
+                                )
                                 # `planned` is bound to the plan the
                                 # session made: terminate admits it only
                                 # over the stream's latest workflow draft,
@@ -800,7 +824,13 @@ class ToolLoopRunner:
                                     )
                                     terminal_state = "planned"
                                     terminal_reason = (
-                                        "the analysis completion is "
+                                        "the analysis completion passed "
+                                        "over receipts the gate calls red: "
+                                        + "; ".join(red)
+                                        + "; the delivery stands with the "
+                                        "limitations they name"
+                                        if red
+                                        else "the analysis completion is "
                                         "partial; the delivery stands "
                                         "with the limitations it names"
                                     )
@@ -808,7 +838,13 @@ class ToolLoopRunner:
                                     terminal_state = "blocked"
                                     terminal_reason = (
                                         "the analysis completion is not "
-                                        "green and no workflow draft "
+                                        "green"
+                                        + (
+                                            ": " + "; ".join(red)
+                                            if red
+                                            else ""
+                                        )
+                                        + " and no workflow draft "
                                         "stands for it"
                                     )
                             # Under a bounded review the host builds the
@@ -931,19 +967,34 @@ class ToolLoopRunner:
                 break
             tool_results = []
             for call_id, tool_name, arguments in decoded_tool_calls:
+                non_finite = _non_finite_paths(arguments)
                 self.event_store.append(
                     turn_id=envelope.turn_id,
                     kind=EventKind.TOOL_STARTED.value,
                     payload={
                         "request_id": call_id,
                         "tool": tool_name,
-                        "arguments_sha256": canonical_sha256(arguments),
+                        # A non-finite number has no canonical form, so
+                        # the digest is over the arguments with each one
+                        # written as its JSON token, and the paths say so.
+                        "arguments_sha256": canonical_sha256(
+                            _non_finite_as_tokens(arguments)
+                            if non_finite
+                            else arguments
+                        ),
+                        **(
+                            {"non_finite_argument_paths": non_finite}
+                            if non_finite
+                            else {}
+                        ),
                     },
                     idempotency_key="tool-started:" + call_id,
                 )
                 wait_started = None
                 wait_emitted = False
                 try:
+                    if non_finite:
+                        raise _NonFiniteToolArgumentError(non_finite)
                     if tool_name == "execute_approved_program_node":
                         wait_timeout = (
                             self.host.execution_wait_timeout_seconds()
@@ -1426,6 +1477,70 @@ def _decode_tool_call(
     if not name or not isinstance(arguments, dict):
         raise DeepSeekProtocolError("tool call lacks name or object arguments")
     return call_id, name, arguments
+
+
+class _NonFiniteToolArgumentError(ContractError):
+    """A tool call whose arguments hold a number JSON does not define.
+
+    ``json.loads`` accepts ``NaN`` and ``Infinity`` and reads ``1e999`` as
+    infinity, so a provider response decodes into arguments no canonical
+    record may hold. Hashing them into the ``tool_started`` row used to
+    raise out of the loop: the session ended with no error the model could
+    read (R10 Q17: two of 77 sealed goals settled returned_to_human on
+    "canonical records cannot contain NaN or infinity"). The call is
+    refused as that call instead, and the session reads why.
+    """
+
+    cause = "non_finite_tool_argument"
+    next_legal_route = (
+        "call the tool again with finite numbers, or leave out a field the "
+        "tool does not require"
+    )
+
+    def __init__(self, paths: list[str]) -> None:
+        super().__init__(
+            "tool arguments carry a number JSON does not define (NaN or "
+            "Infinity) at "
+            + ", ".join(paths)
+            + "; the call was not run, because every host record holds "
+            "finite numbers only"
+        )
+
+
+def _non_finite_paths(value: Any, path: str = "$") -> list[str]:
+    """JSON paths of every NaN or infinite number inside ``value``."""
+
+    if isinstance(value, float):
+        return [] if math.isfinite(value) else [path]
+    if isinstance(value, Mapping):
+        return [
+            found
+            for key, item in value.items()
+            for found in _non_finite_paths(item, f"{path}.{key}")
+        ]
+    if isinstance(value, (list, tuple)):
+        return [
+            found
+            for index, item in enumerate(value)
+            for found in _non_finite_paths(item, f"{path}[{index}]")
+        ]
+    return []
+
+
+def _non_finite_as_tokens(value: Any) -> Any:
+    """``value`` with each non-finite number written as its JSON token."""
+
+    if isinstance(value, float) and not math.isfinite(value):
+        if math.isnan(value):
+            return "NaN"
+        return "Infinity" if value > 0 else "-Infinity"
+    if isinstance(value, Mapping):
+        return {
+            key: _non_finite_as_tokens(item) for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [_non_finite_as_tokens(item) for item in value]
+    return value
 
 
 def _contains_private_reasoning(value: Any) -> bool:

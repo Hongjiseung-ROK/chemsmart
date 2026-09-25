@@ -86,22 +86,23 @@ def test_the_advertised_set_is_not_empty(program):
 def test_the_controls_that_were_lost_are_back_where_they_belong():
     """Four Gaussian SCF controls were advertised and unsettable.
 
-    They are not restored by advertising them again -- Gaussian's settings
-    class genuinely has no such fields -- so the honest state is that
-    Gaussian does not advertise them, while ORCA, which does carry them,
-    does.
+    They were not restored by advertising them again. Gaussian's settings
+    class now carries one of them, ``scf_convergence`` -- written as
+    ``scf=<word>`` and read back from the route (R10 Q28, after a session
+    asked a Gaussian stage for it three times) -- so that one is offered
+    and the other three are not. ORCA carries all four; ``scf_tol``
+    restates ``scf_convergence`` as a ``!`` word and the Agent's project
+    tool refuses it, so it is not offered to an Agent.
     """
 
     gaussian = set(PROJECT_OWNED_PARAMETERS["gaussian"])
     orca = set(PROJECT_OWNED_PARAMETERS["orca"])
-    for control in (
-        "scf_algorithm",
-        "scf_convergence",
-        "scf_maxiter",
-        "scf_tol",
-    ):
+    for control in ("scf_algorithm", "scf_maxiter", "scf_tol"):
         assert control not in gaussian
+    assert "scf_convergence" in gaussian
+    for control in ("scf_algorithm", "scf_convergence", "scf_maxiter"):
         assert control in orca
+    assert "scf_tol" not in orca
 
 
 @pytest.mark.parametrize(

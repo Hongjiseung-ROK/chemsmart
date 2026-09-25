@@ -454,6 +454,15 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
         scale = getattr(node, "frequency_scale_factor", 1.0)
         if node.temperature_k is not None and scale != 1.0:
             conditions.append(f"scale {scale:g}")
+        projected = tuple(getattr(node, "projected_coordinates", ()) or ())
+        if node.temperature_k is not None and projected:
+            conditions.append(
+                "held "
+                + ", ".join(
+                    "-".join(str(i) for i in item) for item in projected
+                )
+                + " projected"
+            )
         state = human_state(node.support_state)
         if node.blocked_reason:
             state += f": {node.blocked_reason}"

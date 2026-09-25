@@ -219,6 +219,11 @@ def _settable_parameters(names, module_name, class_names):
 
     Subclasses count, because the loader lifts a section into its own
     settings class for the jobtypes that have one.
+
+    A field the module declares its Agent path refuses whenever it is set
+    (``AGENT_REFUSED_FIELDS``: a whole input or route, free lines, a file
+    path) is settable by a person and not offered here, for the same
+    reason: the project tool would refuse the key the model was offered.
     """
 
     import importlib
@@ -233,6 +238,7 @@ def _settable_parameters(names, module_name, class_names):
             settable.update(cls.default().__dict__)
         except Exception:  # pragma: no cover - defensive
             settable.update(getattr(cls, "__dataclass_fields__", {}) or {})
+    settable.difference_update(getattr(module, "AGENT_REFUSED_FIELDS", ()))
     return tuple(sorted(name for name in names if name in settable))
 
 
@@ -593,6 +599,26 @@ def gaussian_method_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
     )
 
 
+def gaussian_numerics_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Gaussian's words for its SCF convergence and integration grid.
+
+    Read from the tables the Gaussian writer spells them from and the
+    route reader reads them back with, so the declaration offers no word
+    the writer does not write. The grid words are Gaussian's own: ORCA's
+    DEFGRID words and PySCF's are other quadratures and stay theirs.
+    """
+
+    from chemsmart.jobs.gaussian.settings import (
+        GAUSSIAN_INTEGRATION_GRIDS,
+        GAUSSIAN_SCF_CONVERGENCE,
+    )
+
+    return (
+        ("defgrid", tuple(sorted(GAUSSIAN_INTEGRATION_GRIDS))),
+        ("scf_convergence", tuple(sorted(GAUSSIAN_SCF_CONVERGENCE))),
+    )
+
+
 def gaussian_response_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
     """What a Gaussian td stage may be asked for, from the writer's tables.
 
@@ -775,6 +801,7 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                     (
                         ("states", ("50-50", "singlets", "triplets")),
                         *gaussian_method_domains(),
+                        *gaussian_numerics_domains(),
                         *gaussian_path_domains(),
                         *gaussian_response_domains(),
                     )

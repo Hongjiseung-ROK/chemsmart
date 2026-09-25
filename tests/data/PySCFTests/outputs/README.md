@@ -333,3 +333,23 @@ Both receipts `validated`.
 |---|---|---|
 | `p_h2_074_bs` | RKS externally stable (+0.3184 Eh): nothing to follow | UKS -1.1734967954 Eh = the RKS energy, `<S**2>` 7e-16: the request declines to break, and says why |
 | `p_h2_200_bs` | RKS externally unstable (-0.0971 Eh), followed; UKS internally stable | -1.0184866496 Eh, `<S**2>` 0.7053, spin populations +-0.856; Gaussian's U + guess=mix and ORCA's GuessMix reach it within 2e-8 Eh (O0, CUHK 2153330) |
+
+## A stationary O2 Hessian (2026-09-25, R10 q21)
+
+Produced through the ordinary CLI on CUHK (**Slurm 2153611**, code
+`6dceb065`, digest verified on the node) at PySCF 2.14.0, with the
+fixtures' own projects: `b3lyp-def2svp.yaml` (opt) and
+`hess-b3lyp-svp-stability.yaml` (hess), closed-shell singlet O2 from
+`inputs/dioxygen.xyz`. Both receipts `validated`.
+
+Why it is here: `o2_singlet_hess_stability_heard` is a Hessian at the
+experimental 1.2075 A bond length, 0.0099 Eh/Bohr from the RKS minimum --
+not a stationary point of its own surface -- and a test derived a
+zero-point energy from it. A free energy (and its zero-point energy) is a
+property of a stationary point, so the host now refuses that derivation;
+this pair is the same question asked where it has an answer.
+
+| directory | what it is | numbers |
+|---|---|---|
+| `o2_singlet_opt` | the RKS relaxation, geomeTRIC | converged; r(O-O) = 1.20122 A; -150.141866 Eh |
+| `o2_singlet_relaxed_hess_stability_heard` | the Hessian with `scf_stability: true`, handed `o2_singlet_opt_gas_phase.h5` | max\|g\| 6.2e-8 Eh/Bohr; one mode at 1680.73 cm-1; internal / real -> complex / external lowest eigenvalues 5.7e-9 / **-0.03831** / **-0.09265** Eh -- the unrelaxed geometry's -0.03830 / -0.09262 to 3e-5 Eh: the instability is the determinant's, not the bond length's |

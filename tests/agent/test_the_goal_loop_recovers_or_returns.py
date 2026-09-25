@@ -622,7 +622,11 @@ def test_an_uncertified_delivery_returns_naming_the_gate(tmp_path):
         executes=[],
     )
     assert result.settlement == "returned_to_human"
-    assert any("completion gate" in reason for reason in result.reasons)
+    # What is missing is a completion receipt: this shape holds none, so
+    # no gate ran for the word to say had not passed (R10 Q22).
+    assert any(
+        "holds no completion receipt" in reason for reason in result.reasons
+    )
 
 
 def test_a_failed_rule_requires_a_scientist_to_answer_it(tmp_path):
@@ -1061,6 +1065,13 @@ def test_the_goals_first_declarations_ride_the_wake(tmp_path):
                 )
             ),
             capture(_planning_session("live-2", review=_review_payload())),
+            # Cycle 2's run claims nothing, so cis-barrier is still owed and
+            # no completion certifies the goal: it is woken again. What the
+            # woken cycles do is not under test.
+            *(
+                _planning_session(f"live-{index}", terminal="blocked")
+                for index in range(3, 9)
+            ),
         ],
         executes=[
             _execute(
