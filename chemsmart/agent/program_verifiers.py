@@ -1075,6 +1075,13 @@ def _settings_match(parsed, expected, *, native_input=None):
             )
             continue
         observed = getattr(parsed, field)
+        if is_orca and field == "light_elements_basis" and observed is None:
+            # ORCA gives every element without a NewGTO override the route
+            # basis, and the per-element basis owner refuses a light set
+            # that differs from it; the reader reports the light set only
+            # beside a %basis block, so an input with none was read as
+            # missing a setting it honours.
+            observed = getattr(parsed, "basis", None)
         if is_orca and field == "functional":
             expected_functional = _normalize_orca_functional(value)
             observed_functional = _normalize_orca_functional(observed)
