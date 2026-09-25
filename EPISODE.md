@@ -690,6 +690,164 @@ records into `sealed/q17-fetched/`, builds the packets into
 r10/q17/private/), measures leakage, and totals the provider tokens; the
 mapping digest is committed before any packet leaves.
 
+## Unblinded result (the analysis as pre-registered; grader 1 primary)
+
+Inputs verified before unblinding: grader 1 scores.csv sha256
+3e8031f0f83537bb... (locked at 71bf3bd0), grader 2 c3d1e9982b830d4d...
+(locked at f1e229e5), 132 rows each; the mapping recomputed equal to the
+committed 1a2d7b761d4463c0.... Task kinds and deciding selectors from the
+master's task-kinds.md (the writer's rubrics): 8 phenomenon tasks (t01,
+t03, t04, t06, t08, t09, t10, t11), 3 controls (t02, t05, t07); recent
+class t02, t03, t04, t06, t07, t08, t11, long class t01, t05, t09, t10. U
+hides a deciding selector of 5 phenomenon tasks (t03, t04, t06, t08, t11;
+for t03 and t11 a verdict word stays served). Analysis: analysis.py
+e9a7106c = the pre-registered f055ef9f (recovered from the durable copy)
+plus reporting of grader 2's self-agreement and F/X agreement; run
+side by side, the two give identical measures for both graders.
+
+Per task, mean Y of the conclusion packets (grader 1; "+R" with the later
+reading, max on phenomenon, min on controls):
+
+| task | kind, class | S (+R) | P (+R) | U |
+|---|---|---|---|---|
+| t01 | phen, long | 2.00 (2.00) | 1.00 (1.33) | 2 |
+| t03 | phen, recent | 0.00 (1.67) | 1.33 (1.33) | 0 |
+| t04 | phen, recent | 1.67 (1.67) | 1.67 (1.67) | 0 |
+| t06 | phen, recent | 0.33 (0.33) | 0.00 (0.33) | 0 |
+| t08 | phen, recent | 0.00 (0.67) | 0.33 (1.00) | 0 |
+| t09 | phen, long | 0.67 (1.33) | 1.00 (1.00) | 2 |
+| t10 | phen, long | 1.33 (1.33) | 1.33 (1.33) | 0 |
+| t11 | phen, recent | 1.33 (2.00) | 2.00 (2.00) | 2 |
+| t02 | control, recent | 1.67 (1.67) | 2.00 (2.00) | 2 |
+| t05 | control, long | 2.00 (2.00) | 2.00 (2.00) | 2 |
+| t07 | control, recent | 2.00 (1.67) | 2.00 (2.00) | 2 |
+
+- **Primary, P - S** (task-stratified permutation over session Y, 8
+  phenomenon tasks, 100,000 draws, seed 20260925): mean per task +0.167,
+  4 up / 2 down / 2 tied, **p = 0.576**. Grader 2: +0.042, 4 up / 3
+  down / 1 tied, p = 1.000. Task-level Wilcoxon: p = 0.531 / 1.000.
+- **Milestone C: not earned.** (a) fails (p = 0.576); (b) holds (0 control
+  false alarms in S and P, both graders); (c) fails -- the phenomenon
+  sound-and-bound rate (Y = 2) is 0.417 in S and 0.417 in P (grader 2:
+  0.375 and 0.375), a gain of zero.
+- **Harm: none fired**, either grader. h1 (mean < 0 with p < 0.2) no; h2
+  control false alarms S 0, P 0; h3 false statements of fact S 10, P 5, U 2
+  (grader 2: 13, 5, 2) -- fewer under P, not more; h4 alarms on benign
+  quantities 0 in every arm's conclusion packets, both graders (grader 2
+  counted one, in an S later-reading packet). No control packet was scored
+  a false alarm (Y = 0) by either grader; grader 1 scored two hedges
+  (Y = 1), both in S (one conclusion on t02, one reading on t07).
+- **Sensitivity (pre-registered).** Dropping the tasks whose P or S
+  conclusion packets carry a P-revealing phrase (t03, t08): P - S -0.056,
+  p = 1.000 (grader 2: -0.167, p = 0.676). The primary's small positive
+  point estimate rested on t03, where one P packet said its values came
+  from an inspection.
+- **Host crashes, reported beside the pre-registered numbers.** Two goals
+  (t10-S2 and t10-U1) ended after 2 provider turns on a host error --
+  "cycle 1, planning session: canonical records cannot contain NaN or
+  infinity" -- before any tool call of their second turn started; no
+  transcript was written, their packets were empty, and both graders
+  scored them Y = 0. Not model behaviour, and not in the pre-registered
+  infrastructure definition, so the primary keeps them; without them: P -
+  S +0.083, p = 0.741 (grader 2: -0.042, p = 0.901).
+- **Where the lever acted** (descriptive): mean P - S on recent-class
+  phenomenon tasks +0.40 (both graders), on long-class -0.22 (grader 2:
+  -0.56); t03 +1.33 and t01 -1.00 are the largest per-task differences.
+- **Serving, S - U** (the 5 phenomenon tasks with a hidden deciding
+  selector; U one goal per task): mean +0.27, 2 up / 1 down, p = 0.750
+  (grader 2: +0.27, 3 up / 1 down, p = 0.625).
+- **Reading turn** (paired within goals): S+R - S 4 tasks up, 0 down, p =
+  0.125 (grader 2: 5 up, 0 down, p = 0.0625); sound-and-bound 0.417 ->
+  0.625 (grader 2: 0.375 -> 0.625). P+R - P 3 up, 0 down, p = 0.25; 0.417
+  -> 0.500. No reading made a false alarm on a control (one grader-1 hedge,
+  Y = 1, on a control in an S reading).
+- **Agreement.** Grader 2 against grader 1 on the 126 unique packets: Y
+  exact 0.929, linear-weighted kappa 0.919, quadratic 0.953; F exact 0.929;
+  X exact 0.992. Self-agreement on the 6 duplicates: 6 of 6 identical Y for
+  each grader -- both graders report recognising the duplicates as
+  byte-identical, so this measures recognition, not consistency (as in Q3).
+
+### Mechanism (from typed events; never shown to a grader)
+
+Planning sessions on phenomenon tasks, out of 24 per arm (U out of 8):
+
+| arm | deciding selector requestable on inspection | deciding values shown | deciding selector extracted |
+|---|---|---|---|
+| S | 23 | 0 | 14 |
+| P | 22 | 22 | 14 |
+| U | 5 | 0 | 3 |
+
+Reading sessions extracted the deciding selector in S 19 of 20, P 13 of
+18. Controls: S 6 of 9 planning sessions extracted the benign deciding
+quantity, P 3 of 9, and none raised an alarm.
+
+Sight against use (phenomenon conclusion packets, grader 1; "saw" = the
+planning session was shown the deciding value or extracted it):
+
+| arm | saw: n, Y=2 / 1 / 0 | did not see: n, Y=2 / 1 / 0 |
+|---|---|---|
+| S | 14: 9 / 2 / 3 | 10: 1 / 0 / 9 |
+| P | 23: 10 / 6 / 7 | 1: 0 / 0 / 1 |
+| U | 3: 3 / 0 / 0 | 5: 0 / 0 / 5 |
+
+(grader 2: S 8/3/3 and 1/1/8; P 9/5/9 and 0/0/1; U the same.) In S and U,
+sessions that chose to read the deciding quantity mostly concluded soundly
+(12 of 17) and those that did not almost never did (1 of 15). P put the
+value in front of 23 of 24 sessions and 10 of them concluded soundly; 7
+had the deciding number in view and were silent on it or dismissed it.
+Extraction in S marks a session that already suspected the quantity
+mattered; showing the value to every session does not supply that
+suspicion.
+
+### Falsifiers, applied as written
+
+- F2 (availability is not the bottleneck: deciding selector extracted in
+  <= 10 % of S's phenomenon planning sessions): **not met** -- 14 of 24
+  (58 %). This model does ask for unnamed quantities, often.
+- F1 (serving alone changes nothing unnamed: S - U mean <= 0 or p >= 0.2
+  while requestable in S): **holds by its letter** -- p = 0.75 / 0.625 with
+  the selector requestable in 23 of 24 S sessions; the S - U contrast rests
+  on one U goal per task and 5 tasks, so it cannot separate a modest
+  effect from none.
+- Lever null (P - S mean <= 0 or p >= 0.2 while values shown to >= 80 % of
+  P's phenomenon planning sessions): **holds** -- p = 0.576, values shown
+  in 22 of 24 (92 %). Presenting what a finished result holds, at the
+  moment a session reads it, did not move this model's conclusions on these
+  tasks; by the pre-registered power, a lever that moved a task's success
+  rate from 0.2-0.3 to 0.7-0.8 would have been detected with probability
+  0.71-0.84, so a large effect is excluded and a moderate one is not.
+- Delivery failure (values shown in < 50 %): not met (92 %).
+
+### Cost
+
+Provider input tokens: S 67.75 M over 33 goals (2.05 M per goal), P 66.01
+M (2.00 M), U 19.41 M (1.76 M); median goal wall 660 s (S), 659 s (P), 622
+s (U). Readings: S 26 sessions 15.79 M, P 23 sessions 11.10 M, U 8
+sessions 4.53 M. The lever did not raise the per-goal cost.
+
+### Reading
+
+On 8 sealed phenomenon tasks with unnamed deciding quantities, graded
+blind by two independent graders (kappa 0.92), the presentation lever --
+every value a finished result resolves, shown when a session inspects it --
+changed nothing measurable: the same share of sound, evidence-bound
+conclusions as the base (0.417 against 0.417), no harm, no false alarm,
+fewer false statements of fact. Availability was not the bottleneck
+either: the base arm already extracted the deciding quantity in 58 % of
+its planning sessions without being told to. The one thing that moved
+conclusions in the same direction for every task it touched was the
+existing reading turn (0.42 -> 0.63, 4-5 tasks up and none down, p =
+0.06-0.13), a secondary that is directional and not established. The
+residual failures are use, not sight: under P, 7 of the 23 sessions that
+had the deciding number in view were silent on it or dismissed it, and in
+S the sessions that read it were the ones that already suspected it
+mattered. This is an honest null for the lever, reported as a statement
+about deepseek-v4-flash-0731.
+
+Product consequence: none. `CHEMSMART_AGENT_INSPECTION_VALUES` stays off
+by default (it was never on); whether to keep the tested research switch
+or delete it is the master's call.
+
 ## Status
 
 - 2026-09-24: brief read; base verified; read CONDUCT.md, the RSL README
