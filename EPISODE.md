@@ -191,6 +191,41 @@ Bands (fixed now):
   955a1bd7...), 16 cores, 32 GB, 1 h. Analysis afterwards, provider-free,
   through derive_result_thermochemistry on the fetched logs.
 
+## O1 -- READ (CUHK Slurm 2154086, COMPLETED in 2 min 17 s, 4 of 4 exit 0)
+
+Code 2bcdc763 (tree digest 955a1bd7... recomputed on the node, 0 AppleDouble
+files), pre-registration digest 6a89c4a16c86 recorded by slot_submit. Read
+through the repaired host (scratchpad q33/oracle/analyse_o1.py,
+residuals_o1.py; logs fetched read-only to q33/oracle/o1-runs).
+
+| | Gaussian's check (max / rms force) | Cartesian max | held-surface residual | E (Eh) |
+|---|---|---|---|---|
+| M default (fixture) | 4.33e-4 / 1.53e-4, converged | 7.49e-4 | 7.5e-4 (base gate: refused) | -115.77710081 |
+| M tight | 4e-6 / 2e-6, converged | 5.10e-4 | 3.7e-6 | -115.77710179 |
+| M restart (control) | 4.32e-4 / 1.53e-4, converged | 6.98e-4 | 7.4e-4 | -115.77710081 |
+| E default (fixture) | 3.74e-4 / 1.16e-4, converged | 8.14e-4 | -- | -79.86940037 |
+| E tight | 1.2e-5 / 3e-6, converged | 8.2e-6 | -- | -79.86940181 |
+| E restart (control) | 3.74e-4 / 1.16e-4, converged | 8.14e-4 | -- | -79.86940037 |
+
+Default minus tight: M dE +0.00062 kcal/mol, geometry 1.10e-3 A, held-surface
+G (rigid turn removed) -0.00014 kcal/mol (restart -0.00016); E dE +0.00090,
+geometry 1.18e-3 A, harmonic G +0.00056, torsion-projected G +0.00134 (restart
++0.00055, +0.00131).
+- P1: met for E. For M the maximum internal force is met (4e-6) and the
+  "largest Cartesian component" I wrote is not (5.1e-4): my band was worded
+  wrongly for a held point, whose full gradient carries the held torsion's
+  constraint force by construction (dE/dphi = 7.8e-4 Eh/rad here). The measure
+  the base gate applied, the residual beside the held torsion, is 3.7e-6.
+  Reported as an error of the pre-registration, not re-scored.
+- P2: met, with room: every |dG| <= 0.0013 kcal/mol against the 0.01 band.
+  The falsifier (0.05) is not approached.
+- Reading: the free energy the base host refused at Gaussian's default
+  convergence (M, residual 7.5e-4) equals the one it would have accepted after
+  a tight re-optimisation (residual 3.7e-6) to 1.4e-4 kcal/mol. The refusal
+  measured a Cartesian threshold, not the chemistry. The strain one held
+  dihedral leaves in the methyl group is intrinsic to the hold: 7.5e-4
+  (default) and 4.6e-4 Eh/Bohr (tight) on the turn's surface.
+
 ## Status
 
 - step 0: brief read; base verified; AGENTS.md, CONDUCT.md, RSL README and the
@@ -207,4 +242,14 @@ Bands (fixed now):
   witnesses shown red on its parent and green after (per-state files built
   from the tested final tree, which the last commit equals byte for byte);
   tests/agent on the final state: exit 0, no failures.
-- step 3: oracle O1 pre-registered (above); submitting next.
+- step 3: oracle O1 pre-registered (above) and submitted as CUHK 2154086
+  (slot a); read (above): P2 met, P1 met with a worded-wrong clause for the
+  held point, reported.
+- Post-repair census (same instrument, repaired tree): of 1,234 CUHK results,
+  195 change basis only (search_converged -> program_check, word unchanged),
+  2 go unmeasured -> stationary (q27 O1b g_sp0, g_sp180: Gaussian's check),
+  2 unmeasured -> not stationary (q27 O1b g_sp90; one killed ORCA opt, by its
+  last check), 6 unfinished searches read "ended before its program judged",
+  and Q30's methanol held point goes free-energy surface none -> held_surface.
+  No PySCF word changes. No archived delivery stood on a changed word.
+- r10-integration has not moved since the base (df78d69d): merge is a no-op.
