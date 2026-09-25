@@ -335,6 +335,389 @@ ORCA_FUNCTIONAL_REFUSED = {
     ),
 }
 
+#: The dispersion words ORCA is written, as this hub spells them.
+ORCA_DISPERSION_WORDS = ("d2", "d3bj", "d3zero", "d4")
+
+#: The functional keywords (as this writer spells them, lower-cased) whose
+#: dispersion pairs were measured on ORCA 6.1.1 (R10 census D, CUHK Slurm
+#: 2153534): every keyword of ``ORCA_ALL_FUNCTIONALS`` whose bare route ran on
+#: the census water dimer. The double hybrids are absent (their bare route
+#: stopped on RI-MP2's AuxC basis), so their pairs are not judged here.
+ORCA_DISPERSION_MEASURED = frozenset(
+    {
+        "b1lyp",
+        "b1p",
+        "b3lyp",
+        "b3lyp/g",
+        "b3p",
+        "b97",
+        "b97-3c",
+        "b97-d",
+        "b97-d3",
+        "b97m-d3bj",
+        "b97m-d4",
+        "b97m-v",
+        "bhandhlyp",
+        "blyp",
+        "bnull",
+        "bp",
+        "bp86",
+        "bvwn",
+        "cam-b3lyp",
+        "g1lyp",
+        "g1p",
+        "g3lyp",
+        "g3p",
+        "glyp",
+        "gp",
+        "hf-3c",
+        "hfs",
+        "lc-blyp",
+        "lc-pbe",
+        "lsd",
+        "m06",
+        "m062x",
+        "m06l",
+        "mpw1lyp",
+        "mpw1pw",
+        "mpwlyp",
+        "mpwpw",
+        "o3lyp",
+        "olyp",
+        "opbe",
+        "pbe",
+        "pbe0",
+        "pbeh-3c",
+        "pw6b95",
+        "pw86pbe",
+        "pw91",
+        "pw91_0",
+        "pwlda",
+        "pwp",
+        "pwp1",
+        "r2scan",
+        "r2scan-3c",
+        "r2scan0",
+        "r2scan50",
+        "r2scanh",
+        "revpbe",
+        "revtpss",
+        "rpbe",
+        "rpw86pbe",
+        "rscan",
+        "scanfunc",
+        "tpss",
+        "tpss0",
+        "tpssh",
+        "vwn3",
+        "vwn5",
+        "wb97",
+        "wb97m-d3bj",
+        "wb97m-d4",
+        "wb97m-v",
+        "wb97x",
+        "wb97x-d3",
+        "wb97x-d3bj",
+        "wb97x-d4",
+        "wb97x-v",
+        "x3lyp",
+        "xlyp",
+    }
+)
+
+#: Per dispersion word, the measured keywords ORCA 6.1.1 has parameters for:
+#: it terminated normally and printed neither "Non-parameterized functional
+#: used for dispersion correction" (D3BJ and D4 abort after the SCF, past the
+#: INPUT FILE banner the input-check probe stops at -- 96 routes this writer
+#: produced; R10 Q14 O1 L1 lost wB97X + D3BJ so) nor "non-parameterized
+#: functional used for VDW correction" (D2 then runs with ORCA's default C6
+#: scaling 1.2: B3LYP/G, the form ``b3lyp`` names, got 1.2 where ORCA's bare
+#: B3LYP gets B3LYP's 1.05, -0.001571310 against -0.001374896 Eh on the
+#: census dimer). D3ZERO on any other keyword is refused before the banner.
+#: Where ORCA and Gaussian both parameterise a pair, their dispersion
+#: energies agree to 1e-9 Eh.
+ORCA_DISPERSION_PARAMETERS = {
+    "d2": frozenset(
+        {
+            "b3lyp",
+            "b97-d",
+            "b97-d3",
+            "blyp",
+            "bp",
+            "bp86",
+            "pbe",
+            "revtpss",
+            "tpss",
+        }
+    ),
+    "d3bj": frozenset(
+        {
+            "b3lyp",
+            "b3lyp/g",
+            "b97-3c",
+            "b97-d",
+            "b97-d3",
+            "b97m-d3bj",
+            "b97m-d4",
+            "bhandhlyp",
+            "blyp",
+            "bp",
+            "bp86",
+            "cam-b3lyp",
+            "hf-3c",
+            "mpwlyp",
+            "olyp",
+            "opbe",
+            "pbe",
+            "pbe0",
+            "pbeh-3c",
+            "pw6b95",
+            "r2scan",
+            "r2scan0",
+            "r2scan50",
+            "r2scanh",
+            "revpbe",
+            "rpbe",
+            "rpw86pbe",
+            "rscan",
+            "scanfunc",
+            "tpss",
+            "tpss0",
+            "tpssh",
+            "wb97m-d3bj",
+            "wb97m-d4",
+            "wb97x-d3bj",
+            "wb97x-d4",
+        }
+    ),
+    "d3zero": frozenset(
+        {
+            "b3lyp",
+            "b3lyp/g",
+            "blyp",
+            "bp",
+            "bp86",
+            "cam-b3lyp",
+            "m06",
+            "m062x",
+            "m06l",
+            "mpwlyp",
+            "pbe",
+            "pbe0",
+            "pw6b95",
+            "revpbe",
+            "rpbe",
+            "rpw86pbe",
+            "scanfunc",
+            "tpss",
+            "tpss0",
+            "tpssh",
+            "wb97x-d3",
+        }
+    ),
+    "d4": frozenset(
+        {
+            "b1lyp",
+            "b1p",
+            "b3lyp",
+            "b3lyp/g",
+            "b3p",
+            "b97",
+            "b97-d",
+            "b97-d3",
+            "b97m-d3bj",
+            "b97m-d4",
+            "bhandhlyp",
+            "blyp",
+            "bp",
+            "bp86",
+            "cam-b3lyp",
+            "glyp",
+            "hf-3c",
+            "lc-blyp",
+            "lc-pbe",
+            "m06",
+            "m06l",
+            "mpw1lyp",
+            "mpw1pw",
+            "mpwlyp",
+            "mpwpw",
+            "o3lyp",
+            "olyp",
+            "opbe",
+            "pbe",
+            "pbe0",
+            "pw6b95",
+            "pw86pbe",
+            "pw91",
+            "pwp",
+            "pwp1",
+            "r2scan",
+            "r2scan-3c",
+            "r2scan0",
+            "r2scan50",
+            "r2scanh",
+            "revpbe",
+            "revtpss",
+            "rpbe",
+            "rpw86pbe",
+            "rscan",
+            "scanfunc",
+            "tpss",
+            "tpss0",
+            "tpssh",
+            "wb97",
+            "wb97m-d3bj",
+            "wb97m-d4",
+            "wb97x",
+            "wb97x-d3bj",
+            "wb97x-d4",
+            "x3lyp",
+            "xlyp",
+        }
+    ),
+}
+
+#: ORCA's functionals whose dispersion is part of their own definition, named
+#: where a refusal offers them; each is a different functional from its base.
+ORCA_DISPERSION_BEARING_FUNCTIONALS = (
+    "B97-D3",
+    "wB97X-D3",
+    "wB97X-D3BJ",
+    "wB97X-D4",
+    "wB97M-D4",
+    "r2SCAN-3c",
+)
+
+#: Pairs ORCA's input check refused before the INPUT FILE banner for a
+#: reason other than a missing D3ZERO table (census D): a VV10 functional or
+#: a 3c composite given a second correction.
+_ORCA_INPUT_CHECK_PAIRS = frozenset(
+    {
+        ("b97m-v", "d2"),
+        ("b97m-v", "d3bj"),
+        ("b97m-v", "d4"),
+        ("pbeh-3c", "d3zero"),
+        ("r2scan-3c", "d2"),
+        ("r2scan-3c", "d3bj"),
+        ("r2scan-3c", "d3zero"),
+        ("wb97m-v", "d2"),
+        ("wb97m-v", "d3bj"),
+        ("wb97m-v", "d4"),
+        ("wb97x-v", "d2"),
+        ("wb97x-v", "d3bj"),
+        ("wb97x-v", "d4"),
+    }
+)
+
+
+def _orca_unparameterised_outcome(keyword, word):
+    """What ORCA 6.1.1 did with a pair it has no parameters for (census D)."""
+
+    if word == "d3zero" or (keyword, word) in _ORCA_INPUT_CHECK_PAIRS:
+        return "its input check refuses the pair before the INPUT FILE banner"
+    if word == "d2":
+        return (
+            "it runs with its default C6 scaling 1.2 in their place and says "
+            'only "non-parameterized functional used for VDW correction"'
+        )
+    return (
+        'the run aborts after the SCF ("Non-parameterized functional used '
+        'for dispersion correction"), past the input check'
+    )
+
+
+#: The same correction in Gaussian's words, for naming where a pair runs.
+_ORCA_TO_GAUSSIAN_DISPERSION = {"d2": "gd2", "d3zero": "gd3", "d3bj": "gd3bj"}
+
+
+def orca_dispersion_parameterised(functional, dispersion):
+    """Whether ORCA has *dispersion* parameters for a functional literal.
+
+    True or False where census D measured the pair in ORCA, None where it
+    did not (an unmeasured keyword, a word outside ``ORCA_DISPERSION_WORDS``
+    or a literal this writer refuses).
+    """
+
+    try:
+        keyword = _normalize_orca_functional(functional)
+    except ValueError:
+        return None
+    if keyword is None or dispersion is None:
+        return None
+    word = str(dispersion).strip().lower()
+    keyword = str(keyword).lower()
+    if word not in ORCA_DISPERSION_PARAMETERS:
+        return None
+    if keyword not in ORCA_DISPERSION_MEASURED:
+        return None
+    return keyword in ORCA_DISPERSION_PARAMETERS[word]
+
+
+def orca_dispersion_refusal(functional, dispersion, *, literal=None):
+    """Why ORCA cannot run *dispersion* on *functional*, or None.
+
+    *functional* is the keyword this writer spells for the project's
+    *literal* (``_normalize_orca_functional``). The word ``d3`` is refused
+    whatever the method: ORCA's bare D3 is D3(BJ) (identical to D3BJ for all
+    77 functionals census D measured), while ``d3`` is zero-damping D3
+    elsewhere in this hub (Gaussian's GD3, whose dispersion energy equals
+    ORCA's D3ZERO to 1e-9 Eh), so one word would be two corrections.
+    """
+
+    if dispersion is None:
+        return None
+    word = str(dispersion).strip().lower()
+    if word == "d3":
+        return (
+            "ORCA's bare D3 keyword is D3(BJ) (R10 census D, CUHK Slurm "
+            "2153534: identical to D3BJ for all 77 functionals measured), "
+            "while d3 is zero-damping D3 elsewhere in this hub (Gaussian's "
+            "GD3, equal to ORCA's D3ZERO in the dispersion energy to 1e-9 "
+            "Eh). Request d3zero or d3bj."
+        )
+    if functional is None or word not in ORCA_DISPERSION_PARAMETERS:
+        return None
+    keyword = str(functional).strip().lower()
+    if keyword not in ORCA_DISPERSION_MEASURED:
+        return None
+    if keyword in ORCA_DISPERSION_PARAMETERS[word]:
+        return None
+    available = [
+        other
+        for other in ORCA_DISPERSION_WORDS
+        if keyword in ORCA_DISPERSION_PARAMETERS[other]
+    ]
+    has = (
+        f"It has {', '.join(w.upper() for w in available)} for {functional}"
+        if available
+        else f"It has no D2, D3BJ, D3ZERO or D4 for {functional}"
+    )
+    elsewhere = ""
+    gaussian_word = _ORCA_TO_GAUSSIAN_DISPERSION.get(word)
+    if literal is not None and gaussian_word is not None:
+        from chemsmart.jobs.gaussian.settings import (
+            gaussian_dispersion_parameterised,
+        )
+
+        in_gaussian = gaussian_dispersion_parameterised(literal, gaussian_word)
+        if in_gaussian is True:
+            elsewhere = (
+                f" Gaussian has the pair (functional: {literal}, "
+                f"dispersion: {word})."
+            )
+        elif in_gaussian is False:
+            elsewhere = " Gaussian has no such pair either."
+    return (
+        f"ORCA 6.1.1 has no {word.upper()} parameters for {functional}: "
+        f"{_orca_unparameterised_outcome(keyword, word)} (census D). "
+        f"{has}.{elsewhere} Route: a dispersion it has, a program with the "
+        "pair, or a functional with its own dispersion ("
+        + ", ".join(ORCA_DISPERSION_BEARING_FUNCTIONALS)
+        + "; each a different functional)."
+    )
+
+
 ORCA_TD_RESPONSE_METHODS = ("tda", "tddft")
 #: The manifold words every program's td stage takes.  ORCA computes each:
 #: ``singlet`` alone, the spin-adapted triplets beside the singlets
@@ -1917,8 +2300,13 @@ class ORCAJobSettings(MolecularJobSettings):
 
         # Empirical dispersion is a first-class project setting.  Keeping it
         # only on the Python object made loader-valid B3LYP-D3BJ projects emit
-        # plain B3LYP inputs, which changes the requested Hamiltonian.
+        # plain B3LYP inputs, which changes the requested Hamiltonian.  A pair
+        # ORCA has no parameters for is refused here, where the request alone
+        # decides it, rather than after an approved SCF (census D).
         if self.dispersion is not None:
+            refusal = self._dispersion_refusal()
+            if refusal:
+                raise ValueError(refusal)
             route_string += f" {self.dispersion}"
 
         # Use ORCA's own Loose/Normal/TightPNO presets.  These control more
@@ -2028,6 +2416,36 @@ class ORCAJobSettings(MolecularJobSettings):
             )
 
         return route_string
+
+    def _dispersion_refusal(self):
+        """Why ORCA cannot run this project's dispersion, or None."""
+
+        if self.dispersion is None:
+            return None
+        keyword = None
+        if (
+            self.functional is not None
+            and self.ab_initio is None
+            and self.semiempirical is None
+        ):
+            keyword = _normalize_orca_functional(self.functional)
+        return orca_dispersion_refusal(
+            keyword, self.dispersion, literal=self.functional
+        )
+
+    def validate(self):
+        """Refuse a dispersion pair ORCA has no parameters for, with a route.
+
+        The project tool calls this when a project is validated for a stage,
+        and its diagnostic is what the session reads. The writer refuses the
+        same pair with the same function, but a refusal raised only there
+        reaches a session as a failed preview that names the exception's
+        class and not its route.
+        """
+
+        refusal = self._dispersion_refusal()
+        if refusal:
+            raise ValueError(refusal)
 
     def _get_level_of_theory(self):
         """

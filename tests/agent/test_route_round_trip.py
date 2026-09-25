@@ -62,6 +62,12 @@ def test_a_declared_route_parameter_reads_back_as_itself(name, value):
         # line silently replaced every probed functional with B3LYP and the
         # whole vocabulary appeared to fail its own round trip.
         project["functional"] = "B3LYP"
+        if name == "dispersion":
+            # ORCA has no D2 for B3LYP/G, the form B3LYP names (R10 census
+            # D, CUHK Slurm 2153534), so the writer refuses that pair; the
+            # probe needs a functional ORCA parameterises with every
+            # declared dispersion word, and PBE is one.
+            project["functional"] = "PBE"
     elif str(value).casefold().startswith("dlpno-cc"):
         # The parameter-domain probe still has to construct a scientifically
         # admissible method.  ORCA local coupled cluster needs a correlation

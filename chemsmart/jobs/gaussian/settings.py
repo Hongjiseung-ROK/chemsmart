@@ -77,6 +77,207 @@ GAUSSIAN_FUNCTIONAL_REFUSED = {
 }
 
 
+#: Which functional keywords Gaussian has empirical-dispersion parameters for,
+#: per ``EmpiricalDispersion`` word, measured on Gaussian 16 C.02 rather than
+#: recalled (R10 census D, CUHK Slurm 2153534): every keyword of
+#: ``GAUSSIAN_ALL_FUNCTIONALS`` with GD2, GD3 and GD3BJ on one water dimer.
+#: Every other pair of a vocabulary keyword stops in link 301 before any SCF,
+#: "R6DS8: Unable to choose the S8 parameter" (GD3, GD3BJ) or "R6DS6: Unable
+#: to choose the S6 parameter" (GD2) -- 179 routes this writer produced and a
+#: preview passed; R10 Q15 g2 lost four nodes so (wB97X + GD3BJ, Slurm
+#: 2153334). PFD is not listed: Gaussian applies APFD's one model to every
+#: functional (``R6APFD ... FactS= 1.050`` for all 79 it was given). Where
+#: Gaussian and ORCA both parameterise a pair their dispersion energies agree
+#: to 1e-9 Eh (B3LYP, PBE1PBE and M062X with D3(0) and D3(BJ), B97D3,
+#: PW6B95D3), and B97D3, B2PLYPD3 and PW6B95D3 equal B97D, B2PLYP and PW6B95
+#: with GD3BJ to every printed digit.
+GAUSSIAN_DISPERSION_PARAMETERS = {
+    "gd2": frozenset(
+        {
+            "b2plyp",
+            "b2plypd3",
+            "b3lyp",
+            "b97d",
+            "b97d3",
+            "blyp",
+            "bp86",
+            "pbepbe",
+            "pw6b95d3",
+            "tpsstpss",
+            "wb97xd",
+        }
+    ),
+    "gd3": frozenset(
+        {
+            "b2plyp",
+            "b2plypd3",
+            "b3lyp",
+            "b3pw91",
+            "b97d",
+            "b97d3",
+            "blyp",
+            "bmk",
+            "bp86",
+            "bpbe",
+            "cam-b3lyp",
+            "m05",
+            "m052x",
+            "m06",
+            "m062x",
+            "m06hf",
+            "m06l",
+            "pbe1pbe",
+            "pbepbe",
+            "pw6b95d3",
+            "tpsstpss",
+        }
+    ),
+    "gd3bj": frozenset(
+        {
+            "b2plyp",
+            "b2plypd3",
+            "b3lyp",
+            "b3pw91",
+            "b97d",
+            "b97d3",
+            "blyp",
+            "bmk",
+            "bp86",
+            "bpbe",
+            "cam-b3lyp",
+            "pbe1pbe",
+            "pbepbe",
+            "pw6b95d3",
+            "tpsstpss",
+        }
+    ),
+}
+
+#: The keywords whose dispersion is part of the functional's own definition,
+#: named where a refusal offers them: each is a different functional from its
+#: base with a correction added (wB97XD is Chai and Head-Gordon's refit with
+#: its own damping, not wB97X with a Grimme correction).
+GAUSSIAN_DISPERSION_BEARING_FUNCTIONALS = (
+    "apfd",
+    "b2plypd3",
+    "b97d",
+    "b97d3",
+    "pw6b95d3",
+    "wb97xd",
+)
+
+
+#: The same correction in ORCA's words, for naming where a refused pair runs.
+_GAUSSIAN_TO_ORCA_DISPERSION = {"gd2": "d2", "gd3": "d3zero", "gd3bj": "d3bj"}
+
+
+def gaussian_dispersion_parameterised(functional, dispersion):
+    """Whether Gaussian has *dispersion* parameters for a functional literal.
+
+    True or False where census D measured the pair in Gaussian, None where it
+    did not (PFD, a keyword outside the vocabulary, or a literal this writer
+    refuses).
+    """
+
+    from chemsmart.io.gaussian import GAUSSIAN_ALL_FUNCTIONALS
+
+    try:
+        keyword = gaussian_native_functional(functional)
+        word = normalize_gaussian_dispersion(dispersion)
+    except ValueError:
+        return None
+    if keyword is None or word not in GAUSSIAN_DISPERSION_PARAMETERS:
+        return None
+    keyword = str(keyword).strip().lower()
+    if keyword not in GAUSSIAN_ALL_FUNCTIONALS:
+        return None
+    return keyword in GAUSSIAN_DISPERSION_PARAMETERS[word]
+
+
+def gaussian_dispersion_refusal(functional, dispersion, *, literal=None):
+    """Why Gaussian cannot run *dispersion* on *functional*, or None.
+
+    *functional* is the route word this writer spells (``gaussian_native_
+    functional``), *dispersion* any spelling ``normalize_gaussian_dispersion``
+    reads, *literal* the project's word for the functional. A keyword outside
+    the measured vocabulary, and PFD, are not judged here: nothing was
+    measured to say so.
+    """
+
+    if functional is None or dispersion is None:
+        return None
+    from chemsmart.io.gaussian import GAUSSIAN_ALL_FUNCTIONALS
+
+    keyword = str(functional).strip().lower()
+    word = normalize_gaussian_dispersion(dispersion)
+    parameterised = GAUSSIAN_DISPERSION_PARAMETERS.get(word)
+    if parameterised is None or keyword not in GAUSSIAN_ALL_FUNCTIONALS:
+        return None
+    if keyword in parameterised:
+        return None
+    available = sorted(
+        other
+        for other, keywords in GAUSSIAN_DISPERSION_PARAMETERS.items()
+        if keyword in keywords
+    )
+    has = (
+        f"It has {', '.join(w.upper() for w in available)} for "
+        f"{keyword.upper()}"
+        if available
+        else f"It has no GD2, GD3 or GD3BJ for {keyword.upper()}"
+    )
+    elsewhere = ""
+    orca_word = _GAUSSIAN_TO_ORCA_DISPERSION[word]
+    if literal is not None:
+        from chemsmart.jobs.orca.settings import orca_dispersion_parameterised
+
+        in_orca = orca_dispersion_parameterised(literal, orca_word)
+        if in_orca is True:
+            elsewhere = (
+                f" ORCA has the pair (functional: {literal}, dispersion: "
+                f"{orca_word})."
+            )
+        elif in_orca is False:
+            elsewhere = " ORCA has no such pair either."
+    stop = "S6" if word == "gd2" else "S8"
+    return (
+        f"Gaussian 16 has no {word.upper()} parameters for "
+        f"{keyword.upper()}: link 301 stops before any SCF "
+        f'("R6DS{stop[-1]}: Unable to choose the {stop} parameter"; census '
+        f"D). {has}.{elsewhere} Route: a dispersion it has, a program with "
+        "the pair, or a functional with its own dispersion ("
+        + ", ".join(w.upper() for w in GAUSSIAN_DISPERSION_BEARING_FUNCTIONALS)
+        + "; each a different functional)."
+    )
+
+
+def gaussian_shorthand_base_refusal(requested, functional, dispersion):
+    """Why a ``functional-Dn`` shorthand cannot be written, or None.
+
+    The shorthand is read as a base functional plus ``EmpiricalDispersion``;
+    when the base is not a Gaussian keyword, the route this writer would
+    produce stops at link 1 on a word Gaussian does not know (``b97-d3`` became
+    ``b97 ... empiricaldispersion=gd3``; R10 census D, CUHK Slurm 2153534).
+    """
+
+    from chemsmart.io.gaussian import GAUSSIAN_ALL_FUNCTIONALS
+
+    if functional is None or str(functional).strip().lower() in (
+        GAUSSIAN_ALL_FUNCTIONALS
+    ):
+        return None
+    word = normalize_gaussian_dispersion(dispersion)
+    return (
+        f"{requested!r} was read as {functional!r} with "
+        f"EmpiricalDispersion={word.upper()}, and Gaussian has no keyword "
+        f"{str(functional).upper()}: the route would stop at link 1. Name a "
+        "Gaussian functional keyword with a dispersion setting, or a keyword "
+        "that carries its own dispersion ("
+        + ", ".join(w.upper() for w in GAUSSIAN_DISPERSION_BEARING_FUNCTIONALS)
+        + ")."
+    )
+
+
 def gaussian_native_functional(functional):
     """Return the Gaussian route word for a ChemSmart functional literal.
 
@@ -1600,6 +1801,19 @@ class GaussianJobSettings(MolecularJobSettings):
                 gaussian_native_functional(functional_without_shorthand),
                 spin_prefix,
             )
+            if shorthand_dispersion is not None:
+                refusal = gaussian_shorthand_base_refusal(
+                    self.functional, functional, shorthand_dispersion
+                )
+                if refusal:
+                    raise ValueError(refusal)
+            refusal = gaussian_dispersion_refusal(
+                functional,
+                resolved_dispersion,
+                literal=functional_without_shorthand,
+            )
+            if refusal:
+                raise ValueError(refusal)
             native_basis = gaussian_native_basis_token(self.basis)
             route_string += f" {functional} {native_basis}"
             logger.debug(
