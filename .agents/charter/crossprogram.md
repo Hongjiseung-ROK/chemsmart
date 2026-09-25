@@ -86,3 +86,22 @@ not equal solutions, and no sensor yet compares them. A spin-coupled
 multi-site state (site-specific flips) is not represented: "broken"
 says the symmetry broke, not that an intended multi-site state was
 reached.
+
+A dispersion correction is one word only where each program means one
+correction by it, and is written only where the program has parameters
+for the pair (R10 Q20). Census D ran every functional + dispersion pair
+the writers produce on the programs themselves (CUHK 2153534,
+2153546): green previews died on the program's own lookup in Gaussian
+(179, link 301), ORCA (96, after the SCF, past the input-check banner)
+and PySCF (197, at run time). The writers now hold those measured tables
+and refuse, with routes, exactly the pairs that died, writing every pair
+that ran byte for byte; where programs share a pair, their dispersion
+energies agree to 1e-9 Eh. The word `d3` was two corrections: ORCA's
+bare D3 is D3(BJ), while the hub's Gaussian `gd3` is zero damping. ORCA
+now refuses a bare `d3` and asks for `d3zero` or `d3bj`. ORCA's D2
+applies a silent default C6 scaling (1.200) to B3LYP/G, the spelling the
+hub writes for `b3lyp`, and that pair is refused. wB97X + D3(BJ) has no
+same-physics translation: ORCA's and PySCF's are wB97X-V exchange and
+correlation with D3(BJ), and Gaussian's wB97XD is its own functional.
+PySCF still runs `wb97x` + `d3bj` with wB97X-V-fitted parameters on the
+2008 functional, which its own table calls supported.
