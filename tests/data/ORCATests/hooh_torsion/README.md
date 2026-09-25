@@ -21,8 +21,11 @@ ORCA job keeps.
 | `geom-trans-reached_optts_optts.out` | g2-hooh, calc-ts-trans (cycle 2) | `! OptTS Freq` from calc-d180's structure: the trans saddle, -245.85 cm^-1 | `81db680581b82ef0d04cd1844f072a8430b1177c8441351e331f345ff58cd225` |
 | `geom-trans-reached_optts_optts.hess` | g2-hooh, calc-ts-trans | its final Hessian sidecar | `3459ce097e85ead596f151e6c9523ff7f5ea809038af083d70b8e3e2bd059091` |
 
-The torsion held at 90 deg is `../constrained_dihedral/h2o2_b3lypg_d3bj_def2svp_hooh90_freq.out`
-(g1-hooh mod90), with its sidecar beside it.
+| `h2o2-rot-90_modred_modred.out` | R10 Q27 g1, c90-modred-freq (2153714, code 83b9bfbd) | `! Opt Freq`, held at 90.00 deg: the result the goal delivered G(90 deg) from, with the torsion projected | `1853f72ee075b9d3589894e998e186f01e7be02c058dbbb44a859a4300c9c4e5` |
+| `h2o2-rot-90_modred_modred.hess` | R10 Q27 g1, c90-modred-freq | its Hessian sidecar (the same bytes as g1-hooh mod90's) | `0b8636d7c8569f4dac0a78dcee0b6f6def6fdb412812a11bea99a0df0e87eaa3` |
+
+The torsion held at 90 deg by Q21's g1-hooh is `../constrained_dihedral/h2o2_b3lypg_d3bj_def2svp_hooh90_freq.out`
+(mod90), with its sidecar beside it.
 
 What they show, read through the host's readers (R10 Q27): each `.hess`
 reproduces its output's printed frequencies to 0.005 cm^-1; removing the

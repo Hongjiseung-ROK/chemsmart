@@ -910,14 +910,21 @@ def results_for_selector(
     selector: str,
     jobtype: str,
     programs: Sequence[str],
-) -> tuple[tuple[str, ...], tuple[str, ...], tuple[tuple[str, str], ...]]:
+) -> tuple[
+    tuple[str, ...],
+    tuple[str, ...],
+    tuple[tuple[str, str], ...],
+    tuple[str, ...],
+]:
     """What the registered results say about one selector.
 
     Returns what was served (``artifact: value``), what was read and found
-    absent (``artifact: reason``), and the results of the named job type
+    absent (``artifact: reason``), the results of the named job type
     whose reader does not serve the selector at all (``(artifact_id,
-    path)``). Only results of the named job type count when one is named:
-    an optimisation's energy is not a transition state's.
+    path)``), and the results the host derives it from rather than reads
+    it (``artifact: route`` -- a free energy of the surface a result held).
+    Only results of the named job type count when one is named: an
+    optimisation's energy is not a transition state's.
     """
 
     from chemsmart.analysis.result_readers import (
@@ -933,6 +940,7 @@ def results_for_selector(
     served: list[str] = []
     absent: list[str] = []
     unread: list[tuple[str, str]] = []
+    derivable: list[str] = []
     for artifact_id, artifact in sorted(artifacts.items()):
         match = readers.get(str(getattr(artifact, "kind", "")))
         if match is None:
@@ -958,21 +966,37 @@ def results_for_selector(
             # a "Final Gibbs free energy" after a constrained optimum) is
             # no producer a reader is missing (R10 Q21 g1-hooh, CUHK
             # 2153623: a verified refusal read as unverified over it).
+            #
+            # Whether it has one at all is the question the derivation
+            # answers, so it is asked of the one function the derivation
+            # asks (``free_energy_surface``): a held result the host
+            # derives the free energy of the held surface from is not
+            # absent -- the verification signed "absent" over the held
+            # 90-deg H2O2 of R10 Q27 goal g1 (CUHK 2153714) while the same
+            # host derived 0.346 kcal/mol from it.
             from chemsmart.analysis.result_quantities import (
                 exists_only_at_a_stationary_point,
-                structure_stationarity,
+                free_energy_surface,
             )
 
             if exists_only_at_a_stationary_point(selector):
                 try:
-                    reading = structure_stationarity(program, output)
+                    surface = free_energy_surface(
+                        program, output, artifact_id=str(artifact_id)
+                    )
                 except Exception:  # noqa: BLE001 - unread when unreadable
-                    reading = None
-                if reading is not None and (
-                    reading.stationarity == "not_stationary"
-                ):
+                    surface = None
+                if surface is not None and surface.surface == "held_surface":
+                    derivable.append(
+                        f"{artifact_id} ({program} {result_jobtype}): "
+                        f"{surface.stationarity.sentence()}; the host derives "
+                        "the free energy of the surface it held through "
+                        f"{surface.route()}"
+                    )
+                    continue
+                if surface is not None and surface.surface == "none":
                     absent.append(
-                        f"{artifact_id}: {reading.sentence()}, so it has no "
+                        f"{artifact_id}: {surface.reason}, so it has no "
                         f"{selector} whatever its output prints"
                     )
                     continue
@@ -990,7 +1014,7 @@ def results_for_selector(
             f"{artifact_id} ({program} {result_jobtype}): "
             + _brief_reading(value, unit)
         )
-    return tuple(served), tuple(absent), tuple(unread)
+    return tuple(served), tuple(absent), tuple(unread), tuple(derivable)
 
 
 def refusal_read_against_results(
@@ -1029,9 +1053,20 @@ def refusal_read_against_results(
     served: tuple[str, ...] = ()
     absent: tuple[str, ...] = ()
     unread: tuple[tuple[str, str], ...] = ()
+    derivable: tuple[str, ...] = ()
     if selector:
-        served, absent, unread = results_for_selector(
+        served, absent, unread, derivable = results_for_selector(
             artifacts, selector, jobtype, programs
+        )
+    if derivable:
+        return False, (
+            basis
+            + f"; the host derives {selector!r} from the registered results "
+            "-- " + "; ".join(derivable) + " -- so the evidence holds the "
+            "free energy of the surface a result held and the refusal is "
+            "not verified (the free energy of a stationary point is refused "
+            "there; which of the two the question asks for is the session's "
+            "to say)"
         )
     if served:
         return False, (

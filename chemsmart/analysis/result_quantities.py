@@ -2471,10 +2471,14 @@ def _projection_refusal(artifact_id: str, diagnosis: str) -> Exception:
 
 def _held_coordinate_projection(
     *,
-    request: ThermochemistryRequestV1,
+    program: str,
+    artifact_id: str,
+    named: tuple[tuple[int, ...], ...],
     reader: Any,
     output: Any,
     stationarity: StructureStationarityV1,
+    entropy_method: str = "rrho",
+    entropy_cutoff_cm1: float | None = None,
 ) -> _HeldCoordinateProjection:
     """The spectrum of the surface the named coordinates are held on.
 
@@ -2506,9 +2510,7 @@ def _held_coordinate_projection(
         projected_harmonic_frequencies,
     )
 
-    artifact_id = request.artifact_id
-    named = request.projected_coordinates
-    job = f"{request.program} {stationarity.jobtype}".strip()
+    job = f"{program} {stationarity.jobtype}".strip()
     held = _held_by_result(reader, output)
     if held and set(named) != set(held):
         raise _projection_refusal(
@@ -2524,7 +2526,7 @@ def _held_coordinate_projection(
     if record is None:
         raise _projection_refusal(
             artifact_id,
-            f"the {request.program} reader serves no Cartesian Hessian for "
+            f"the {program} reader serves no Cartesian Hessian for "
             "this result (an ORCA Freq run keeps it as the .hess sidecar "
             "beside its output, a Gaussian Freq job in its archive entry, a "
             "PySCF hess stage in results/hessian), and a coordinate can "
@@ -2565,7 +2567,7 @@ def _held_coordinate_projection(
         raise _projection_refusal(
             artifact_id,
             f"the Hessian read from {record.source} does not reproduce the "
-            f"{request.program} printed spectrum ("
+            f"{program} printed spectrum ("
             + (
                 f"{len(reproduced)} modes against {len(printed)}"
                 if deviation is None
@@ -2706,18 +2708,18 @@ def _held_coordinate_projection(
         f"Hessian read from {record.source}"
         + (f" (sha256 {record.source_sha256})" if record.source_sha256 else "")
         + ": its translation-rotation analysis reproduces the "
-        f"{request.program} printed frequencies to {deviation:.2g} cm^-1 "
+        f"{program} printed frequencies to {deviation:.2g} cm^-1 "
         f"with {record.mass_convention}, which the kept modes use too"
     )
-    if request.entropy_method == "grimme":
+    if entropy_method == "grimme":
         kept_modes = (
             "kept modes near and below "
-            f"{request.entropy_cutoff_cm1:g} cm^-1 have their entropy "
+            f"{entropy_cutoff_cm1:g} cm^-1 have their entropy "
             "interpolated toward a free rotor's (Grimme)"
         )
-    elif request.entropy_method == "truhlar":
+    elif entropy_method == "truhlar":
         kept_modes = (
-            f"kept modes below {request.entropy_cutoff_cm1:g} cm^-1 are "
+            f"kept modes below {entropy_cutoff_cm1:g} cm^-1 are "
             "raised to it for the entropy (Truhlar)"
         )
     else:
@@ -2738,6 +2740,103 @@ def _held_coordinate_projection(
             surface,
             rotor,
         ),
+    )
+
+
+#: What a result can have a free energy of.
+FREE_ENERGY_SURFACES = ("stationary_point", "held_surface", "none")
+
+
+@dataclass(frozen=True)
+class FreeEnergySurfaceV1:
+    """Whether a result has a free energy, and of which surface.
+
+    ``stationary_point``: the structure is one, or nothing shows it is not
+    (``stationarity`` says which); the ordinary derivation applies.
+    ``held_surface``: the structure is not a stationary point because it
+    held ``held_coordinates``, and the host derives the free energy of the
+    surface they are held on (``projected_coordinates``) from this result.
+    ``none``: shown not to be a stationary point of any surface the host
+    can derive a free energy on; ``reason`` says what was read.
+    """
+
+    surface: str
+    stationarity: StructureStationarityV1
+    held_coordinates: tuple[tuple[int, ...], ...] = ()
+    reason: str = ""
+
+    def __post_init__(self) -> None:
+        if self.surface not in FREE_ENERGY_SURFACES:
+            raise QuantityContractError(
+                f"surface is one of {list(FREE_ENERGY_SURFACES)}"
+            )
+
+    def route(self) -> str:
+        """The request that derives it, for a held surface; else ''."""
+
+        if self.surface != "held_surface":
+            return ""
+        return (
+            "derive_thermochemistry with projected_coordinates "
+            f"{[list(item) for item in self.held_coordinates]} (the "
+            "one-based atoms it held)"
+        )
+
+
+def free_energy_surface(
+    program: str, output: Any, *, artifact_id: str = "result"
+) -> FreeEnergySurfaceV1:
+    """Is there a free energy at this result, and of which surface.
+
+    One function, because three organs ask it and they had drifted apart:
+    the derivation, which with ``projected_coordinates`` derives the free
+    energy of a held surface; the check that verifies a session's refusal
+    of a free energy, which went on signing "absent" over such a result
+    (R10 Q27, the held 90-deg H2O2 of goal g1, CUHK 2153714: verified while
+    the same host derived 0.346 kcal/mol from it); and the refusal's own
+    route.  A held result has a held-surface free energy exactly when the
+    derivation would give one: the same checks run here with the
+    coordinates the result itself held.
+    """
+
+    normalized = str(program).strip().lower()
+    stationarity = structure_stationarity(normalized, output)
+    if stationarity.stationarity != "not_stationary":
+        return FreeEnergySurfaceV1(
+            surface="stationary_point", stationarity=stationarity
+        )
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(normalized)
+    held = _held_by_result(reader, output)
+    if not held:
+        return FreeEnergySurfaceV1(
+            surface="none",
+            stationarity=stationarity,
+            reason=stationarity.sentence(),
+        )
+    try:
+        _held_coordinate_projection(
+            program=normalized,
+            artifact_id=artifact_id,
+            named=held,
+            reader=reader,
+            output=output,
+            stationarity=stationarity,
+        )
+    except QuantityContractError as exc:
+        return FreeEnergySurfaceV1(
+            surface="none",
+            stationarity=stationarity,
+            held_coordinates=held,
+            reason=f"{stationarity.sentence()}; and no free energy of the "
+            f"surface it held is derivable: {exc}",
+        )
+    return FreeEnergySurfaceV1(
+        surface="held_surface",
+        stationarity=stationarity,
+        held_coordinates=held,
+        reason=stationarity.sentence(),
     )
 
 
@@ -2780,21 +2879,20 @@ def _modes_the_program_removed(engine: Any) -> str:
 
 
 def _stationarity_refusal(
-    stationarity: StructureStationarityV1, artifact_id: str
+    surface: FreeEnergySurfaceV1, artifact_id: str
 ) -> QuantityExtractionError:
     """The routed refusal of a free energy at a non-stationary structure."""
 
+    stationarity = surface.stationarity
     held_route = ""
-    if stationarity.basis == "held_coordinate":
+    if surface.surface == "held_surface":
         held_route = (
             " For the free energy of the structure at the value it held -- a "
             "point of a free-energy profile along the held coordinate -- "
-            "derive thermochemistry on this result with projected_coordinates "
-            "naming the held coordinates (the one-based atoms modred took): "
-            "the host removes them from the Hessian and derives the free "
-            "energy of the 3N-7 modes of the surface they are held on, the "
-            "generalized free energy of variational transition-state "
-            "theory."
+            f"call {surface.route()}: the host removes them from the "
+            "Hessian and derives the free energy of the 3N-7 modes of the "
+            "surface they are held on, the generalized free energy of "
+            "variational transition-state theory."
         )
     return QuantityExtractionError(
         "[thermochemistry.free_energy_needs_a_stationary_point] A free "
@@ -2879,23 +2977,34 @@ def derive_result_thermochemistry(
     # below is untouched.
     projection = (
         _held_coordinate_projection(
-            request=request,
+            program=request.program,
+            artifact_id=request.artifact_id,
+            named=request.projected_coordinates,
             reader=reader,
             output=reached,
             stationarity=stationarity,
+            entropy_method=request.entropy_method,
+            entropy_cutoff_cm1=request.entropy_cutoff_cm1,
         )
         if request.projected_coordinates
         else None
     )
     # A result that printed no modes at all has nothing to derive from,
     # and says so below in its own words; the stationarity refusal is for
-    # a structure whose modes exist and describe no stationary point.
+    # a structure whose modes exist and describe no stationary point. Its
+    # route is the one ``free_energy_surface`` -- the function the refusal
+    # verification also reads -- says this result has.
     if (
         projection is None
         and stationarity.stationarity == "not_stationary"
         and _reader_answer(reader, reached, "vibrational_frequencies")
     ):
-        raise _stationarity_refusal(stationarity, request.artifact_id)
+        raise _stationarity_refusal(
+            free_energy_surface(
+                request.program, reached, artifact_id=request.artifact_id
+            ),
+            request.artifact_id,
+        )
     engine = Thermochemistry(
         projected_frequencies=(
             None if projection is None else projection.frequencies_cm1

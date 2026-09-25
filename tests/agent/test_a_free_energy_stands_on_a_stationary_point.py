@@ -284,7 +284,10 @@ def test_the_gate_is_wired_where_it_is_raised():
 
 
 @pytest.mark.capability("tool:record_scientific_decision")
-def test_a_refused_free_energy_at_a_held_structure_is_verified_by_its_reading():
+@pytest.mark.parametrize("hessian_beside_it", [False, True])
+def test_a_refused_free_energy_at_a_held_structure_is_verified_by_its_reading(
+    tmp_path, hessian_beside_it
+):
     """The unreachability check reads a refused free energy the way the
     thermochemistry stage does.
 
@@ -294,14 +297,29 @@ def test_a_refused_free_energy_at_a_held_structure_is_verified_by_its_reading():
     found ORCA's printed "Final Gibbs free energy" line in the same
     output, called the refusal unverified and "a reader the missing
     producer", and the goal went back to the human. This is that output.
+
+    Read alone, it holds no Hessian the host can read and the refusal is
+    verified, as Q21 made it. With the Hessian sidecar ORCA wrote beside
+    it, the thermochemistry stage derives the free energy of the surface
+    the torsion is held on (R10 Q27, ``projected_coordinates``), so the
+    same refusal is not verified and names that route: the check asks the
+    one function the derivation asks (``free_energy_surface``).
     """
+
+    import shutil
 
     from chemsmart.agent.tool_runtime import refusal_read_against_results
 
-    path = (
+    archived = (
         _DATA
         / "ORCATests/constrained_dihedral/h2o2_b3lypg_d3bj_def2svp_hooh90_freq.out"
     ).resolve()
+    path = tmp_path / archived.name
+    shutil.copyfile(archived, path)
+    if hessian_beside_it:
+        shutil.copyfile(
+            archived.with_suffix(".hess"), path.with_suffix(".hess")
+        )
     artifact = TrustedArtifactRefV1(
         artifact_id="orca-result-3863610af1300088",
         kind=reader_for("orca").artifact_kind,
@@ -320,6 +338,10 @@ def test_a_refused_free_energy_at_a_held_structure_is_verified_by_its_reading():
         is_verified=True,
         basis="",
     )
-    assert verified, basis
     assert "held 1 internal coordinate" in basis
     assert "missing producer" not in basis
+    if hessian_beside_it:
+        assert not verified, basis
+        assert "projected_coordinates [[3, 1, 2, 4]]" in basis
+    else:
+        assert verified, basis

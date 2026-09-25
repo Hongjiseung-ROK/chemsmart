@@ -596,3 +596,99 @@ def test_a_projected_free_energy_is_not_called_the_free_energy_of_no_state(
     ]
     assert kinds, "the reading of a two-structure difference said nothing"
     assert "vibrational_energy_of_a_structure_not_stationary" not in kinds
+
+
+def _verify_refusal(program, jobtype, path, artifact_id="refused-over"):
+    from chemsmart.agent.tool_runtime import refusal_read_against_results
+
+    path = Path(path).resolve()
+    artifact = TrustedArtifactRefV1(
+        artifact_id=artifact_id,
+        kind=reader_for(program).artifact_kind,
+        sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+        size_bytes=path.stat().st_size,
+        path=str(path),
+        cli_value=str(path),
+    )
+    return refusal_read_against_results(
+        artifacts={artifact_id: artifact},
+        observable_id="gibbs-rel-90-kcal",
+        selector="gibbs_free_energy",
+        jobtype=jobtype,
+        programs=(program,),
+        selector_declared=False,
+        is_verified=True,
+        basis="the session refused gibbs-rel-90-kcal",
+    )
+
+
+@pytest.mark.capability("tool:record_scientific_decision")
+def test_a_refused_free_energy_is_read_as_the_derivation_reads_the_result(
+    tmp_path,
+):
+    """A verified refusal is true when it is signed (verify-when-signing).
+
+    R10 Q27 goal g1 (CUHK 2153714) delivered G(held 90 deg) - G(eq) =
+    0.346 kcal/mol from its held result, and the same host still verified
+    a session's refusal of that free energy over that result as absent.
+    The check now asks the one function the derivation asks
+    (``free_energy_surface``): over a held result whose reader serves the
+    Hessian the refusal is not verified and names the route, and the
+    derivation's own refusal of the stationary-point free energy names the
+    same route.
+    """
+
+    from chemsmart.analysis.result_quantities import QuantityExtractionError
+
+    held = _TORSION / "h2o2-rot-90_modred_modred.out"
+    verified, basis = _verify_refusal("orca", "modred", held)
+    assert not verified, basis
+    assert "projected_coordinates [[3, 1, 2, 4]]" in basis
+    path = held.resolve()
+    from chemsmart.analysis.result_quantities import (
+        ThermochemistryRequestV1,
+        derive_result_thermochemistry,
+    )
+
+    with pytest.raises(QuantityExtractionError) as refused:
+        derive_result_thermochemistry(
+            request=ThermochemistryRequestV1(
+                schema_version="chemsmart.thermochemistry-request.v1",
+                artifact_id="g1-held-90",
+                artifact_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+                program="orca",
+                temperature_k=298.15,
+                pressure_atm=1.0,
+            ),
+            artifact_path=path,
+        )
+    assert "projected_coordinates [[3, 1, 2, 4]]" in str(refused.value)
+
+
+@pytest.mark.parametrize(
+    "program,jobtype,relative",
+    [
+        # Q21's own unheld controls: an ORCA saddle search that printed its
+        # non-convergence, and a PySCF Hessian at 41 times the gradient
+        # criterion. Neither held anything, so no surface is derivable and
+        # the refusal of their free energy stays verified.
+        (
+            "orca",
+            "ts",
+            "ORCATests/unconverged_saddle_search/"
+            "presaddle-esterc4_optts_optts.out",
+        ),
+        (
+            "pyscf",
+            "hess",
+            "PySCFTests/outputs/water_stretched_hess/"
+            "water_stretched_hess_gas_phase.h5",
+        ),
+    ],
+)
+def test_a_refused_free_energy_of_an_unheld_non_stationary_structure_stays_verified(
+    program, jobtype, relative
+):
+    verified, basis = _verify_refusal(program, jobtype, _TESTS_DATA / relative)
+    assert verified, basis
+    assert "projected_coordinates" not in basis
