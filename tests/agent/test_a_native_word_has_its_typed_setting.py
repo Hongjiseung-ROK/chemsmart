@@ -207,3 +207,51 @@ def test_a_persons_project_keeps_the_field_and_the_review_shows_it(
     )
     assert receipt.status == "valid", receipt.diagnostic
     assert dict(receipt.settings)["input_string"] == "! HF STO-3G\n"
+
+
+@pytest.mark.parametrize("program", ["orca", "gaussian"])
+def test_the_capability_offers_no_field_the_project_tool_refuses(program):
+    """A field refused whenever set is a person's; it is not offered."""
+
+    from chemsmart.jobs.settings import (
+        agent_refused_fields,
+        project_native_words,
+    )
+    from chemsmart.settings.capabilities import PROJECT_OWNED_PARAMETERS
+
+    refused = agent_refused_fields(program)
+    assert "input_string" in refused and "route_to_be_written" in refused
+    assert not set(refused) & set(PROJECT_OWNED_PARAMETERS[program])
+    for field in refused:
+        found = project_native_words(program, {"gas": {field: "x"}})
+        assert [item.field for _section, item in found] == [field]
+
+
+@pytest.mark.capability("setting:gaussian:defgrid")
+def test_another_programs_grid_word_is_redirected_in_a_gaussian_project():
+    """Gaussian declares its own grid words; ORCA's are ORCA's."""
+
+    from chemsmart.agent._contracts import ContractError
+
+    with pytest.raises(ContractError) as caught:
+        _render(
+            "gaussian",
+            {"gas": {**_LEVEL["gaussian"], "defgrid": "defgrid2"}},
+        )
+    assert "implemented by: orca" in str(caught.value)
+    assert "gaussian's defgrid vocabulary" in str(caught.value)
+
+
+def test_an_unknown_setting_is_answered_with_the_offered_settings(tmp_path):
+    """The loader's key list taught input_string (R10 Q15 g1)."""
+
+    _project, receipt = validate(
+        tmp_path,
+        "gaussian",
+        {"gas": {**_LEVEL["gaussian"], "maxcycle": 100}},
+        "opt",
+    )
+    assert receipt.status == "invalid"
+    assert "`maxcycle`" in receipt.diagnostic
+    assert "route_to_be_written" not in receipt.diagnostic
+    assert "input_string" not in receipt.diagnostic

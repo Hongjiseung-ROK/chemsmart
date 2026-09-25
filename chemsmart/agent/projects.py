@@ -816,7 +816,15 @@ def validate_project_yaml(
             rules = ("project.loader.unavailable",)
         except Exception as exc:
             error_class = type(exc).__name__
-            diagnostic = _public_loader_diagnostic(exc, binding.path)
+            diagnostic = _public_loader_diagnostic(
+                exc,
+                binding.path,
+                offered=tuple(
+                    capability.capability.project_owned_parameters
+                    if capability.capability is not None
+                    else ()
+                ),
+            )
             rules = ("project.loader.rejected",)
     body = {
         "schema_version": "chemsmart.project-validation-receipt.v1",
@@ -912,12 +920,45 @@ def _yaml_project_loader(module: Any) -> type:
     return candidates[0]
 
 
-def _public_loader_diagnostic(exc: Exception, project_path: str) -> str:
-    """Return a bounded, path-free counterexample for model repair."""
+#: The loader's refusal of a key no settings class takes: it lists every
+#: key the class does take, the person-only ones among them.
+_UNKNOWN_SETTING = re.compile(
+    r"Keyword `([^`]+)` is not in list of keywords `?dict_keys\(\[[^\]]*\]\)`?"
+)
+
+
+def _public_loader_diagnostic(
+    exc: Exception, project_path: str, offered: tuple[str, ...] = ()
+) -> str:
+    """Return a bounded, path-free counterexample for model repair.
+
+    An unknown key is answered with the settings the capability offers,
+    nearest first. The loader's own sentence lists every key the settings
+    class takes, and a session read ``input_string`` off that list and
+    wrote a 22-byte input with it on the next turn (R10 Q15 g1); others
+    sent deliberate nonsense keys to read the list. The list the model is
+    given is the one its capability advertises.
+    """
+
+    from difflib import get_close_matches
 
     message = " ".join(str(exc).split())
     if project_path:
         message = message.replace(str(project_path), "<project>")
+    match = _UNKNOWN_SETTING.search(message)
+    if match and offered:
+        key = match.group(1)
+        nearest = get_close_matches(key, offered, n=6, cutoff=0.5)
+        message = (
+            f"`{key}` is not a setting this stage's settings take. "
+            + (
+                f"Nearest offered settings: {', '.join(nearest)}. "
+                if nearest
+                else ""
+            )
+            + f"This program offers {len(offered)} project settings; "
+            "inspect_program lists them as project_owned_parameters."
+        )
     return message[:500]
 
 
