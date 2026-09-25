@@ -81,6 +81,78 @@ Not defects (principled): PySCF refuses every inapplicable combination with a
 sentence; xTB 15/15 reach; loader-level overrides (freq off on irc/scan) are
 reported to the Agent as `declared_settings_overridden`.
 
+Also found while repairing: the ORCA `%irc` block iterated a set, so one
+project wrote three line orders in three processes (PYTHONHASHSEED 1/2/3:
+three digests of one input). Across all 800 census inputs, two processes
+(seeds 11, 22) now write byte-identical Gaussian/ORCA/PySCF inputs.
+
+## Repairs (one commit per defect; LOUD ones say so)
+
+c421d2da CLI defaults -> None (14 options); 293fc7b9 %irc block (switches,
+Monitor_Internals, order); acc01de5 Gaussian print level; 07b4c771 (shared)
+Gaussian reader reads force / freq=numer; b323a3b1 preview asks the writer's
+table (settings_not_written_for); 6b5bca0f + d986e8b5 (shared) ORCA forces ->
+EnGrad on sp; cc8a7d44 gbw: false refused; 8b7225a2 ORCA light basis compared
+with the route basis; 2a7aa27a scf_tol preset only (+ f7df2e99, the reader
+regression it exposed); 192491e7 Gaussian per-element basis refused not
+crashed; f037967d + 375eb7f4 Gaussian link (IRC controls kept, ab initio no
+crash, route `#`, preview); c30a76cf ScanTS form (Q20's relay: CLI key/shape,
+no Calc_Hess); a0a2a3be dead %irc table deleted; bba64472 PySCF preview
+compares declared fields; 9569bc64 semiempirical aux/extrapolation refused;
+bf050808 ORCA solvent file name; ac179b93 (shared) the signature-scan guard
+deleted (it passed over all 14 options and over Q28's 512).
+
+Guard (4c50547d, tests/agent/test_a_stated_setting_reaches_the_input.py):
+the Click-level registry test and the census over the 28 executable stages
+(49 s). WITNESS on a pristine export of the base b96e63ee: 15 of 28 stages
+red plus the registry (14 options) -- forces x13, solventfilename x7,
+light_elements_basis x7, heavy_elements_basis crash x7, dieze_tag x7,
+numfreq x6, opt_convergence/geom_maxiter/additional_opt_options false reds
+x9, tssearch_type x1, the five IRC switches "never written, compared by
+nothing" -- and green on the repaired tree and on the merge with
+r10-integration 3f3331c0 (788 passed with Q20's dispersion tests).
+
+Census C0 re-read on the repaired tree: every remaining not-written cell is
+refused with a sentence, reported overridden, or declared unwritten by the
+writer's table; the preview red cells left are ORCA NEB (not executable).
+
+## Oracles O1 (ORCA 6.1.1) and O2 (Gaussian 16 C.02) -- PRE-REGISTRATION
+
+Written before submission. CLI only (`chemsmart run`, no Agent), code = this
+branch after the merge (commit named in code-commit.txt), 4 cores / 8 GB
+each, B3LYP/def2-SVP. Judged by what the program prints back, not by what
+was written.
+
+O1 (ORCA):
+- O1a ScanTS from the project (`ts: {tssearch_type: scants, freq: true,
+  scants_modred: {coords: [[3, 2]], dist_start: 2.10, dist_end: 1.10,
+  num_steps: 11}}`) on a bent HCN: PREDICT ORCA runs the relaxed scan,
+  starts OptTS from its highest point and converges; Freq shows exactly one
+  imaginary mode in [-1250, -1000] cm-1; the saddle's H-C in [1.10, 1.25] A
+  and H-N in [1.30, 1.50] A. FAIL: an abort at the scan's first step (Q20's
+  CUHK 2153578) or no saddle.
+- O1b OptTS from an HCN/HNC saddle guess (freq: true): one imaginary mode in
+  [-1250, -1000] cm-1.
+- O1c IRC forward from O1b's saddle with every %irc switch stated false,
+  MaxIter 40, InitHess calc_anfreq and Monitor_Internals over H-C and H-N:
+  PREDICT ORCA accepts the block (no input error), reports the stated values
+  where it prints its IRC settings, prints the monitored distances each
+  step, and ends at a minimum (HCN or HNC). FAIL: an input error on the
+  block, or a printed setting that contradicts the input.
+- O1d `sp: {forces: true}` on a distorted water: PREDICT ORCA prints a
+  CARTESIAN GRADIENT block and writes a .engrad with 9 components whose
+  energy equals the single point's to 1e-8 Eh, max |g| > 1e-3 Eh/bohr.
+O2 (Gaussian):
+- O2a `opt` + `freq` on a distorted water with defgrid superfinegrid,
+  scf_convergence tight, dispersion gd3bj, SMD water and route word nosymm
+  (Q27's class: does Gaussian's generated frequency step keep every typed
+  word?). H0 PREDICTED: both job steps print IRadAn 7, the GD3BJ dispersion
+  energy, the SMD terms and "Symmetry turned off by external request". A
+  step that lacks one FALSIFIES H0 and is a translation defect to repair.
+  Physics: three real modes, bend 1550-1750 and stretches 3600-4000 cm-1.
+- O2b `sp: {forces: true}`: Gaussian prints its Forces (Hartrees/Bohr) block.
+
 ## Status
 
-2026-09-25: census C0 read on the base tree; repairs next.
+2026-09-25: repairs and guard committed; merged r10-integration 3f3331c0;
+oracles O1 and O2 pre-registered, not yet submitted.
