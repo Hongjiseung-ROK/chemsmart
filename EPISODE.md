@@ -204,6 +204,49 @@ arm's ROUTE count does not exceed the control arm's. A control arm that
 takes the route as often as the repaired arm is reported as it is: the
 model knew the route without being told.
 
+## CF -- READ (job 2153710, 12 of 12 samples, no INFRA)
+
+Both tree digests verified on the node (control 812e923b, repaired
+dcdd750a). ROUTE 6 of 6 in the control arm, 6 of 6 in the repaired arm;
+read by hand, every sample in both arms names broken_symmetry on the
+triplet as the cause, establishes a second ORCA project without it (with
+`reference: uhf` added in 3 of 6 control and 1 of 6 repaired samples), and
+rebinds the triplet node (amend_scientific_workflow or a re-issued stage).
+Repaired texts quote the sentence ("refused for exactly the reason
+named"); control texts infer it ("almost certainly the project setting
+itself ... meaningless for a requested triplet"), leaning on the base's own
+observation that GuessMix runs "on the singlet (Ms = 0)". The
+pre-registered falsifier FIRED: the repaired arm's ROUTE count (6) does not
+exceed the control's (6). For this refusal, deepseek-v4-flash-0731's next
+move did not depend on the sentence: the model knew the route from its own
+project, the observation and chemistry. The sentence did reach it
+(quoted in the repaired arm).
+
+## CF-G -- PRE-REGISTRATION (Gaussian variant, before submission)
+
+Same design, prefix built for Gaussian (make_prefix.py sha256 5e82afe1...,
+now taking the program; transcript 5ad06fc5..., shared project
+`gaussian-b3lyp-def2svp-bs`, {functional: b3lyp, basis: def2svp,
+broken_symmetry: true}); configs cfg-control.json 7d48ea56...,
+cfg-repaired.json 4bad7c1b...; job cf_g.sh de4d8076...; classifier
+cf_classify.py 5eaf1dfe... (the same rules; the shared role is now an
+argument). What differs from CF is the base reply: Gaussian's refused
+writer leaves a 0-byte input, read back as five false findings
+(functional, basis, charge, multiplicity, and `broken_symmetry expected
+True observed False`); the repaired reply has the sentence and none of
+them. Predictions: control ROUTE <= 4 of 6 with at least one GUESS or
+NATIVE (re-spelled fields, or guess=mix as native words); repaired ROUTE >=
+5 of 6. FALSIFIED if the repaired arm's ROUTE count does not exceed the
+control's.
+
+## Hand-back gates (pristine export of de7f6771)
+
+- tests/agent: 3207 passed, 0 failed (chemsmart imported from the export).
+- Full suite: 23 failed, 4762 passed; the failing set is the round
+  baseline (test_structures x19, pyscf dispersion x2, PyscfSettings x1,
+  aggregation x1), none under tests/agent.
+- ruff, black --check, isort --check clean on the six touched files.
+
 ## Jobs issued
 
 - 2026-09-25: archive scan, CUHK Slurm 2153702 (r10-q26-a), 1 core,
