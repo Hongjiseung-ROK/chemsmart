@@ -336,6 +336,55 @@ Predictions (never tuned after a result):
 - 2026-09-25: live goal G2, CUHK Slurm 2153763 (r10-q28-b), 32 cores,
   pre-registration 25920fd9cb7a.
 
+## Gates (tree b7158727 = f049528a + episode records)
+
+- tests/agent on a pristine export of b7158727: 3233 passed, 0 failed
+  (chemsmart imported from the export).
+- Full suite (worktree, PYTHONPATH set, merged tree): 23 failed == the
+  round baseline (test_structures x19, PyscfSettings x1, aggregation x1,
+  pyscf dispersion x2), 4788 passed.
+- ruff, black --check, isort --check clean on the 13 touched Python files.
+
+## Found and left
+
+- Human path: ORCA `route_to_be_written`, `scf_algorithm` and `scf_tol`
+  reach the `!` line without R10 Q9's resource refusal (only
+  `additional_route_parameters` is checked, jobs/orca/settings.py
+  `_normalize_additional_route_parameters`); `scf_tol: '1e-10'` writes
+  `1e-10SCF`. The Agent path now refuses all three forms; the human line is
+  the owner's.
+- ORCA's SCF-converger vocabulary (`ORCA_SCF_ALGORITHMS`, io/orca
+  __init__.py ~698: direct, diis, kdiis) is incomplete and validates
+  nothing; `scf_algorithm` words other than typed intents and resources
+  pass to ORCA's own input check.
+- No typed form yet: Hirshfeld populations (the one legitimate untyped
+  print word in the census; it renders), spin flips on named sites (ax41
+  ino2's Ni(II) dimer; now refused with that statement, as ORCA's parser
+  refused `FlipSpin` on the `!` line anyway), `nosymm`/`UseSym`, Gaussian
+  `scf=(conver=N)` and SCF convergers (`xqc`, `qc`), Gaussian opt
+  convergence words (`tight`, `verytight` inside opt=()), integral
+  accuracy (`int=acc2e`), custom solvent lines. All still pass verbatim
+  and displayed where they are words; none appeared in the census except
+  Hirshfeld and the named-site flips.
+- An unknown `maxcycles` in a Gaussian opt/ts section is now answered with
+  the nearest offered names, which do not include geom_maxiter (difflib
+  distance); a synonym route would name it.
+
+## For the owner (policy lines this episode draws, not decides)
+
+- The human CLI keeps every field (unchanged). The Agent path refuses a
+  native word only where a typed setting states it, plus the fields that
+  replace or append what the host writes. After this change the census's
+  legitimate untyped residue is Hirshfeld (typable) and named-site spin
+  flips (not yet); closing the remaining channel entirely on the Agent
+  path is the owner's decision.
+- Whether R10 Q9's resource refusal should also cover the human path's
+  `route_to_be_written`, `scf_algorithm` and `scf_tol`.
+
 ## Status
 
-2026-09-25: base verified, code read, census pre-registered; ax41 read.
+2026-09-25: code, census, replays, oracle O1 and gates done; live goals
+G1 (2153762) and G2 (2153763) running. To read them: master's
+read_goal.py, the public transcripts, and scratch
+`q28/goals/read_goal_q28.py <workspace>` (authoring calls, native-gate
+refusals and next change, P1 over promoted projects, .com routes).
