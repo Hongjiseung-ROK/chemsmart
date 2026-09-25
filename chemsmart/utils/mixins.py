@@ -2125,7 +2125,9 @@ class ORCAFileMixin(FileMixin):
             light_elements_basis=self.light_elements_basis,
             custom_solvent=dv.custom_solvent,
             solventfilename=self.solventfilename,
-            forces=dv.forces,
+            # EnGrad, which the writer writes for an sp stage's forces; the
+            # reader returned the default (False) whatever the route said.
+            forces=bool(getattr(self.route_object, "forces", dv.forces)),
         )
         if settings.jobtype == "irc":
             from chemsmart.jobs.orca.settings import ORCAIRCJobSettings
