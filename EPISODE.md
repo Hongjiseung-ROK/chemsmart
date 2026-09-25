@@ -331,6 +331,10 @@ Predictions (never tuned after a result):
   pre-registration 3ea545790fc2; COMPLETED (read above).
 - 2026-09-25: replay R, CUHK Slurm 2153750 (r10-q28-b), 1 core,
   pre-registration 3ea545790fc2; COMPLETED (read above).
+- 2026-09-25: live goal G1, CUHK Slurm 2153762 (r10-q28-a), 16 cores,
+  pre-registration 25920fd9cb7a; code digest 5ec97fc0 verified on the node.
+- 2026-09-25: live goal G2, CUHK Slurm 2153763 (r10-q28-b), 32 cores,
+  pre-registration 25920fd9cb7a.
 
 ## Status
 
