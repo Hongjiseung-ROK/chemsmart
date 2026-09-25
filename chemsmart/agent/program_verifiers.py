@@ -504,6 +504,24 @@ def _validate_gaussian_link_input(
     target_settings = dict(expected_settings)
     for field in ("guess", "link_route", "stable"):
         target_settings.pop(field, None)
+    # The link command writes the method unrestricted (the U prefix) in
+    # both steps, whichever of functional or ab_initio names it; that is
+    # the link's own translation, not a changed method.
+    for field in ("functional", "ab_initio"):
+        declared = str(target_settings.get(field) or "").strip().casefold()
+        observed = str(getattr(parsed_target, field, "") or "").casefold()
+        if declared and observed == f"u{declared}":
+            setattr(parsed_target, field, target_settings[field])
+    # The target route also carries the checkpoint words the link writer
+    # adds to every second step, which no project states.
+    extra = getattr(parsed_target, "additional_route_parameters", None)
+    if extra:
+        kept = [
+            word
+            for word in str(extra).split()
+            if word.casefold() not in {"geom=check", "guess=read"}
+        ]
+        parsed_target.additional_route_parameters = " ".join(kept) or None
     findings.extend(_settings_match(parsed_target, target_settings))
     if not _geometry_sets_equal(expectation.input_artifact.path, [path]):
         findings.append(

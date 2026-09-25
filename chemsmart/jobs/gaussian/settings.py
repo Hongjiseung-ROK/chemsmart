@@ -323,19 +323,37 @@ GAUSSIAN_OPTIMISING_JOBTYPES = ("opt", "ts", "modred", "scan")
 GAUSSIAN_OPTIMISER_FIELDS = ("geom_maxiter", "additional_opt_options_in_route")
 
 
+#: The reaction path's controls: written inside the ``irc(...)`` word, so
+#: only a path writes them (a link job carries them for an IRC target).
+GAUSSIAN_PATH_FIELDS = (
+    "direction",
+    "flat_irc",
+    "maxcycles",
+    "maxpoints",
+    "predictor",
+    "recalc_step",
+    "recorrect",
+    "stepsize",
+)
+
+
 def settings_not_written_for(jobtype):
     """The settings the writer writes for no stage of *jobtype*.
 
     A project's phase section feeds every stage, so an optimiser control
     stated beside the level of theory reaches a single point too, which
-    runs no optimiser and whose route correctly carries none. The preview
-    asks this, the writer's own table, instead of demanding the control
-    in an input that cannot hold it.
+    runs no optimiser and whose route correctly carries none; and a link
+    job's settings carry the path controls whatever its target is. The
+    preview asks this, the writer's own table, instead of demanding a
+    control in an input that cannot hold it.
     """
 
-    if jobtype in GAUSSIAN_OPTIMISING_JOBTYPES:
-        return ()
-    return GAUSSIAN_OPTIMISER_FIELDS
+    fields = ()
+    if jobtype not in GAUSSIAN_OPTIMISING_JOBTYPES:
+        fields += GAUSSIAN_OPTIMISER_FIELDS
+    if jobtype not in ("irc", "ircf", "ircr"):
+        fields += GAUSSIAN_PATH_FIELDS
+    return fields
 
 
 def _normalize_gaussian_word(value, allowed, field_name):
@@ -3252,6 +3270,12 @@ class GaussianLinkJobSettings(GaussianJobSettings):
                 link_route_string += " geom=check"
             if "guess=read" not in link_route_string:
                 link_route_string += " guess=read"
+            # A route section begins with ``#``; the target route a project
+            # states as words (``link_route: opt freq``) was written without
+            # one, which Gaussian does not read as a route (R10 Q31 census).
+            if not link_route_string.lstrip().startswith("#"):
+                tag = f"#{self.dieze_tag}" if self.dieze_tag else "#"
+                link_route_string = f"{tag} {link_route_string.strip()}"
             logger.debug(
                 f"Link route for settings {self}: {link_route_string}"
             )
